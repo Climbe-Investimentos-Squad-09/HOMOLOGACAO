@@ -28,7 +28,7 @@ export class RolesService {
 
   async assignPermissions(dto: AssignPermissionDto): Promise<Role> {
     const role = await this.roleRepo.findOne({
-      where: { idCargo: dto.roleId },
+      where: { idCargo: dto.idCargo },
       relations: ['permissoes']
     });
     if (!role) throw new NotFoundException('Cargo não encontrado');

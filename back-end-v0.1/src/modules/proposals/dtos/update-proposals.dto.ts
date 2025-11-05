@@ -1,35 +1,19 @@
 // src/modules/proposals/dtos/update-proposals.dto.ts
-import { IsString, IsOptional, IsISO8601, IsNumber } from 'class-validator';
-import { StatusProposta } from '../entities/proposals.entity';
+import { IsInt, IsOptional, IsISO8601, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateProposalsDto {
-    
-    @IsNumber()
-    @IsOptional()
-    idProposta?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  idEmpresa?: number;
 
-    @IsNumber()
-    @IsOptional()
-    idEmpresa?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  valorProposta?: number;
 
-    @IsNumber()
-    @IsOptional()
-    idEmissor?: number;
-
-    @IsNumber()
-    @IsOptional()
-    valorProposta?: number;
-
-    @IsString()
-    @IsOptional()
-    prazoValidade?: string;
-
-    @IsString()
-    @IsOptional()
-    statusProposta?: StatusProposta;
-
-    @IsISO8601()
-    @IsOptional()
-    dataCriacao?: string;
-    
+  @IsOptional()
+  @IsISO8601()
+  prazoValidade?: string; // 'YYYY-MM-DD'
 }

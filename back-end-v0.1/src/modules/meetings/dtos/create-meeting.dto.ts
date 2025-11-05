@@ -1,0 +1,29 @@
+// src/modules/meetings/dtos/create-reuniao.dto.ts
+import { IsString, IsOptional, IsISO8601, IsEnum } from 'class-validator';
+import { ModalidadeReuniao } from '../entities/meeting.entity';
+
+export class CreateReuniaoDto {
+  @IsString()
+  titulo!: string;
+
+  @IsOptional()
+  @IsString()
+  pauta?: string;
+
+  @IsISO8601()
+  dataHoraInicio!: string;
+
+  @IsISO8601()
+  dataHoraFim!: string;
+
+  @IsEnum(ModalidadeReuniao)
+  modalidade!: ModalidadeReuniao;
+
+  @IsOptional()
+  @IsString()
+  local?: string;        // recomendado se PRESENCIAL
+
+  @IsOptional()
+  @IsString()
+  linkRemoto?: string;   // recomendado se REMOTO
+}

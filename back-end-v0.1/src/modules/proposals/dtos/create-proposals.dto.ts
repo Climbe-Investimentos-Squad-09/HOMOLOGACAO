@@ -1,26 +1,24 @@
 // src/modules/proposals/dtos/create-proposals.dto.ts
-import { IsString, IsOptional, IsISO8601 } from 'class-validator';
+import { IsInt, IsNumber, IsEnum, IsISO8601 } from 'class-validator';
 import { StatusProposta } from '../entities/proposals.entity';
 
 export class CreateProposalsDto {
+    @IsInt()
+    idEmpresa!: number;   // FK para empresa
 
-    @IsString()
-    idEmpresa!: number;
+    @IsInt()
+    idEmissor!: number;   // FK para usuário
 
-    @IsString()
-    idEmissor!: number;
-
-    @IsString()
+    @IsNumber()
     valorProposta!: number;
 
-    @IsString()
+    @IsISO8601()
     prazoValidade!: string;
 
-    @IsString()
+    @IsEnum(StatusProposta)
     statusProposta!: StatusProposta;
 
     @IsISO8601()
-    @IsOptional()
-    dataCriacao?: string;
-    
+    dataCriacao?: Date;
 }
+

@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, JoinTable } from 'typeorm';
 import { Permission } from '../../permissions/entities/permission.entity';
-//import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('Cargos')
 export class Role {
@@ -19,7 +19,8 @@ export class Role {
   })
   permissoes!: Permission[];
 
-  /* 1:N com Usuários
+  
   @OneToMany(() => User, user => user.cargo)
-  usuarios!: User[];*/
+  usuarios!: User[];
+  
 }

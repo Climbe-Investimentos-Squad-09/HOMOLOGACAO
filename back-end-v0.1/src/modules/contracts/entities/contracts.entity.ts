@@ -5,13 +5,19 @@ import {
   OneToOne,
   JoinColumn,
   ManyToOne,
-  CreateDateColumn
+  CreateDateColumn,
+  OneToMany
 } from 'typeorm';
 import { Proposals } from '../../proposals/entities/proposals.entity';
-/*import { User } from '../../users/entities/user.entity'; */
+import { User } from '../../user/entities/user.entity'; 
+import { ContractAssignee } from './contract-assignee.entity';
 
-// Segue em comentário as interações ainda não modeladas no sistema
 
+export enum StatusContrato {
+  Ativo = 'Ativo',
+  Encerrado = 'Encerrado',
+  Rescindido = 'Rescindido',
+}
 
 @Entity('Contratos')
 export class Contract {
@@ -21,10 +27,10 @@ export class Contract {
   @OneToOne(() => Proposals, proposal => proposal.idProposta)
   @JoinColumn({ name: 'idProposta' })
   proposta!: Proposals;
-  /*
+  
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'idCompliance' })
-  compliance?: User; */
+  compliance!: User; 
 
   @Column({
     type: 'enum',
@@ -38,4 +44,8 @@ export class Contract {
 
   @Column({ type: 'date', nullable: true })
   dataEncerramento?: Date;
+
+  @OneToMany(() => ContractAssignee, (a: ContractAssignee) => a.contrato, { cascade: true })
+atribuicoes!: ContractAssignee[];
+
 }

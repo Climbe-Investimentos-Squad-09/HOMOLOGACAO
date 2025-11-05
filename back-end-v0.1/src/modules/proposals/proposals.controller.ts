@@ -1,102 +1,132 @@
-// empresa.controller.ts
-import { Controller, Post, Get, Body, Query, Delete, Param, Put } from '@nestjs/common';
+// src/modules/proposals/proposals.controller.ts
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ProposalsService } from './proposals.service';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Auditable } from '../../audit/auditable.decorator';
+import { AuditAction } from '../../audit/entities/audit.entity';
 import { CreateProposalsDto } from './dtos/create-proposals.dto';
 import { UpdateProposalsDto } from './dtos/update-proposals.dto';
-import { ApiTags, ApiBody, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { AssignProposalDto } from './dtos/assign-proposals.dto';
+import { UpdateProposalStatusDto } from './dtos/update-proposals-status.dto';
 import { StatusProposta } from './entities/proposals.entity';
 
-
 @ApiTags('proposals')
+@ApiBearerAuth()
 @Controller('proposals')
 export class ProposalsController {
-    constructor(private readonly ProposalsService: ProposalsService) {}
+  constructor(private readonly proposals: ProposalsService) {}
 
-    @Get()
-    @ApiOperation({ summary: 'Lista as propostas com base nos filtros via query params' })
-    @ApiQuery({ name: 'idEmpresa', required: false, type: Number, description: 'ID da empresa' })
-    @ApiQuery({ name: 'idEmissor', required: false, type: Number, description: 'ID do emissor' })
-    @ApiQuery({ name: 'valorProposta', required: false, type: Number, description: 'Valor da proposta' })
-    @ApiQuery({ name: 'prazoValidade', required: false, type: String, description: 'Prazo de validade da proposta' })
-    @ApiQuery({ name: 'statusProposta', required: false, type: String, description: 'Status da proposta' })
-    @ApiQuery({ name: 'dataCriacao', required: false, type: String, description: 'Data de criação da proposta' })
-    async findAll(@Query() query: any) {
-        return await this.ProposalsService.findByFilters(query);
-    }
+  @Permissions('propostas:visualizar')
+  @Get()
+  @ApiOperation({ summary: 'Lista propostas por filtros' })
+  @ApiQuery({ name: 'idEmpresa', required: false, type: Number })
+  @ApiQuery({ name: 'idEmissor', required: false, type: Number })
+  @ApiQuery({ name: 'statusProposta', required: false, enum: StatusProposta })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Data inicial (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'Data final (YYYY-MM-DD)' })
+  findAll(@Query() query: any) {
+    return this.proposals.findByFilters(query);
+  }
 
+  @Permissions('propostas:visualizar')
+  @Get(':id')
+  @ApiOperation({ summary: 'Detalhe da proposta' })
+  @ApiParam({ name: 'id', type: String })
+  findOne(@Param('id') id: string) {
+    return this.proposals.findById(id);
+  }
 
-    @Post()
-    @ApiOperation({ summary: 'Cria uma nova proposta' })
-    @ApiBody({
-        type: CreateProposalsDto,
-        examples: {
-            exemplo1: {
-                summary: 'Proposta padrão',
-                value: {
-                    idEmpresa: 1,
-                    idEmissor: 2,
-                    valorProposta: 1000,
-                    prazoValidade: '2023-12-31',
-                    statusProposta: StatusProposta.EM_ANALISE,
-                },
-            },
-            exemplo2: {
-                summary: 'Proposta com dados mínimos',
-                value: {
-                    idEmpresa: 1,
-                    idEmissor: 2,
-                    valorProposta: 1000,
-                    prazoValidade: '2023-12-31',
-                    statusProposta: StatusProposta.EM_ANALISE,
-                },
-            },
+  @Permissions('propostas:criar')
+  @Auditable({ entity: 'proposals', action: AuditAction.CREATE, entityIdFromResult: 'idProposta' })
+  @Post()
+  @ApiOperation({ summary: 'Cria proposta' })
+  @ApiBody({
+    type: CreateProposalsDto,
+    examples: {
+      padrao: {
+        summary: 'Exemplo padrão',
+        value: {
+          idEmpresa: 1,
+          idEmissor: 2,
+          valorProposta: 100000.0,
+          prazoValidade: '2025-12-31',
+          statusProposta: StatusProposta.EM_ANALISE,
+          dataCriacao: '2025-10-22',
         },
-    })
-    async create(@Body() createProposalsDto: CreateProposalsDto) {
-        // Convert dataCriacao from string to Date if present
-        const dto = {
-            ...createProposalsDto,
-            dataCriacao: createProposalsDto.dataCriacao
-                ? new Date(createProposalsDto.dataCriacao)
-                : undefined,
-        };
-        return await this.ProposalsService.create(dto);
-    }
+      },
+    },
+  })
+  create(@Body() dto: CreateProposalsDto, @Req() req: any) {
+    return this.proposals.create(dto);
+  }
 
-    @Delete(':id')
-    async delete(@Param('id') id: string) {
-        return await this.ProposalsService.delete(id);
-    }
-
-    @Get(':id')
-    async findOne(@Param('id') id: string) {
-        return await this.ProposalsService.findById(id);
-    }
-
-    @Put(':id')
-    @ApiBody({
-        type: CreateProposalsDto,
-        examples: {
-            exemplo1: {
-                summary: 'Proposta padrão',
-                value: {
-                    idEmpresa: 1,
-                    idEmissor: 2,
-                    valorProposta: 1000,
-                    prazoValidade: '2023-12-31',
-                    statusProposta: StatusProposta.EM_ANALISE,
-                },
-            }
+  @Permissions('propostas:editar')
+  @Auditable({ entity: 'proposals', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
+  @Put(':id')
+  @ApiOperation({ summary: 'Atualiza proposta' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    type: UpdateProposalsDto,
+    examples: {
+      exemplo: {
+        summary: 'Alteração de valor e prazo',
+        value: {
+          valorProposta: 125000.5,
+          prazoValidade: '2026-01-15',
         },
-    })
-    async update(@Param('id') id: string, @Body() updateProposalsDto: UpdateProposalsDto) {
-        // Convert dataCriacao from string to Date if present
-        const dto = {
-            ...updateProposalsDto,
-            dataCriacao: updateProposalsDto.dataCriacao
-                ? new Date(updateProposalsDto.dataCriacao)
-                : undefined,
-        };
-        return await this.ProposalsService.update(id, dto);
-    }
-}                  
+      },
+    },
+  })
+  update(@Param('id') id: string, @Body() dto: UpdateProposalsDto, @Req() req: any) {
+    return this.proposals.update(id, dto);
+  }
+
+  @Permissions('propostas:excluir')
+  @Auditable({ entity: 'proposals', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
+  @Delete(':id')
+  @ApiOperation({ summary: 'Exclui proposta' })
+  @ApiParam({ name: 'id', type: String })
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.proposals.delete(id);
+  }
+
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'proposals', action: AuditAction.ASSIGN, entityIdParam: 'id', loadBefore: true })
+  @Post(':id/assign')
+  @ApiOperation({ summary: 'Atribui usuário (ANALISTA/CSO/CMO) à proposta' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    type: AssignProposalDto,
+    examples: {
+      analista: {
+        summary: 'Atribuir Analista',
+        value: { userId: 7, role: 'ANALISTA' },
+      },
+      cso: {
+        summary: 'Atribuir CSO',
+        value: { userId: 5, role: 'CSO' },
+      },
+    },
+  })
+  assign(@Param('id') id: string, @Body() dto: AssignProposalDto, @Req() req: any) {
+    return this.proposals.assign(+id, dto, req.user);
+  }
+
+  @Permissions('propostas:alterar_status')
+  @Auditable({ entity: 'proposals', action: AuditAction.STATUS_CHANGE, entityIdParam: 'id', loadBefore: true })
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Altera status da proposta' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    type: UpdateProposalStatusDto,
+    examples: {
+      aprovar: { summary: 'Aprovar', value: { statusProposta: StatusProposta.APROVADA } },
+      recusar: { summary: 'Recusar', value: { statusProposta: StatusProposta.RECUSADA } },
+    },
+  })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateProposalStatusDto, @Req() req: any) {
+    return this.proposals.updateStatus(+id, dto, req.user);
+  }
+}

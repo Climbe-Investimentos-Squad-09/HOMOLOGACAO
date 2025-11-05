@@ -1,110 +1,120 @@
-import { Logger, Controller, Post, Get, Param, Put, Delete, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+// src/modules/user/user.controller.ts
+import {
+  Controller, Get, Post, Put, Patch, Delete, Param, Body, Query
+} from '@nestjs/common';
+import {
+  ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiBody
+} from '@nestjs/swagger';
 
-import { userService } from './user.service';
-import {SendUserDTO} from "./dtos/create-user.dto";
-import { User } from './entities/user.entity';
-//import {PostUserPermissionsSchema} from "./users.schema";
+import { UserService } from './user.service';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Auditable } from '../../audit/auditable.decorator';
+import { AuditAction } from '../../audit/entities/audit.entity';
 
+import { CreateUserDto } from './dtos/create-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
+import { UpdateUserRoleDto } from './dtos/update-user-role.dto';
+import { UpdateUserStatusDto } from './dtos/update-user-status.dto';
+import { AddPermissionsDto, RemovePermissionsDto } from './dtos/permissions-bulk.dto';
+import { SituacaoUsuario } from './enums/situacao-usuario-enum.dto';
 
+@ApiTags('users')
+@ApiBearerAuth()
 @Controller('users')
-export class UserController{
-    constructor(
-        private readonly UserService: userService,
-    ) {}
+export class UserController {
+  constructor(private readonly users: UserService) {}
 
+  // -------- LIST / DETAIL ----------
+  @Permissions('usuarios:visualizar')
+  @Get()
+  @ApiOperation({ summary: 'Lista usuários por filtros' })
+  @ApiQuery({ name: 'nome', required: false, type: String })
+  @ApiQuery({ name: 'email', required: false, type: String })
+  @ApiQuery({ name: 'situacao', required: false, enum: SituacaoUsuario })
+  @ApiQuery({ name: 'idCargo', required: false, type: Number })
+  findAll(@Query() q: any) {
+    return this.users.findByFilters(q);
+  }
 
-    //Get - /api/vi/users
-    @Get('')
-    async getall(): Promise<User[]>{
-        const users = await this.UserService.getAllUsers();
-        console.log('Dados retornados:', users);
-        return users;
-    };
+  @Permissions('usuarios:visualizar')
+  @Get(':id')
+  @ApiOperation({ summary: 'Detalhe do usuário' })
+  @ApiParam({ name: 'id', type: String })
+  findOne(@Param('id') id: string) {
+    return this.users.findById(+id);
+  }
 
+  // -------- CREATE (admin/backoffice) ----------
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.CREATE, entityIdFromResult: 'idUsuario' })
+  @Post()
+  @ApiOperation({ summary: 'Cria usuário (admin/backoffice)' })
+  @ApiBody({ type: CreateUserDto })
+  create(@Body() dto: CreateUserDto) {
+    return this.users.create(dto);
+  }
 
-    //Get - /api/vi/users/:id
-    @Get(':id')
-    async getOnly(@Param('id') id: String){
-        try{
-            return this.UserService.getOnlyUser(Number(id));
-        }catch(error: any){
-            console.log("Erro ao listar usuários")
-        }
-    };
+  // -------- UPDATE PROFILE/ADMIN ----------
+  @Permissions('usuarios:editar')
+  @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
+  @Put(':id')
+  @ApiOperation({ summary: 'Atualiza dados do usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateUserDto })
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.users.update(+id, dto);
+  }
 
-    //Post - /api/vi/users
-    @Post('')
-    async createData(@Body() body: SendUserDTO){        
-        try{
-            return this.UserService.postUser(body);
-        
-            
-        } catch (error: any) {
-            console.error("Erro ao enviar dados de novo usuário:", error);
-        }
-    
-    };
+  // -------- ROLE & EXTRA PERMS ----------
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.ASSIGN, entityIdParam: 'id', loadBefore: true })
+  @Post(':id/role')
+  @ApiOperation({ summary: 'Atribui/atualiza cargo do usuário (opcionalmente define extras)' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateUserRoleDto })
+  updateRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
+    return this.users.updateRole(+id, dto);
+  }
 
-    //Put - /api/vi/users/:id
-    @Put(':id')
-    async putData(@Body() body: SendUserDTO, @Param('id') id: Number){        
-        try{
-            const result = await this.UserService.putUserData(Number(id), body);
-    
-        } catch (error: any) {
-            console.error("Erro ao enviar dados de novo usuário:", error);
-        }
-    }; 
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
+  @Post(':id/permissions/add')
+  @ApiOperation({ summary: 'Adiciona permissões extras a um usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: AddPermissionsDto })
+  addPermissions(@Param('id') id: string, @Body() dto: AddPermissionsDto) {
+    return this.users.addPermissions(+id, dto);
+  }
 
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
+  @Post(':id/permissions/remove')
+  @ApiOperation({ summary: 'Remove permissões extras de um usuário' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: RemovePermissionsDto })
+  removePermissions(@Param('id') id: string, @Body() dto: RemovePermissionsDto) {
+    return this.users.removePermissions(+id, dto);
+  }
 
-    //Delete - /api/vi/users/:id
-    @Delete(':id')
-    async delete(@Param('id') id: Number){
-        try{
-            this.UserService.deleteOnlyUser(Number(id));
-            
-        }catch(error: any){
-            console.log("Erro ao listar usuários")
-        
-        }
-    };
+  // -------- STATUS ----------
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Atualiza situação do usuário (ATIVO/BLOQUEADO/PENDENTE)' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateUserStatusDto })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
+    return this.users.updateStatus(+id, dto);
+  }
 
-
-    // ---------------------------------------------
-    // Ignorar
-    // ---------------------------------------------
-
-    /*
-        //Post - /api/vi/users/Permissions
-        @Post('/api/v1/users/Permissions')
-        async createUserPermission(): Promise<userEntity[]>{
-            const { idUsuario, idPermissao} = req.body;
-            
-            try{
-                const result = await this.UserService.postUserPermission(
-                    idUsuario, 
-                    idPermissao, 
-                );
-        
-                res.json({ success: true, result });
-            } catch (error: any) {
-                console.error("Erro ao enviar dados das credenciais de usuáio:", error);
-                res.status(500).json({ success: false, error: error.message });
-            }
-        }; 
-
-        //Get - /api/vi/users/Permissions/:id
-        @Get('/api/v1/users/Permissions/:id')
-        async getOnlyPermission(@Param('id') id: String){
-            
-            try{
-                this.UserService.getUserPermission(Number(id));
-
-            }catch(error: any){
-                console.log("Erro ao listar usuários")
-                
-            }
-        };
-    */
-
+  // -------- DELETE ----------
+  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Auditable({ entity: 'usuarios', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
+  @Delete(':id')
+  @ApiOperation({ summary: 'Remove usuário' })
+  @ApiParam({ name: 'id', type: String })
+  remove(@Param('id') id: string) {
+    return this.users.delete(+id);
+  }
 }

@@ -5,9 +5,13 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  OneToOne,
+  OneToMany,
 } from 'typeorm';
-// import { Usuario } from '../../usuario/entities/usuario.entity';
+import { User } from '../../user/entities/user.entity';
 import { Companies } from '../../companies/entities/companies.entity';
+import { Contract } from '../../contracts/entities/contracts.entity';
+import { ProposalAssignee } from './proposal-assignee.entity';
 
 export enum StatusProposta {
   EM_ANALISE = 'Em_analise',
@@ -27,24 +31,29 @@ export class Proposals {
   @JoinColumn({ name: 'idEmpresa', referencedColumnName: 'idEmpresa' })
   empresa!: Companies;
 
-  @Column()
+  @ManyToOne(()=> User, {eager: true})
+  @JoinColumn({ name: 'idEmissor', referencedColumnName: 'idUsuario' })
   idEmissor!: number;
 
-  // Aguardando definição da entidade Usuario
 
-  // @ManyToOne(() => Usuario)
-  // @JoinColumn({ name: 'idEmissor', referencedColumnName: 'idUsuario' })
-  // emissor: Usuario;
-
-  @Column('decimal')
+  @Column('decimal', { precision: 15, scale: 2 })
   valorProposta!: number;
 
   @Column({ type: 'date' })
   prazoValidade!: string;
 
-  @Column({ type: 'enum', enum: StatusProposta })
+  @Column({ type: 'enum', enum: StatusProposta, default: StatusProposta.EM_ANALISE })
   statusProposta!: StatusProposta;
+
+@OneToMany(() => ProposalAssignee, (a: ProposalAssignee) => a.proposta, { cascade: true })
+atribuicoes!: ProposalAssignee[];
+
+@ManyToOne(() => Proposals, { nullable: true })
+contrapropostaDe?: Proposals; // encadeamento de contrapropostas
 
   @CreateDateColumn()
   dataCriacao!: Date;
+
+  @OneToOne(() => Contract, (contract) => contract.proposta)
+  contrato?: Contract;
 }

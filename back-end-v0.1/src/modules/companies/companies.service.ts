@@ -1,100 +1,118 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Companies } from './entities/companies.entity';
+import { CreateCompanyMinimalDto } from './dtos/create-minimal-company.dto';
+import { CompleteCompanyDto } from './dtos/complete-company.dto';
 import { isValidCNPJ, formatCNPJ } from '../../utils/cnpj.util';
 
 @Injectable()
 export class CompaniesService {
-    constructor(
-        @InjectRepository(Companies)
-        private readonly companiesRepository: Repository<Companies>,
-    ) {}
+  constructor(
+    @InjectRepository(Companies)
+    private readonly repo: Repository<Companies>,
+  ) {}
 
-    async create(data: Partial<Companies>): Promise<Companies> {
-
-        if (!data) {
-            throw new Error('Dados da empresa são obrigatórios');
-        }
-
-        if (!data.razaoSocial || data.razaoSocial.trim() === '') {
-            throw new Error('Razão Social é obrigatória');
-        }
-        if (!data.cnpj || data.cnpj.trim() === '') {
-            throw new Error('CNPJ é obrigatório');
-        }
-        if (!isValidCNPJ(data.cnpj)) {
-            throw new Error('CNPJ inválido');
-        }
-        
-        //Se o email já foi cadastrado, lançar erro
-        if (data.email && data.email.trim() !== '') {
-            const existingByEmail = await this.companiesRepository.findOne({ where: { email: data.email } });
-            if (existingByEmail) {
-                throw new Error('Email já cadastrado');
-            }
-        }
-
-        // Formata o CNPJ antes de salvar
-        const cleanData = { ...data };
-        if (cleanData.cnpj) {
-            cleanData.cnpj = formatCNPJ(cleanData.cnpj);
-        }
-        const company = this.companiesRepository.create(cleanData);
-        return await this.companiesRepository.save(company);
+  // ----------------- CREATE (pré-cadastro mínimo) -----------------
+  async createMinimal(dto: CreateCompanyMinimalDto): Promise<Companies> {
+    if (!dto?.nomeFantasia || !dto?.email || !dto?.contato) {
+      throw new BadRequestException('Nome fantasia, e-mail e contato são obrigatórios');
     }
 
-    async findByFilters(filters: Partial<Companies>): Promise<Companies[]> {
-        const where: any = {};
-        const f: any = filters;
-        for (const key in f) {
-            if (f[key] !== undefined && f[key] !== '') {
-                if (key === 'cnpj') {
-                    where[key] = isValidCNPJ(f[key]) ? formatCNPJ(f[key]) : f[key];
-                } else {
-                    where[key] = f[key];
-                }
-            }
-        }
-        return await this.companiesRepository.find({ where });
+    const existingByEmail = await this.repo.findOne({ where: { email: dto.email } });
+    if (existingByEmail) throw new ConflictException('Email já cadastrado');
+
+    const entity = this.repo.create({
+      nomeFantasia: dto.nomeFantasia,
+      email: dto.email,
+      telefone: dto.contato,
+      // demais campos permanecem nulos/undefined (pré-cadastro)
+    });
+    return this.repo.save(entity);
+  }
+
+  // ----------------- CREATE (cadastro completo) -------------------
+  // OBS: usa o mesmo DTO de "complete" para criar já completo
+  async createFull(dto: CompleteCompanyDto): Promise<Companies> {
+    // Campos exigidos no completo: razaoSocial, nomeFantasia, cnpj, email
+    if (!dto?.razaoSocial || !dto?.nomeFantasia || !dto?.cnpj || !dto?.email) {
+      throw new BadRequestException('Razão social, nome fantasia, CNPJ e e-mail são obrigatórios');
     }
 
-    async delete(id: string): Promise<{ message: string }> {
-        if (!id || isNaN(Number(id))) {
-            throw new Error('ID da empresa inválido');
-        }
-        const company = await this.companiesRepository.findOne({ where: { idEmpresa: parseInt(id, 10) } });
-        if (!company) {
-            throw new Error('Empresa não encontrada');
-        }
-        await this.companiesRepository.remove(company);
-        return { message: 'Empresa removida com sucesso' };
+    if (!isValidCNPJ(dto.cnpj)) throw new BadRequestException('CNPJ inválido');
+    const cnpj = formatCNPJ(dto.cnpj);
+
+    const existingByEmail = await this.repo.findOne({ where: { email: dto.email } });
+    if (existingByEmail) throw new ConflictException('Email já cadastrado');
+
+    const existingByCnpj = await this.repo.findOne({ where: { cnpj } });
+    if (existingByCnpj) throw new ConflictException('CNPJ já cadastrado');
+
+    const entity = this.repo.create({
+      razaoSocial: dto.razaoSocial,
+      nomeFantasia: dto.nomeFantasia,
+      cnpj,
+      endereco: dto.endereco,
+      telefone: dto.telefone,
+      email: dto.email,
+      representanteLegal: dto.representanteLegal,
+    });
+    return this.repo.save(entity);
+  }
+
+  // -------------- COMPLETE (completar/atualizar cadastro) ---------------
+  async complete(id: number, dto: CompleteCompanyDto): Promise<Companies> {
+    const company = await this.repo.findOne({ where: { idEmpresa: id } });
+    if (!company) throw new NotFoundException('Empresa não encontrada');
+
+    // Validações condicionais (apenas se os campos vierem)
+    if (dto.cnpj) {
+      if (!isValidCNPJ(dto.cnpj)) throw new BadRequestException('CNPJ inválido');
+      dto.cnpj = formatCNPJ(dto.cnpj);
+      const dup = await this.repo.findOne({ where: { cnpj: dto.cnpj } });
+      if (dup && dup.idEmpresa !== company.idEmpresa) {
+        throw new ConflictException('CNPJ já cadastrado em outra empresa');
+      }
     }
 
-    async findById(id: string): Promise<Companies> {
-        if (!id || isNaN(Number(id))) {
-            throw new Error('ID da empresa inválido');
-        }
-        const company = await this.companiesRepository.findOne({ where: { idEmpresa: parseInt(id, 10) } });
-        if (!company) {
-            throw new Error('Empresa não encontrada');
-        }
-        return company;
+    if (dto.email) {
+      const dupEmail = await this.repo.findOne({ where: { email: dto.email } });
+      if (dupEmail && dupEmail.idEmpresa !== company.idEmpresa) {
+        throw new ConflictException('Email já cadastrado em outra empresa');
+      }
     }
 
-    async update(id: string, data: Partial<Companies>): Promise<Companies> {
-        if (!id || isNaN(Number(id))) {
-            throw new Error('ID da empresa inválido');
-        }
-        const company = await this.companiesRepository.findOne({ where: { idEmpresa: parseInt(id, 10) } });
-        if (!company) {
-            throw new Error('Empresa não encontrada');
-        }
-        const updatedCompany = { ...company, ...data };
-        // Formata o CNPJ antes de salvar
-        if (updatedCompany.cnpj) {
-            updatedCompany.cnpj = isValidCNPJ(updatedCompany.cnpj) ? formatCNPJ(updatedCompany.cnpj) : updatedCompany.cnpj;
-        }
-        return await this.companiesRepository.save(updatedCompany);
+    const toSave = this.repo.merge(company, dto);
+    return this.repo.save(toSave);
+  }
+
+  // ---------------------------- GET -------------------------------
+  async findById(id: number): Promise<Companies> {
+    const company = await this.repo.findOne({ where: { idEmpresa: id } });
+    if (!company) throw new NotFoundException('Empresa não encontrada');
+    return company;
+  }
+
+  async findByFilters(q: any): Promise<Companies[]> {
+    const { razaoSocial, nomeFantasia, cnpj, email, representanteLegal } = q || {};
+    const where: any = {};
+
+    if (razaoSocial) where.razaoSocial = ILike(`%${razaoSocial}%`);
+    if (nomeFantasia) where.nomeFantasia = ILike(`%${nomeFantasia}%`);
+    if (email) where.email = ILike(`%${email}%`);
+    if (representanteLegal) where.representanteLegal = ILike(`%${representanteLegal}%`);
+    if (cnpj) {
+      where.cnpj = isValidCNPJ(cnpj) ? formatCNPJ(cnpj) : cnpj;
     }
+
+    return this.repo.find({ where, order: { idEmpresa: 'DESC' } });
+  }
+
+  // --------------------------- DELETE -----------------------------
+  async delete(id: number): Promise<{ message: string }> {
+    const company = await this.repo.findOne({ where: { idEmpresa: id } });
+    if (!company) throw new NotFoundException('Empresa não encontrada');
+    await this.repo.remove(company);
+    return { message: 'Empresa removida com sucesso' };
+  }
 }

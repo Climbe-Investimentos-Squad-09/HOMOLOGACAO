@@ -1,129 +1,150 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { User } from "./entities/user.entity";
-import { SendUserDTO } from "./dtos/create-user.dto";
+// src/modules/user/user.service.ts
+import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, ILike, In } from 'typeorm';
+import { User } from './entities/user.entity';
+import { Role } from '../roles/entities/role.entity';
+import { Permission } from '../permissions/entities/permission.entity';
+import { CreateUserDto } from './dtos/create-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
+import { UpdateUserRoleDto } from './dtos/update-user-role.dto';
+import { UpdateUserStatusDto } from './dtos/update-user-status.dto';
+import { AddPermissionsDto, RemovePermissionsDto } from './dtos/permissions-bulk.dto';
+import { SituacaoUsuario } from './enums/situacao-usuario-enum.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
-export class userService {
+export class UserService {
   constructor(
-    @InjectRepository(User) private readonly fileRepository: Repository<User>
+    @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Role) private readonly roles: Repository<Role>,
+    @InjectRepository(Permission) private readonly perms: Repository<Permission>,
   ) {}
 
-  //Get - /api/vi/userss
-  async getAllUsers(): Promise<User[]> {
-    return this.fileRepository.find();
+  private hashPassword(password: string) {
+    return crypto.createHash('sha256').update(password).digest('hex');
   }
 
-  /*
-    async getAllUsers(){
-        try{
-            const [rows] = await pool.query("SELECT * FROM Usuarios");
-            console.log(rows);
-            return rows;
-        }catch(error: any){
-            console.log(error)
-        }
+  // ----------------- CREATE (admin / backoffice) -----------------
+  async create(dto: CreateUserDto) {
+    if (!dto.email || !dto.nomeCompleto) throw new BadRequestException('nomeCompleto e email são obrigatórios');
 
-    }
-    */
+    const existing = await this.users.findOne({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Email já cadastrado');
 
-  //Get - /api/vi/users/:id
-  async getOnlyUser(id: number): Promise<User> {
-    const user = await this.fileRepository.findOneBy({ idUsuario: id });
-    if (!user) {
-      throw new NotFoundException(`Registro com ID ${id} não encontrado`);
+    if (dto.cpf) {
+      const existingCpf = await this.users.findOne({ where: { cpf: dto.cpf } });
+      if (existingCpf) throw new ConflictException('CPF já cadastrado');
     }
 
-    return user;
-  }
+    const entity = this.users.create({
+      email: dto.email,
+      nomeCompleto: dto.nomeCompleto,
+      cpf: dto.cpf,
+      contato: dto.contato,
+      senha: dto.senha ? this.hashPassword(dto.senha) : undefined,
+      situacao: dto.idCargo ? SituacaoUsuario.Ativo : SituacaoUsuario.PENDENTE,
+    });
 
-  /*
-    async getOnlyUser(id: number){
-        const query = `select * from Usuarios where idUsuario = ${id}`;
-        const [rows] = await pool.query(query);
-        console.log(rows);
-        return rows;
+    if (dto.idCargo) {
+      const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
+      if (!role) throw new NotFoundException('Cargo não encontrado');
+      entity.cargo = role;
     }
-    */
 
-  //Post - /api/vi/users
-  async postUser(data: SendUserDTO): Promise<User> {
-    const newData = this.fileRepository.create(data as any); // Cria a instância da entidade
-    const savedUser = await this.fileRepository.save(newData); // Salva a instância no banco de dados
-    return Array.isArray(savedUser) ? savedUser[0] : savedUser;
+    entity.permissoesExtras = [];
+    const saved = await this.users.save(entity);
+    return saved;
   }
 
-  /*
-        async postUser(idUsuario: number, nomeCompleto: string, cpf: string, senha: string, email: string, contato: string, situacao: string, idCargo: number, dataCriacao: Date, ultimoAcesso: Date){
-            const query = `insert into Usuarios(idUsuario, nomeCompleto, cpf, senha, email, contato, situacao, idCargo, dataCriacao, ultimoAcesso) values (${idUsuario}, '${nomeCompleto}', '${cpf}', '${senha}', '${email}', '${contato}', '${situacao}', ${idCargo}, '${dataCriacao}','${ultimoAcesso}')`;
-            pool.query(query);
-        }
-    */
-
-  //Put - /api/vi/users
-  async putUserData(id: number, data: SendUserDTO): Promise<void> {
-    await this.fileRepository.update(id, data as any); // Atualiza a instância da entidade
+  // ----------------- LIST / DETAIL -----------------
+  async findByFilters(q: any) {
+    const { nome, email, situacao, idCargo } = q || {};
+    const where: any = {};
+    if (nome) where.nomeCompleto = ILike(`%${nome}%`);
+    if (email) where.email = ILike(`%${email}%`);
+    if (situacao) where.situacao = situacao;
+    if (idCargo) where.cargo = { idCargo: Number(idCargo) };
+    return this.users.find({ where, order: { idUsuario: 'DESC' } });
   }
 
-  /*
-        async putUserData(idUsuario: number, campos: string[], valores: string[]){ 
-            console.log(`\nCampos originais: ${campos}`)
-            console.log(`\nValores originais: ${valores}`)
+  async findById(id: number) {
+    const u = await this.users.findOne({ where: { idUsuario: id } });
+    if (!u) throw new NotFoundException('Usuário não encontrado');
+    return u;
+  }
 
-            let sent = "";
+  // ----------------- UPDATE PROFILE / ADMIN UPDATE -----------------
+  async update(id: number, dto: UpdateUserDto) {
+    const user = await this.findById(id);
 
-            for( let i = 0; i  < campos.length; i++){
-                sent = sent + "" + campos[i] + " = "  + valores[i];
-                if(i < campos.length -1){
-                    sent = sent + ",";
-                }
-            }
-
-            console.log(`\nSentença para update: ${sent}`)
-
-            console.log("\n")
-
-            const query = `update Usuarios set ${sent} where idUsuario = ${idUsuario}`;
-            pool.query(query);
-        }
-    */
-
-  //Delete - /api/vi/users/:id
-  async deleteOnlyUser(id: number) {
-    const user = await this.fileRepository.delete({ idUsuario: id });
-    if (!user) {
-      throw new NotFoundException(`Registro com ID ${id} não encontrado`);
+    if (dto.email && dto.email !== user.email) {
+      const dup = await this.users.findOne({ where: { email: dto.email } });
+      if (dup) throw new ConflictException('Email já cadastrado');
     }
+    if (dto.senha) dto.senha = this.hashPassword(dto.senha);
+
+    const toSave = this.users.merge(user, dto);
+    return this.users.save(toSave);
   }
 
-  /*
-        async deleteOnlyUser(id: number){
-            const query = `DELETE FROM Usuarios where idUsuario = ${id}`;
-            try{
-                await pool.query(query);
-            }catch(error: any){
-                console.log(error)
-            }
-        }
-    */
+  // ----------------- ROLE & EXTRA PERMISSIONS -----------------
+  async updateRole(id: number, dto: UpdateUserRoleDto) {
+    const user = await this.findById(id);
+    const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
+    if (!role) throw new NotFoundException('Cargo não encontrado');
 
-  // ---------------------------------------------
-  // Ignorar
-  // ---------------------------------------------
-  //Get - /api/vi/users/Permissions/:id
-  /*
-        async getUserPermission(id: number){
-            const query = `select * from Usuario_Permissoes where idUsuario = ${id}`;
-            const [rows] = await pool.query(query);
-            console.log(rows);
-            return rows;
-        }
+    user.cargo = role;
 
-        //Post - /api/v1/user/permissions
-        async postUserPermission( idUsuario: Number, idPermissao: Number){
-            const query = `insert into Usuario_Permissoes(idUsuario, idPermissao) values (${idUsuario}, ${idPermissao})`;
-            pool.query(query);
-        }
-        */
+    // Ao receber cargo, desbloqueia se estava PENDENTE
+    if (user.situacao === SituacaoUsuario.PENDENTE) {
+      user.situacao = SituacaoUsuario.Ativo;
+    }
+
+    // (opcional) aplica extras no mesmo endpoint
+    if (dto.permissoesExtras?.length) {
+      const extras = await this.perms.find({ where: { idPermissao: In(dto.permissoesExtras as any) } as any });
+      user.permissoesExtras = extras;
+    }
+
+    return this.users.save(user);
+  }
+
+  async addPermissions(id: number, dto: AddPermissionsDto) {
+    const user = await this.findById(id);
+    const extras = await this.perms.find({ where: { idPermissao: In(dto.permissionIds as any) } as any });
+
+    const byId = new Map((user.permissoesExtras || []).map((p) => [p.idPermissao, p]));
+    for (const p of extras) byId.set(p.idPermissao, p);
+
+    user.permissoesExtras = Array.from(byId.values());
+    return this.users.save(user);
+  }
+
+  async removePermissions(id: number, dto: RemovePermissionsDto) {
+    const user = await this.findById(id);
+    const removeIds = new Set(dto.permissionIds);
+    user.permissoesExtras = (user.permissoesExtras || []).filter((p) => !removeIds.has(p.idPermissao));
+    return this.users.save(user);
+  }
+
+  // ----------------- STATUS (bloquear/desbloquear) -----------------
+  async updateStatus(id: number, dto: UpdateUserStatusDto) {
+    const user = await this.findById(id);
+
+    // Regras: não ativar sem cargo
+    if (dto.situacao === UpdateUserStatusDto.Ativo && !user.cargo) {
+      throw new ForbiddenException('Usuário não pode ser ATIVO sem cargo atribuído');
+    }
+
+    user.situacao = dto.situacao as any;
+    return this.users.save(user);
+  }
+
+  // ----------------- DELETE -----------------
+  async delete(id: number) {
+    const user = await this.findById(id);
+    await this.users.remove(user);
+    return { message: 'Usuário removido com sucesso' };
+  }
 }

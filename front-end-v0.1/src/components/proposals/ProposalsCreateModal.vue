@@ -66,7 +66,7 @@
 
             <div class="modal-footer">
                 <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button">Criar proposta</button>
+                <button class="create-button" @click="$emit('close')">Criar proposta</button> 
             </div>
         </div>
     </div>

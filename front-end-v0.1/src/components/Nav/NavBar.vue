@@ -2,6 +2,9 @@
   <header class="top-nav">
     <h1 class="page-title">{{ pageTitle }}</h1>
     <div class="nav-actions">
+      <div class="user-name-display">
+        <span class="user-name">{{ user?.name || 'Usuário' }}</span>
+      </div>
       <button class="notification-button">
         <svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fill-rule="evenodd" clip-rule="evenodd"
@@ -16,8 +19,13 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
+const authStore = useAuthStore();
+
+const user = computed(() => authStore.user);
+
 const pageTitle = computed(() => {
   switch (route.name) {
     case 'dashboard':
@@ -30,8 +38,14 @@ const pageTitle = computed(() => {
       return 'Propostas';
     case 'autorizacoes':
       return 'Autorizações';
-      case 'usuarios':
+    case 'usuarios':
       return 'Usuários';
+    case 'empresas':
+      return 'Empresas';
+    case 'perfil':
+      return 'Perfil';
+    case 'configuracoes':
+      return 'Configurações';
     default:
       return 'Climbe';
   }
@@ -54,10 +68,30 @@ const pageTitle = computed(() => {
   color: #212529;
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name-display {
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #212529;
+}
+
 .notification-button {
   background: none;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

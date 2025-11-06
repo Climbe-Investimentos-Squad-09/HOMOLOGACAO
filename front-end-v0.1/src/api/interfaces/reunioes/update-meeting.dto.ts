@@ -1,7 +1,20 @@
 import { CreateReuniaoDto } from './create-meeting.dto';
-import { StatusReuniao, ModalidadeReuniao } from '../Entities/meeting.entity';
 
-export interface UpdateReuniaoDto extends PartialType(CreateReuniaoDto) {  
+export enum StatusReuniao {
+  AGENDADA = 'Agendada',
+  EM_ANDAMENTO = 'Em_andamento',
+  CONCLUIDA = 'Concluida',
+  CANCELADA = 'Cancelada',
+  REMARCADA = 'Remarcada',
+}
+
+export enum ModalidadeReuniao {
+  PRESENCIAL = 'PRESENCIAL',
+  REMOTO = 'REMOTO',
+  OUTRO = 'OUTRO',
+}
+
+export interface UpdateReuniaoDto extends Partial<CreateReuniaoDto> {  
   titulo?: string;
 
   pauta?: string;

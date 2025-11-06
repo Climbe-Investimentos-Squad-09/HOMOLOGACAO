@@ -1,5 +1,8 @@
-import { StatusContrato } from '../entities/contracts.entity';
-
+export enum StatusContrato {
+  Ativo = 'Ativo',
+  Encerrado = 'Encerrado',
+  Rescindido = 'Rescindido',
+}
 export interface CreateContractDto {
   idProposta: number;
 

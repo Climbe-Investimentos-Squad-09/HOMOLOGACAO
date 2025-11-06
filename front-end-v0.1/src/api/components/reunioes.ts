@@ -6,7 +6,7 @@ import { CreateReuniaoDto } from '../interfaces/reunioes/create-meeting.dto';
 import { UpdateReuniaoDto } from '../interfaces/reunioes/update-meeting.dto';
 import { UpdateParticipanteStatusDto } from '../interfaces/reunioes/update-member-status.dto';
 
-const BASE = "/api/v1/Reuniaos";
+const BASE = "/api/reunioes";
 
 //Listar Reuniões
 export async function getAllReuniaos() {

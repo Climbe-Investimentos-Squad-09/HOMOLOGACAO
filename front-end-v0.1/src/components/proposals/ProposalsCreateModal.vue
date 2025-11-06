@@ -11,23 +11,21 @@
                     <input type="text" id="proposal-title" placeholder="Título da proposta..." />
                 </div>
 
+                <!--Inserir manualmente o nome da empresa-->
                 <div class="form-group">
                     <label for="company-name">Nome da empresa:</label>
-                    <select id="company-name">
-                        <option selected disabled>Selecione uma empresa</option>
-                        <option>Empresa A</option>
-                        <option>Empresa B</option>
-                    </select>
+                    <input v-model="form.nomeEmpresa" type="text" id="company-name" placeholder="Nome da empresa..." />
+
                 </div>
 
                 <div class="form-group">
                     <label for="proposal-value">Valor (R$):</label>
-                    <input type="number" id="proposal-value" value="0" />
+                    <input v-model="form.valorProposta" type="number" id="proposal-value" value="0" />
                 </div>
 
                 <div class="form-group">
                     <label for="valid-until">Válido até:</label>
-                    <input type="date" id="valid-until" placeholder="dd/mm/yyyy" />
+                    <input v-model="form.prazoValidade" type="date" id="valid-until" placeholder="dd/mm/yyyy" />
                 </div>
 
                 <div class="form-group">
@@ -42,6 +40,16 @@
                         <option>Responsável A</option>
                         <option>Responsável B</option>
                         <option>Responsável C</option>
+                    </select>
+                </div>
+
+                <!--Inserir css específico-->
+                <div class="form-group">
+                    <label for="StatusPropost">Status da Proposta:</label>
+                    <select v-model="form.statusProposta" id="StatusPropost">
+                        <option selected disabled>Selecione um responsável pela tarefa</option>
+                        <option>Em_analise</option>
+                        <option>Aprovada</option>
                     </select>
                 </div>
 
@@ -66,203 +74,233 @@
 
             <div class="modal-footer">
                 <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button" @click="$emit('close')">Criar proposta</button> 
+                <button class="create-button" @click="sendProposal">Criar proposta</button> 
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+    //Código para Front-End
+    import { ref } from 'vue';
 
-const fileInput = ref(null);
-const selectedFile = ref(null);
+    const fileInput = ref(null);
+    const selectedFile = ref(null);
 
-const triggerFileInput = () => {
-    fileInput.value.click();
-};
+    const triggerFileInput = () => {
+        fileInput.value.click();
+    };
 
-const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-        selectedFile.value = file;
-    } else {
-        alert('Por favor, selecione um arquivo PDF.');
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            selectedFile.value = file;
+        } else {
+            alert('Por favor, selecione um arquivo PDF.');
+            selectedFile.value = null;
+            if (fileInput.value) {
+                fileInput.value.value = '';
+            }
+        }
+    };
+
+    const removeSelectedFile = () => {
         selectedFile.value = null;
         if (fileInput.value) {
             fileInput.value.value = '';
         }
-    }
-};
+    };
 
-const removeSelectedFile = () => {
-    selectedFile.value = null;
-    if (fileInput.value) {
-        fileInput.value.value = '';
+    //Código para conexão Back-End
+    import { reactive } from 'vue'
+    import { createProposal } from '@/api/components/proposals';
+
+    const form = reactive({
+        nomeEmpresa: "",   // FK para empresa
+    
+        idEmissor: "",   // FK para usuário
+        
+        valorProposta: 0,
+        
+        prazoValidade: "",
+
+        statusProposta: "",
+        
+        dataCriacao: Date,
+    });
+
+    async function sendProposal() {
+        form.dataCriacao = new Date().toISOString();
+
+        try {
+            const response = await createProposal(form);
+            console.log("Usuário criado:", response.data);
+        } catch (error) {
+            console.error("Erro:", error);
+        }
     }
-};
 </script>
 
 <style scoped>
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
-.modal-content {
-    background-color: #fff;
-    padding: 24px;
-    border-radius: 8px;
-    width: 520px;
-    max-width: 95%;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
+    .modal-content {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        width: 520px;
+        max-width: 95%;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
 
-.modal-header h2 {
-    font-size: 16px;
-    font-weight: 600;
-}
+    .modal-header h2 {
+        font-size: 16px;
+        font-weight: 600;
+    }
 
-.close-button {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-}
+    .close-button {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+    }
 
-.form-group {
-    margin-bottom: 16px;
-}
+    .form-group {
+        margin-bottom: 16px;
+    }
 
-.form-group label {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 4px;
-    font-weight: 500;
-}
+    .form-group label {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
 
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid #f6f6f6;
-    background-color: #f6f6f6;
-    font-size: 14px;
-    color: #535353;
-}
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #f6f6f6;
+        background-color: #f6f6f6;
+        font-size: 14px;
+        color: #535353;
+    }
 
-.date-group {
-    display: flex;
-    gap: 24px;
-}
+    .date-group {
+        display: flex;
+        gap: 24px;
+    }
 
-.date-input {
-    width: 227px;
-}
+    .date-input {
+        width: 227px;
+    }
 
-.file-upload {
-    border: 1px dashed #ccc;
-    border-radius: 6px;
-    padding: 20px;
-    text-align: center;
-    background-color: #F6F6F6;
-    color: #747474;
-}
+    .file-upload {
+        border: 1px dashed #ccc;
+        border-radius: 6px;
+        padding: 20px;
+        text-align: center;
+        background-color: #F6F6F6;
+        color: #747474;
+    }
 
-.upload-icon {
-    font-size: 22px;
-    margin-bottom: 6px;
-}
+    .upload-icon {
+        font-size: 22px;
+        margin-bottom: 6px;
+    }
 
-.file-upload .hint {
-    font-size: 12px;
-    color: #BEBEBE;
-}
+    .file-upload .hint {
+        font-size: 12px;
+        color: #BEBEBE;
+    }
 
-.add-file-button {
-    margin-top: 10px;
-    background-color: white;
-    border: 1px solid #DADADA;
-    padding: 10px 48px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    color: black;
-}
+    .add-file-button {
+        margin-top: 10px;
+        background-color: white;
+        border: 1px solid #DADADA;
+        padding: 10px 48px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        color: black;
+    }
 
-.modal-footer {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-}
+    .modal-footer {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+    }
 
-.cancel-button {
-    background-color: #4AA19D;
-    color: white;
-    padding: 4px 48px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    width: 225px;
-}
+    .cancel-button {
+        background-color: #4AA19D;
+        color: white;
+        padding: 4px 48px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 225px;
+    }
 
-.create-button {
-    background-color: #3C6E6C;
-    color: white;
-    padding: 10px 48px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    width: 225px;
-}
+    .create-button {
+        background-color: #3C6E6C;
+        color: white;
+        padding: 10px 48px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 225px;
+    }
 
-.selected-file-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #e9e9e9;
-    border-radius: 4px;
-    margin-top: 10px;
-}
+    .selected-file-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: #e9e9e9;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
 
-.selected-file-info p {
-    margin: 0;
-    font-size: 14px;
-    color: #333;
-}
+    .selected-file-info p {
+        margin: 0;
+        font-size: 14px;
+        color: #333;
+    }
 
-.remove-file-button {
-    background-color: #ff4d4d;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-}
+    .remove-file-button {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+    @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+    }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
+    .fade-in {
+    animation: fadeIn 0.3s ease-out;
+    }
 </style>

@@ -4,7 +4,7 @@ import { AssignPermissionDto } from '../interfaces/roles/assign-permission.dto';
 import { CreateRoleDto } from '../interfaces/roles/create-role.dto';
 import { UpdateRoleDto } from '../interfaces/roles/update-role.dto';
 
-const BASE = "/api/v1/roles";
+const BASE = "/api/roles";
 
 //Listar Papéis
 export async function getAllRoles() {

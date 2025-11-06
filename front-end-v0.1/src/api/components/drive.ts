@@ -1,7 +1,7 @@
 import apiClient from '../client';
 import { SendDriveDTO } from '../interfaces/drive/drive.dto';
 
-const BASE = "/api/v1/documents";
+const BASE = "/api/documents";
 
 //Listar Documentos
 export async function getAllDocuments() {

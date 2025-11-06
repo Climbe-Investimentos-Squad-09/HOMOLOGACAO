@@ -3,7 +3,7 @@ import apiClient from '../client';
 import { sendCalendarDTO } from '../interfaces/calendar/calendar.dto';
 import { indexAccountDTO } from '../interfaces/calendar/indexAccounts.dto';
 
-const BASE = "/api/v1/meetings";
+const BASE = "/api/meetings";
 
 //Listar Calendars
 export async function getAllMeetings() {

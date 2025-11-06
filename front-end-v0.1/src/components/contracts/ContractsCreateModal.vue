@@ -32,7 +32,7 @@
                     </div>
                     <div class="date-input">
                         <label for="end-date">Data de fim:</label>
-                        <input type="date" id="end-date" placeholder="dd/mm/yyyy" />
+                        <input v-model="form.dataEncerramento" type="date" id="end-date" placeholder="dd/mm/yyyy" />
                     </div>
                 </div>
 
@@ -67,41 +67,66 @@
 
             <div class="modal-footer">
                 <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button">Criar contrato</button>
+                <button class="create-button" @click="sendContract">Criar contrato</button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+    //Código para Front-End
+    import { ref } from 'vue';
 
-const fileInput = ref(null);
-const selectedFile = ref(null);
+    const fileInput = ref(null);
+    const selectedFile = ref(null);
 
-const triggerFileInput = () => {
-    fileInput.value.click();
-};
+    const triggerFileInput = () => {
+        fileInput.value.click();
+    };
 
-const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-        selectedFile.value = file;
-    } else {
-        alert('Por favor, selecione um arquivo PDF.');
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            selectedFile.value = file;
+        } else {
+            alert('Por favor, selecione um arquivo PDF.');
+            selectedFile.value = null;
+            if (fileInput.value) {
+                fileInput.value.value = '';
+            }
+        }
+    };
+
+    const removeSelectedFile = () => {
         selectedFile.value = null;
         if (fileInput.value) {
             fileInput.value.value = '';
         }
-    }
-};
+    };
 
-const removeSelectedFile = () => {
-    selectedFile.value = null;
-    if (fileInput.value) {
-        fileInput.value.value = '';
+    //Código para conexão Back-End
+    import { reactive } from 'vue'
+    import { createContract } from '@/api/components/contracts';
+
+    const form = reactive({
+        idProposta: 0,
+
+        idCompliance: 0,
+
+        statusContrato: "",
+
+        dataEncerramento: "",
+    });
+
+    async function sendContract() {
+        form.statusContrato = "Em_analise";
+
+        try {
+            await createContract(form);
+        } catch (error) {
+            console.error("Erro:", error);
+        }
     }
-};
 </script>
 
 <style scoped>

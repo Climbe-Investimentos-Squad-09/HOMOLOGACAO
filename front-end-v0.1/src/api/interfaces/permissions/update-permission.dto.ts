@@ -1,3 +1,3 @@
 import { CreatePermissionDto } from './create-permission.dto';
 
-export interface UpdatePermissionDto extends PartialType(CreatePermissionDto) {}
+export interface UpdatePermissionDto extends Partial<CreatePermissionDto> {}

@@ -31,10 +31,13 @@ async function bootstrap() {
   });
 
   // 4) CORS (ajuste origins conforme seu frontend)
+  /*
   app.enableCors({
     origin: true, // ou ['http://localhost:5173', 'https://seu-front.com']
     credentials: true,
   });
+  */
+ app.enableCors();
 
   // 5) Body parsers (útil para payloads “maiores”)
   app.use(json({ limit: '10mb' }));

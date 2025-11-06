@@ -4,7 +4,7 @@ import { BulkCreatePermissionDto } from '../interfaces/permissions/bulk-permissi
 import { CreatePermissionDto } from '../interfaces/permissions/create-permission.dto';
 import { UpdatePermissionDto } from '../interfaces/permissions/update-permission.dto';
 
-const BASE = "/api/v1/permissions";
+const BASE = "/api/permissions";
 
 //Listar Permissões
 export async function getAllPermissions() {

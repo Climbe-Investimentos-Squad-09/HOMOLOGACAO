@@ -3,7 +3,7 @@ import apiClient from '../client';
 import { CreateCompanyMinimalDto } from '../interfaces/companies/create-minimal-company.dto';
 import { CompleteCompanyDto } from '../interfaces/companies/complete-company.dto';
 
-const BASE = "/api/v1/companies";
+const BASE = "/api/companies";
 
 //Listar Companias
 export async function getAllCompanies() {

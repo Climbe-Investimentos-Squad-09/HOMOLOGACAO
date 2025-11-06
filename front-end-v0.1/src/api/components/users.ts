@@ -5,7 +5,7 @@ import { UpdateUserDto } from '../interfaces/users/update-user.dto';
 import { AddPermissionsDto } from '../interfaces/users/permissions-bulk.dto';
 import { RemovePermissionsDto } from '../interfaces/users/permissions-bulk.dto';
 import { UpdateUserStatusDto } from '../interfaces/users/update-user-status.dto';
-const BASE = "/api/v1/users";
+const BASE = "/api/users";
 
 //Listar Usuários
 export async function getAllUsers() {

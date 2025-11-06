@@ -11,6 +11,7 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+*/
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -21,4 +22,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-*/

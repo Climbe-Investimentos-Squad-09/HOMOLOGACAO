@@ -1,5 +1,8 @@
-import { ModalidadeReuniao } from '../Entities/meeting.entity';
-
+export enum ModalidadeReuniao {
+  PRESENCIAL = 'PRESENCIAL',
+  REMOTO = 'REMOTO',
+  OUTRO = 'OUTRO',
+}
 export interface CreateReuniaoDto {
   titulo: string;
 

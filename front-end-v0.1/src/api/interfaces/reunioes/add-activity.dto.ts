@@ -1,5 +1,8 @@
-import { StatusAtividade } from '../Entities/meeting-activity.entity';
-
+export enum StatusAtividade {
+  PENDENTE = 'Pendente',
+  EM_PROGRESSO = 'Em_progresso',
+  CONCLUIDA = 'Concluida',
+}
 export interface AddAtividadeDto {
   descricao: string;
 

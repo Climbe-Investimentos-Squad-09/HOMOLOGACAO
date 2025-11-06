@@ -6,7 +6,7 @@ import { CreateContractDto } from '../interfaces/contracts/create-contract.dto';
 import { UpdateContractDto } from '../interfaces/contracts/update-contract.dto';
 import { UpdateContractStatusDto } from '../interfaces/contracts/update-contract-status.dto';
 
-const BASE = "/api/v1/contracts";
+const BASE = "/api/contracts";
 
 //Listar Contratos
 export async function getAllContracts() {

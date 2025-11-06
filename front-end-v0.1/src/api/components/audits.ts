@@ -1,6 +1,6 @@
 import apiClient from '../client';
 
-const BASE = "/api/v1/audits";
+const BASE = "/api/audits";
 
 //Listar Auditorias
 export async function getAllAudits() {

@@ -5,7 +5,7 @@ import { CreateProposalsDto } from '../interfaces/proposals/create-proposals.dto
 import { UpdateProposalsDto } from '../interfaces/proposals/update-proposals.dto';
 import { UpdateProposalStatusDto } from '../interfaces/proposals/update-proposals-status.dto';
 
-const BASE = "/api/v1/proposals";
+const BASE = "/api/proposals";
 
 //Listar Propostas
 export async function getAllProposals() {

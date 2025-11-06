@@ -16,8 +16,18 @@
   >
     <span class="button-text">
       <template v-if="status === 'loading'">Carregando...</template>
-      <template v-else-if="status === 'success'">✔️ Concluído</template>
-      <template v-else-if="status === 'error'">❌ Algo está errado</template>
+      <template v-else-if="status === 'success'">
+        <span class="material-symbols-outlined">
+          check
+        </span>
+        Concluído
+      </template>
+      <template v-else-if="status === 'error'">
+        <span class="material-symbols-outlined">
+          error
+        </span>
+        Algo está errado
+      </template>
       <template v-else>{{ text }}</template>
     </span>
   </button>

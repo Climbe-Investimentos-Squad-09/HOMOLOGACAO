@@ -1,7 +1,6 @@
 import fs = require('fs');
 import { google, drive_v3 } from "googleapis";
 import { AuthModule } from '../auth/auth.module';
-
 import { OAuth2Client } from 'google-auth-library';
 import { Injectable, Inject } from '@nestjs/common';
 import * as FS from 'fs/promises';
@@ -14,12 +13,21 @@ import  {SendDriveDTO}  from './dtos/drive.dto';
 export class driveService{
     private Drive: drive_v3.Drive;
     //Construtor
-    constructor(
-        private GmailService: gmailService,
-        @Inject(AuthModule) private readonly googleAuth: OAuth2Client,
-    ){
-        this.Drive = google.drive({ version: "v3", auth: this.googleAuth });
-        console.log("Cliente drive criado")
+    constructor(private GmailService: gmailService,) {
+        const oAuth2Client = new OAuth2Client(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+        );
+        oAuth2Client.setCredentials({
+            access_token: 'SEU_ACCESS_TOKEN_AQUI',
+            refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
+            scope: 'https://www.googleapis.com/auth/drive',
+            token_type: 'Bearer',
+            expiry_date: Date.now() + 3600 * 1000,
+        });
+        this.Drive = google.drive({ version: 'v3', auth: '' }); // Corrigir aqui com o oAuth2Client
+        console.log("Cliente Drive criado");
     }
 
     //Listar Documentos
@@ -53,7 +61,7 @@ export class driveService{
         data: SendDriveDTO,
         mimeT: string
     ){
-        const nome = data.empresa_nome;
+        const nome = data.name;
         let id = await this.searchFolder(nome);
 
         if(id !== "" && id !== undefined){

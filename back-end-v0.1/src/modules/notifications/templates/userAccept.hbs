@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sua conta na Climbe foi ativada!</title>
+    <style>
+        /* Cores baseadas na logo: Fundo escuro (#222222) e Acento Ciano/Água (#48D1CC ou similar) */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        .header { background-color: #222222; /* Fundo escuro da logo */ padding: 20px 0; text-align: center; }
+        .content { padding: 30px; line-height: 1.6; color: #333333; }
+        .cta-button { 
+            display: inline-block; 
+            background-color: #48D1CC; /* Cor de Acento (Ciano/Água) */
+            color: #222222 !important; /* Texto escuro para contrastar */
+            padding: 12px 25px; 
+            margin: 20px 0;
+            text-decoration: none; 
+            border-radius: 5px; 
+            font-weight: bold;
+            font-size: 16px;
+            border: 1px solid #48D1CC;
+        }
+        .footer { background-color: #f4f4f4; padding: 15px 30px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #dddddd; }
+        h1 { color: #222222; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <img src="https://i.imgur.com/InjeONO.png" alt="Climbe Investimentos Independentes" style="max-width: 250px; height: auto;">
+        </div>
+        
+        <div class="content">
+            <h1>Olá, {{nome}}!</h1>
+            
+            <p>É com satisfação que confirmamos que seu cadastro foi aprovado com sucesso. Agora você já pode acessar nossa plataforma para explorar ferramentas e análises.</p>
+
+            <div style="text-align: center;">
+                <a href="{{linkLogin}}" class="cta-button">ACESSAR MINHA CONTA AGORA</a>
+            </div>
+
+            <p>Se tiver qualquer dificuldade ou precisar de auxílio para os primeiros passos, nossa equipe de suporte está à disposição.</p>
+
+            <p>Atenciosamente,<br>Equipe Climbe Investimento</p>
+        </div>
+        
+        <div class="footer">
+            <p>Este é um e-mail de notificação. Por favor, não responda a este endereço.</p>
+            <p>Climbe Investimento |  Edifício Neo Office - Av. Dr. José Machado de Souza, 220 - sala 414 - Jardins, Aracaju - SE</p>
+        </div>
+    </div>
+</body>
+</html>

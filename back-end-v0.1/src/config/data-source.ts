@@ -17,9 +17,9 @@ import { ContractAssignee } from '../modules/contracts/entities/contract-assigne
 import { Audit } from '../audit/entities/audit.entity';
 
 // Meetings
-import { Reuniao } from '../modules/meetings/entities/meeting.entity';
-import { ReuniaoParticipante } from '../modules/meetings/entities/meeting-member.entity';
-import { ReuniaoAtividade } from '../modules/meetings/entities/meeting-activity.entity';
+import { Reuniao } from '../modules/meetings/Entities/meeting.entity';
+import { ReuniaoParticipante } from '../modules/meetings/Entities/meeting-member.entity';
+import { ReuniaoAtividade } from '../modules/meetings/Entities/meeting-activity.entity';
 
 // ==== helpers ====
 const required = (name: string): string => {

@@ -19,7 +19,7 @@ export class gmailService{
     oAuth2Client.setCredentials({
       access_token: 'SEU_ACCESS_TOKEN_AQUI',
       refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
-      scope: 'https://www.googleapis.com/auth/calendar',
+      scope: 'https://www.googleapis.com/auth/gmail',
       token_type: 'Bearer',
       expiry_date: Date.now() + 3600 * 1000,
     });

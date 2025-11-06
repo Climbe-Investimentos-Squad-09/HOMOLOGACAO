@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" v-if="showLayout">
     <AsideComponent />
     <div class="main-content-wrapper">
       <NavComponent />
@@ -8,11 +8,23 @@
       </main>
     </div>
   </div>
+  <router-view v-else />
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from './stores/auth'
 import AsideComponent from './components/Aside/AsideComponent.vue';
 import NavComponent from './components/Nav/NavBar.vue';
+
+const route = useRoute()
+const authStore = useAuthStore()
+
+const showLayout = computed(() => {
+  const publicRoutes = ['login']
+  return authStore.isAuthenticated && !publicRoutes.includes(route.name)
+})
 </script>
 
 <style>

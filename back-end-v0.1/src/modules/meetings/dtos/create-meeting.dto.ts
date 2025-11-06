@@ -1,6 +1,6 @@
 // src/modules/meetings/dtos/create-reuniao.dto.ts
 import { IsString, IsOptional, IsISO8601, IsEnum } from 'class-validator';
-import { ModalidadeReuniao } from '../entities/meeting.entity';
+import { ModalidadeReuniao } from '../Entities/meeting.entity';
 
 export class CreateReuniaoDto {
   @IsString()

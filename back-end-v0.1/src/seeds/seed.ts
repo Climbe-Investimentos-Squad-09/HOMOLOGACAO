@@ -18,11 +18,11 @@ import {
   Reuniao,
   ModalidadeReuniao,
   StatusReuniao,
-} from '../modules/meetings/entities/meeting.entity';
+} from '../modules/meetings/Entities/meeting.entity';
 import {
   ReuniaoParticipante,
   StatusConvite,
-} from '../modules/meetings/entities/meeting-member.entity';
+} from '../modules/meetings/Entities/meeting-member.entity';
 
 // Seeds data
 import { PERMISSIONS } from './data/permissions';

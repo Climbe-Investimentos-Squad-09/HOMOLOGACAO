@@ -4,61 +4,31 @@
 
     
     <div class="background-video-container" v-else>
-      <video autoplay muted loop playsinline class="background-video">
-        <source src="/video/climbeVideo.mp4" type="video/mp4" />
-      </video>
       <div class="overlay">
-        <div class="overlay-content">
+        <div class="logo-container">
           <image-component src="/img/climbe-logo.png" />
-          <p>Portal do Sócio.</p>
-          <div class="main-content">
+        </div>
+        
+        <div class="overlay-content">
+          <h1 class="welcome-title">Bem vindo(a)!</h1>
+          <p class="welcome-subtitle">Faça o login inserindo seu e-mail e senha</p>
+          
+          <div class="login-form">
+            <label class="input-label">E-mail</label>
+            <input-component placeholder="Email" v-model="user" required />
+            <label class="input-label">Senha</label>
+            <input-component type="password" placeholder="Senha" v-model="pass" required />
 
+            <button-component
+              ref="loginBtn"
+              :disabled="oi"
+              @click="login"
+              text="Confirmar"
+            />
             
-            <div class="login-form" v-if="!showSignup">
-              <input-component placeholder="Digite seu email" v-model="user" required />
-              <input-component type="password" placeholder="Digite sua senha" v-model="pass" required />
-
-              <button-component
-                ref="loginBtn"
-                :disabled="oi"
-                @click="login"
-                text="Acessar"
-              />
-
-              <span>
-                É sócio e ainda não tem acesso?
-                <a href="#" @click.prevent="showSignup = true">Clique aqui</a>
-              </span>
-            </div>
-
-
-            <div class="login-form" v-else>
-              <input-component placeholder="Nome completo" v-model="fullName" required />
-              <input-component placeholder="Digite seu email" v-model="signupEmail" required />
-              <input-component type="password" placeholder="Digite sua senha" v-model="signupPass" required />
-
-              <button-component
-                ref="signupBtn"
-                @click="onSignup"
-                text="Solicitar Acesso"
-              />
-
-              <span>
-                Já tem conta?
-                <a href="#" @click.prevent="showSignup = false">Voltar ao login</a>
-              </span>
-            </div>
-
-            
-            <div class="divider">
-              <hr class="custom-hr" />
-            </div>
-
-            
-            <div class="typing-text-container">
-              <p class="typing-text">{{ displayText }}</p>
-            </div>
-
+            <a href="#" @click.prevent="goToGoogleSignup" class="no-account-link">
+              Não tenho conta
+            </a>
           </div>
         </div>
       </div>
@@ -71,6 +41,8 @@ import ImageComponent from '@/components/ImageComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
 import SpinnerLoading from '@/components/SpinnerLoading.vue'
 import ButtonComponent from '@/components/ButtonComponent.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'LoginView',
@@ -80,82 +52,47 @@ export default {
     SpinnerLoading,
     ButtonComponent
   },
+  setup() {
+    const authStore = useAuthStore()
+    const router = useRouter()
+    return { authStore, router }
+  },
   data() {
     return {
       oi: false,            
       user: '',             
-      pass: '',             
-      fullName: '',         
-      signupEmail: '',      
-      signupPass: '',       
-      showSignup: false,    
-      displayText: '',      
-      fullText: 'A melhor empresa precisa dos melhores orientadores',
-      typewriterIndex: 0,   
-      typewriterSpeed: 80   
+      pass: ''             
     }
   },
-  mounted() {
-    this.startTypewriter()
-  },
   methods: {
-    startTypewriter() {
-      const typeNextChar = () => {
-        if (this.typewriterIndex < this.fullText.length) {
-          this.displayText += this.fullText.charAt(this.typewriterIndex)
-          this.typewriterIndex++
-          setTimeout(typeNextChar, this.typewriterSpeed)
-        }
-      }
-      setTimeout(typeNextChar, 1000)
-    },
     async login() {
+      if (!this.user || !this.pass) {
+        this.$refs.loginBtn.showError('Preencha todos os campos')
+        return
+      }
+
       this.oi = true
       try {
-        const res = await fetch('http://localhost:3000/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: this.user, password: this.pass })
-        })
-
-        if (res.status === 403) {
-          this.$refs.loginBtn.showError('Aguardando aprovação')
-          return
-        }
-        if (!res.ok) {
-          throw new Error(`Erro ${res.status}`)
-        }
-
-        const { token } = await res.json()
-        localStorage.setItem('token', token)
+        await this.authStore.login(this.user, this.pass)
         this.$refs.loginBtn.showSuccess()
-        this.$router.push('/main')
+        setTimeout(() => {
+          this.router.push('/dashboard')
+        }, 1000)
       } catch (err) {
         console.error('Login falhou:', err)
-        if (!this.$refs.loginBtn._hasError) {
-          this.$refs.loginBtn.showError('E‑mail ou senha inválidos')
+        if (err.response?.status === 403) {
+          this.$refs.loginBtn.showError('Aguardando aprovação')
+        } else if (err.response?.status === 401) {
+          this.$refs.loginBtn.showError('E-mail ou senha inválidos')
+        } else {
+          this.$refs.loginBtn.showError('Erro ao fazer login. Tente novamente.')
         }
       } finally {
         this.oi = false
       }
     },
-    async onSignup() {
-      this.oi = true
-      try {
-        const res = await fetch('http://localhost:3000/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullName: this.fullName, email: this.signupEmail, password: this.signupPass })
-        })
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        this.$refs.signupBtn.showSuccess()
-        this.showSignup = false
-      } catch (err) {
-        console.error('Signup falhou:', err)
-        this.$refs.signupBtn.showError('Falha no cadastro')
-      } finally {
-        this.oi = false
-      }
+    goToGoogleSignup() {
+      this.router.push('/google-signup')
     }
   }
 }
@@ -164,6 +101,18 @@ export default {
 <style scoped>
 #create {
   color: var(--theme-color);
+}
+
+.input-label {
+  display: block;
+  color: #000000;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.input-label:first-child {
+  margin-top: 0;
 }
 
 .background-video-container {
@@ -191,8 +140,8 @@ export default {
   background: linear-gradient(
     135deg,
     rgba(0, 0, 0, 0.4) 0%,
-    rgba(0, 0, 0, 0.2) 50%,
-    rgba(0, 0, 0, 0.5) 100%
+    rgba(85, 85, 85, 0.2) 50%,
+    rgba(151, 151, 151, 0.5) 100%
   );
   pointer-events: none;
   z-index: 1;
@@ -204,31 +153,51 @@ export default {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  gap: 2rem;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo-container img {
+  max-width: 140px;
+  height: auto;
+  filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+.logo-container img:hover {
+  transform: scale(1.05);
 }
 
 .overlay-content {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(2px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 3rem 2.5rem;
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.2),
+    0 25px 50px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 25px;
-  color: #fff;
+  color: #333;
   text-align: center;
   animation: fadeInUp 0.8s ease-out;
   position: relative;
   overflow: hidden;
-  max-width: 900px;
+  max-width: 500px;
   width: 100%;
 }
 .overlay-content::before {
@@ -263,157 +232,88 @@ export default {
 .overlay-content img:hover {
   transform: scale(1.05);
 }
-.overlay-content > p {
-  font-size: 28px;
-  font-weight: 600;
+.welcome-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--secondary-color);
   margin: 0;
-  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.main-content {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-  width: 100%;
-  max-width: 800px;
+
+.welcome-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+  font-weight: 400;
 }
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 320px;
-  flex: 1;
-}
-.divider {
-  display: flex;
-  align-items: center;
-  height: 300px;
-}
-.custom-hr {
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    var(--theme-color),
-    var(--theme-color),
-    transparent
-  );
-  border: none;
-  position: relative;
-  animation: hrGlow 2s ease-in-out infinite alternate;
-}
-.custom-hr::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background: var(--theme-color);
-  border-radius: 50%;
-  box-shadow: 0 0 15px var(--theme-color);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes hrGlow {
-  0% { box-shadow: 0 0 5px var(--theme-color); filter: brightness(1); }
-  100% { box-shadow: 0 0 20px var(--theme-color); filter: brightness(1.3); }
-}
-@keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.7; }
-}
-.typing-text-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 80px;
-}
-.typing-text {
-  font-size: 42px;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.5px;
-  line-height: 1.4;
-  margin: 0;
-  position: relative;
-  text-align: left;
-  max-width: 280px;
-}
-.typing-text::after {
-  content: '|';
-  color: var(--theme-color);
-  animation: blink 1s infinite;
-  font-weight: 400;
-}
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
 }
 .login-form input {
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  color: #fff;
+  background: rgba(136, 136, 136, 0.9);
+  border: 1px solid rgba(57, 198, 187, 0.3);
+  border-radius: 10px;
+  color: #000000;
   font-size: 16px;
   outline: none;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 .login-form input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
+  color: #000000;
   font-weight: 400;
 }
 .login-form input:focus {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: rgb(85, 85, 85);
+  border-color: var(--theme-color);
+  box-shadow: 0 0 0 3px rgba(57, 198, 187, 0.1), 0 8px 25px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 .login-form button {
   padding: 16px 32px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  background: var(--theme-color);
+  border: 1px solid var(--theme-color);
+  border-radius: 10px;
   color: #fff;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(57, 198, 187, 0.3);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 .login-form button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--primary-color-alt);
+  border-color: var(--primary-color-alt);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 25px rgba(57, 198, 187, 0.4);
 }
 .login-form button:active {
   transform: translateY(0);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
-@media (max-width: 968px) {
-  .main-content { flex-direction: column; gap: 30px; }
-  .divider { height: auto; width: 100%; }
-  .custom-hr { width: 100%; height: 2px; background: linear-gradient(to right, transparent, var(--theme-color), var(--theme-color), transparent); }
-  .typing-text { text-align: center; max-width: 100%; }
-}
 @media (max-width: 480px) {
-  .overlay-content { padding: 1.5rem 1rem; gap: 20px; }
-  .overlay-content > p { font-size: 22px; }
-  .overlay-content img { max-width: 120px; }
-  .login-form { gap: 16px; }
-  .typing-text { font-size: 18px; }
-  .main-content { gap: 20px; }
+  .overlay { 
+    gap: 1.5rem; 
+  }
+  .overlay-content { 
+    padding: 2rem 1.5rem; 
+    gap: 20px; 
+  }
+  .logo-container img {
+    max-width: 120px;
+  }
+  .welcome-title { 
+    font-size: 2rem; 
+  }
+  .login-form { 
+    gap: 1.25rem; 
+  }
 }
 .login-form input:invalid:not(:placeholder-shown) {
   border-color: rgba(239, 68, 68, 0.6);
@@ -422,5 +322,23 @@ export default {
 .login-form input:valid:not(:placeholder-shown) {
   border-color: rgba(57, 198, 187, 0.6);
   background: rgba(34, 197, 94, 0.1);
+}
+
+.no-account-link {
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  background: var(--primary-color-alt);
+  border: 17px solid var(--primary-color-alt);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.no-account-link:hover {
+  color: var(--primary-color-alt);
+  text-decoration: underline;
+  transform: translateY(-1px);
 }
 </style>

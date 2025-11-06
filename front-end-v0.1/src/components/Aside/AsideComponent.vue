@@ -50,18 +50,39 @@
         <i class="bi bi-shield-lock-fill"></i>
         <span>Autorizações</span>
       </router-link>
+      <router-link to="/empresas" class="nav-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2L2 7V17H8V12H12V17H18V7L10 2Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Empresas</span>
+      </router-link>
+      <router-link to="/perfil" class="nav-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M0 20C0 15.5817 4.47715 12 10 12C15.5228 12 20 15.5817 20 20" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Perfil</span>
+      </router-link>
+      <router-link to="/configuracoes" class="nav-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 12C11.1046 12 12 11.1046 12 10C12 8.89543 11.1046 8 10 8C8.89543 8 8 8.89543 8 10C8 11.1046 8.89543 12 10 12Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 1V3M10 17V19M19 10H17M3 10H1M16.364 3.63604L14.8284 5.17157M5.17157 14.8284L3.63604 16.364M16.364 16.364L14.8284 14.8284M5.17157 5.17157L3.63604 3.63604" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Configurações</span>
+      </router-link>
     </nav>
     <div class="sidebar-footer">
       <hr>
-      <div class="profile-and-logout ">
+      <div class="profile-and-logout">
         <div class="user-profile">
           <div class="avatar"></div>
           <div class="user-info">
-            <span class="user-name">João Silva</span>
-            <span class="user-role">Administrador</span>
+            <span class="user-name">{{ user?.name || 'Usuário' }}</span>
+            <span class="user-role">{{ userRole || 'Sem cargo' }}</span>
           </div>
         </div>
-        <button class="logout-button"> <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+        <button class="logout-button" @click="handleLogout">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
             xmlns="http://www.w3.org/2000/svg">
             <path
               d="M2 18C1.45 18 0.979333 17.8043 0.588 17.413C0.196667 17.0217 0.000666667 16.5507 0 16V2C0 1.45 0.196 0.979333 0.588 0.588C0.98 0.196667 1.45067 0.000666667 2 0H8C8.28333 0 8.521 0.0960001 8.713 0.288C8.905 0.48 9.00067 0.717333 9 1C8.99933 1.28267 8.90333 1.52033 8.712 1.713C8.52067 1.90567 8.28333 2.00133 8 2H2V16H8C8.28333 16 8.521 16.096 8.713 16.288C8.905 16.48 9.00067 16.7173 9 17C8.99933 17.2827 8.90333 17.5203 8.712 17.713C8.52067 17.9057 8.28333 18.0013 8 18H2ZM14.175 10H7C6.71667 10 6.47933 9.904 6.288 9.712C6.09667 9.52 6.00067 9.28267 6 9C5.99933 8.71733 6.09533 8.48 6.288 8.288C6.48067 8.096 6.718 8 7 8H14.175L12.3 6.125C12.1167 5.94167 12.025 5.71667 12.025 5.45C12.025 5.18333 12.1167 4.95 12.3 4.75C12.4833 4.55 12.7167 4.44567 13 4.437C13.2833 4.42833 13.525 4.52433 13.725 4.725L17.3 8.3C17.5 8.5 17.6 8.73333 17.6 9C17.6 9.26667 17.5 9.5 17.3 9.7L13.725 13.275C13.525 13.475 13.2877 13.571 13.013 13.563C12.7383 13.555 12.5007 13.4507 12.3 13.25C12.1167 13.05 12.0293 12.8127 12.038 12.538C12.0467 12.2633 12.1423 12.034 12.325 11.85L14.175 10Z"
@@ -70,10 +91,53 @@
           Logout
         </button>
       </div>
-
     </div>
   </aside>
 </template>
+
+<script setup>
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getRoleById } from '@/api/roles'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const user = computed(() => authStore.user)
+const roleName = ref('')
+
+const userRole = computed(() => {
+  if (roleName.value) {
+    return roleName.value
+  }
+  if (!user.value?.profile) {
+    return 'Sem cargo'
+  }
+  return 'Carregando...'
+})
+
+const loadRoleName = async () => {
+  if (user.value?.profile) {
+    try {
+      const role = await getRoleById(user.value.profile)
+      roleName.value = role.nomeCargo
+    } catch (error) {
+      console.error('Erro ao carregar cargo:', error)
+      roleName.value = 'Sem cargo'
+    }
+  }
+}
+
+onMounted(() => {
+  loadRoleName()
+})
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+}
+</script>
 
 <style scoped>
 .sidebar {
@@ -171,10 +235,18 @@
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #F8F9FA;
 }
 
 .logout-button svg {
   vertical-align: middle;
-  margin-right: 0.2rem;
 }
 </style>

@@ -2,9 +2,9 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { ModalidadeReuniao, Reuniao, StatusReuniao } from './entities/meeting.entity';
-import { ReuniaoParticipante, StatusConvite } from './entities/meeting-member.entity';
-import { ReuniaoAtividade, StatusAtividade } from './entities/meeting-activity.entity';
+import { ModalidadeReuniao, Reuniao, StatusReuniao } from './Entities/meeting.entity';
+import { ReuniaoParticipante, StatusConvite } from './Entities/meeting-member.entity';
+import { ReuniaoAtividade, StatusAtividade } from './Entities/meeting-activity.entity';
 import { CreateReuniaoDto } from './dtos/create-meeting.dto';
 import { UpdateReuniaoDto } from './dtos/update-meeting.dto';
 import { AddParticipanteDto } from './dtos/add-member.dto';

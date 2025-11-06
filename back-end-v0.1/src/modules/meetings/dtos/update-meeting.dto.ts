@@ -1,9 +1,17 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateReuniaoDto } from './create-meeting.dto';
 import { IsEnum, IsOptional, IsISO8601, IsString, ValidateIf } from 'class-validator';
-import { StatusReuniao, ModalidadeReuniao } from '../entities/meeting.entity';
+import { StatusReuniao, ModalidadeReuniao } from '../Entities/meeting.entity';
 
 export class UpdateReuniaoDto extends PartialType(CreateReuniaoDto) {
+  @IsString()
+  @IsOptional()
+  titulo?: string;
+
+  @IsString()
+  @IsOptional()
+  pauta?: string;
+  
   @IsEnum(StatusReuniao)
   @IsOptional()
   status?: StatusReuniao;

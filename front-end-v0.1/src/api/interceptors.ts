@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------------------------
 
 import apiClient from './client';
-
+/*
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -21,3 +21,4 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+*/

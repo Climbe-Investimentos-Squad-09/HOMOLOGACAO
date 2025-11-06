@@ -1,6 +1,6 @@
 // src/modules/meetings/dtos/add-activity.dto.ts
 import { IsString, IsOptional, IsInt, IsISO8601, IsEnum } from 'class-validator';
-import { StatusAtividade } from '../entities/meeting-activity.entity';
+import { StatusAtividade } from '../Entities/meeting-activity.entity';
 
 export class AddAtividadeDto {
   @IsString()

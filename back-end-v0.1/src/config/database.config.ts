@@ -6,12 +6,12 @@ export const databaseConfig = async (
 ): Promise<TypeOrmModuleOptions> => ({
   type: 'postgres',
   host: configService.get<string>('DB_HOST'),
-  port: parseInt(configService.get<string>('DB_PORT') ?? '3306', 10),
+  port: parseInt(configService.get<string>('DB_PORT') ?? '5432', 10),
   username: configService.get<string>('DB_USERNAME'),
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_NAME'),
-  autoLoadEntities: true, // carrega todas entities automaticamente
-  synchronize: false,     // ❌ nunca use true em produção
+  autoLoadEntities: true,
+  synchronize: true,
   logging: true,
-  ssl: false,             // Clever Cloud não exige SSL para MySQL
+  ssl: configService.get<string>('DB_SSL') === 'true',
 });

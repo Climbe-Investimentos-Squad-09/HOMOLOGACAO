@@ -1,6 +1,6 @@
 // src/modules/meetings/dtos/update-member-status.dto.ts
 import { IsEnum } from 'class-validator';
-import { StatusConvite } from '../entities/meeting-member.entity';
+import { StatusConvite } from '../Entities/meeting-member.entity';
 
 export class UpdateParticipanteStatusDto {
   @IsEnum(StatusConvite)

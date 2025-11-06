@@ -39,24 +39,20 @@ import { ref, watch } from "vue";
 const emit = defineEmits(["search-changed", "filters-changed", "open-create-modal"]);
 
 const searchQuery = ref("");
-const filterOptions = ["Ativo", "Inativo"];
+const filterOptions = ["Ativo", "Bloqueado", "Pendente"];
 const selectedFilters = ref([]);
 
 const onSearchChange = () => {
   emit("search-changed", searchQuery.value);
 };
 
-const onFiltersChange = () => {
-  emit("filters-changed", selectedFilters.value);
+const onFiltersChange = (value) => {
+  emit("filters-changed", value || []);
 };
 
 watch(searchQuery, (newValue) => {
   emit("search-changed", newValue);
 });
-
-watch(selectedFilters, (newValue) => {
-  emit("filters-changed", newValue);
-}, { deep: true });
 </script>
 
 <style scoped>
@@ -146,4 +142,3 @@ watch(selectedFilters, (newValue) => {
   color: white !important;
 }
 </style>
-

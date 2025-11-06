@@ -2,7 +2,11 @@
   <div class="users-table-container card">
     <h2 class="card-title">Usuários ({{ users.length }})</h2>
 
-    <div v-if="users.length === 0" class="no-users-message">
+    <div v-if="loading" class="loading-message">
+      <p>Carregando usuários...</p>
+    </div>
+
+    <div v-else-if="users.length === 0" class="no-users-message">
       <p>Nenhum usuário encontrado.</p>
     </div>
 
@@ -44,14 +48,17 @@
           </td>
           <td>
             <div class="permissions-list">
-              <span v-for="(permission, index) in user.permissions" :key="index" class="permission-badge">
+              <span v-for="(permission, index) in user.permissions.slice(0, 3)" :key="index" class="permission-badge">
                 {{ permission }}
+              </span>
+              <span v-if="user.permissions.length > 3" class="permission-badge">
+                +{{ user.permissions.length - 3 }}
               </span>
             </div>
           </td>
           <td>{{ user.lastAccess }}</td>
           <td class="actions-cell">
-            <button class="action-icon-button edit-button" title="Editar">
+            <button class="action-icon-button edit-button" title="Editar" @click="$emit('edit-user', user)">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M17.4167 6.33333L13.6667 2.58333L2.5 13.75V17.5H6.25L17.4167 6.33333Z" stroke="#6C757D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -68,15 +75,24 @@ const props = defineProps({
   users: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
+
+defineEmits(['edit-user', 'refresh']);
 
 const getStatusClass = (status) => {
   switch (status) {
     case 'Ativo':
       return 'status-active';
-    case 'Inativo':
+    case 'Bloqueado':
       return 'status-inactive';
+    case 'PENDENTE':
+    case 'Pendente':
+      return 'status-pending';
     default:
       return '';
   }
@@ -98,7 +114,8 @@ const getStatusClass = (status) => {
   margin-bottom: 1.5rem;
 }
 
-.no-users-message {
+.no-users-message,
+.loading-message {
   text-align: center;
   padding: 2rem;
   color: #6C757D;
@@ -201,6 +218,12 @@ const getStatusClass = (status) => {
   background-color: #FFCFCF;
   color: #AE3B3B;
   border: #FFB9B9 1px solid;
+}
+
+.status-pending {
+  background-color: #FFF4E6;
+  color: #B8860B;
+  border: #FFE4B5 1px solid;
 }
 
 .permissions-list {

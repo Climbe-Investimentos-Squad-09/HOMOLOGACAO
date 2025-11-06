@@ -1,6 +1,6 @@
 import api from './http'
 
-interface Role {
+export interface Role {
   idCargo: number
   nomeCargo: string
 }

@@ -5,86 +5,105 @@
       @filters-changed="handleFiltersChange"
       @open-create-modal="showCreateModal = true"
     />
-    <UsersTable :users="filteredUsers" />
-    <UsersCreateModal v-if="showCreateModal" @close="showCreateModal = false" />
+    <UsersTable 
+      :users="formattedUsers" 
+      :loading="loading"
+      @edit-user="handleEditUser"
+      @refresh="loadUsers"
+    />
+    <UsersCreateModal 
+      v-if="showCreateModal" 
+      @close="showCreateModal = false"
+      @user-created="handleUserCreated"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import UsersHeader from '../components/user/UsersHeader.vue';
-import UsersTable from '../components/user/UsersTable.vue';
-import UsersCreateModal from '../components/user/UsersCreateModal.vue';
+import { ref, computed, onMounted } from 'vue'
+import UsersHeader from '../components/user/UsersHeader.vue'
+import UsersTable from '../components/user/UsersTable.vue'
+import UsersCreateModal from '../components/user/UsersCreateModal.vue'
+import { getUsers, SituacaoUsuario } from '@/api/users'
 
-const showCreateModal = ref(false);
-const searchQuery = ref('');
-const selectedFilters = ref([]);
+const showCreateModal = ref(false)
+const searchQuery = ref('')
+const selectedFilters = ref([])
+const allUsers = ref([])
+const loading = ref(false)
 
-const allUsers = ref([
-  {
-    id: 'USR-001',
-    name: 'João Silva',
-    email: 'joaosilva@climbe.com',
-    role: 'Analista',
-    contactEmail: 'john.smith@company.com',
-    contactPhone: '+1 (555) 123-4567',
-    status: 'Ativo',
-    permissions: ['Documentos', 'Contratos', '+1'],
-    lastAccess: '04/02/2024',
-  },
-  {
-    id: 'USR-002',
-    name: 'João Silva',
-    email: 'joaosilva@climbe.com',
-    role: 'Analista',
-    contactEmail: 'john.smith@company.com',
-    contactPhone: '+1 (555) 123-4567',
-    status: 'Inativo',
-    permissions: ['Todas as permissões'],
-    lastAccess: '04/02/2024',
-  },
-  {
-    id: 'USR-003',
-    name: 'João Silva',
-    email: 'joaosilva@climbe.com',
-    role: 'Analista',
-    contactEmail: 'john.smith@company.com',
-    contactPhone: '+1 (555) 123-4567',
-    status: 'Ativo',
-    permissions: ['Documentos', 'Contratos'],
-    lastAccess: '04/02/2024',
-  },
-]);
+const loadUsers = async () => {
+  loading.value = true
+  try {
+    const filters = {}
+    if (searchQuery.value.trim()) {
+      filters.nome = searchQuery.value.trim()
+    }
+    if (selectedFilters.value && selectedFilters.value.length > 0) {
+      const situacaoMap = {
+        'Ativo': SituacaoUsuario.Ativo,
+        'Bloqueado': SituacaoUsuario.Bloqueado,
+        'Pendente': SituacaoUsuario.PENDENTE
+      }
+      const situacoes = selectedFilters.value.map(f => situacaoMap[f] || f)
+      if (situacoes.length === 1) {
+        filters.situacao = situacoes[0]
+      }
+    }
+    console.log('Carregando usuários com filtros:', filters)
+    const users = await getUsers(filters)
+    console.log('Usuários carregados:', users)
+    allUsers.value = users || []
+    console.log('Total de usuários exibidos:', allUsers.value.length)
+  } catch (error) {
+    console.error('Erro ao carregar usuários:', error)
+    allUsers.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const handleSearchChange = (query) => {
-  searchQuery.value = query;
-};
+  searchQuery.value = query
+  loadUsers()
+}
 
 const handleFiltersChange = (filters) => {
-  selectedFilters.value = filters;
-};
+  selectedFilters.value = filters
+  loadUsers()
+}
 
-const filteredUsers = computed(() => {
-  let filtered = allUsers.value;
+const handleUserCreated = () => {
+  showCreateModal.value = false
+  setTimeout(() => {
+    loadUsers()
+  }, 100)
+}
 
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim();
-    filtered = filtered.filter(user =>
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      user.contactEmail.toLowerCase().includes(query) ||
-      user.contactPhone.toLowerCase().includes(query)
-    );
-  }
+const handleEditUser = (user) => {
+  console.log('Editar usuário:', user)
+}
 
-  if (selectedFilters.value.length > 0) {
-    filtered = filtered.filter(user =>
-      selectedFilters.value.includes(user.status)
-    );
-  }
+const formattedUsers = computed(() => {
+  return allUsers.value.map(user => ({
+    id: user.idUsuario,
+    name: user.nomeCompleto,
+    email: user.email,
+    role: user.cargo?.nomeCargo || 'Sem cargo',
+    contactEmail: user.email,
+    contactPhone: user.contato || '-',
+    status: user.situacao,
+    permissions: [
+      ...(user.permissoesExtras?.map(p => p.nome) || [])
+    ],
+    lastAccess: user.ultimoAcesso ? new Date(user.ultimoAcesso).toLocaleDateString('pt-BR') : '-',
+    rawUser: user
+  }))
+})
 
-  return filtered;
-});
+onMounted(() => {
+  loadUsers()
+})
 </script>
 
 <style scoped>

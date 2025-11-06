@@ -2,7 +2,11 @@
   <div class="authorizations-table-container card">
     <h2 class="card-title">Autorizações pendentes ({{ authorizations.length }})</h2>
 
-    <div v-if="authorizations.length === 0" class="no-authorizations-message">
+    <div v-if="loading" class="loading-message">
+      <p>Carregando autorizações...</p>
+    </div>
+
+    <div v-else-if="authorizations.length === 0" class="no-authorizations-message">
       <p>Nenhuma autorização pendente encontrada.</p>
     </div>
 
@@ -25,7 +29,7 @@
             </span>
           </td>
           <td class="actions-cell">
-            <button v-if="auth.category === 'Login'" class="action-icon-button approve-button" title="Aprovar">
+            <button v-if="auth.category === 'Login'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" width="32" height="32" rx="8" fill="#B5EDB9" />
                 <path
@@ -35,7 +39,7 @@
                   stroke-linejoin="round" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Login'" class="action-icon-button reject-button" title="Rejeitar">
+            <button v-if="auth.category === 'Login'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" fill="#FFCFCF" />
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" stroke="#FFB9B9" />
@@ -44,7 +48,7 @@
                   fill="#AE3B3B" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Permissões'" class="action-icon-button approve-button" title="Aprovar">
+            <button v-if="auth.category === 'Permissões'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" width="32" height="32" rx="8" fill="#B5EDB9" />
                 <path
@@ -54,7 +58,7 @@
                   stroke-linejoin="round" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Permissões'" class="action-icon-button reject-button" title="Rejeitar">
+            <button v-if="auth.category === 'Permissões'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" fill="#FFCFCF" />
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" stroke="#FFB9B9" />
@@ -62,19 +66,6 @@
                   d="M16.5 8C14.3783 8 12.3434 8.84285 10.8431 10.3431C9.34285 11.8434 8.5 13.8783 8.5 16C8.5 18.1217 9.34285 20.1566 10.8431 21.6569C12.3434 23.1571 14.3783 24 16.5 24C18.6217 24 20.6566 23.1571 22.1569 21.6569C23.6571 20.1566 24.5 18.1217 24.5 16C24.5 13.8783 23.6571 11.8434 22.1569 10.3431C20.6566 8.84285 18.6217 8 16.5 8ZM6.5 16C6.5 10.477 10.977 6 16.5 6C22.023 6 26.5 10.477 26.5 16C26.5 21.523 22.023 26 16.5 26C10.977 26 6.5 21.523 6.5 16ZM12.293 11.793C12.4805 11.6055 12.7348 11.5002 13 11.5002C13.2652 11.5002 13.5195 11.6055 13.707 11.793L16.5 14.586L19.293 11.793C19.3852 11.6975 19.4956 11.6213 19.6176 11.5689C19.7396 11.5165 19.8708 11.4889 20.0036 11.4877C20.1364 11.4866 20.2681 11.5119 20.391 11.5622C20.5139 11.6125 20.6255 11.6867 20.7194 11.7806C20.8133 11.8745 20.8875 11.9861 20.9378 12.109C20.9881 12.2319 21.0134 12.3636 21.0123 12.4964C21.0111 12.6292 20.9835 12.7604 20.9311 12.8824C20.8787 13.0044 20.8025 13.1148 20.707 13.207L17.914 16L20.707 18.793C20.8892 18.9816 20.99 19.2342 20.9877 19.4964C20.9854 19.7586 20.8802 20.0094 20.6948 20.1948C20.5094 20.3802 20.2586 20.4854 19.9964 20.4877C19.7342 20.49 19.4816 20.3892 19.293 20.207L16.5 17.414L13.707 20.207C13.5184 20.3892 13.2658 20.49 13.0036 20.4877C12.7414 20.4854 12.4906 20.3802 12.3052 20.1948C12.1198 20.0094 12.0146 19.7586 12.0123 19.4964C12.01 19.2342 12.1108 18.9816 12.293 18.793L15.086 16L12.293 13.207C12.1055 13.0195 12.0002 12.7652 12.0002 12.5C12.0002 12.2348 12.1055 11.9805 12.293 11.793Z"
                   fill="#AE3B3B" />
               </svg>
-            </button>
-            <button v-if="auth.category === 'Permissões'" class="action-icon-button view-button" title="Visualizar">
-              <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="0.5" width="31" height="31" rx="7.5" fill="white" />
-                <rect x="1" y="0.5" width="31" height="31" rx="7.5" stroke="#DFDFDF" />
-                <path
-                  d="M16.5 23C22.807 23 25.867 17.317 26.41 16.192C26.439 16.1322 26.4541 16.0665 26.4541 16C26.4541 15.9335 26.439 15.8678 26.41 15.808C25.868 14.683 22.808 9 16.5 9C10.192 9 7.133 14.683 6.59 15.808C6.56098 15.8678 6.5459 15.9335 6.5459 16C6.5459 16.0665 6.56098 16.1322 6.59 16.192C7.132 17.317 10.192 23 16.5 23Z"
-                  stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <path
-                  d="M16.5 13C14.8431 13 13.5 14.3431 13.5 16C13.5 17.6569 14.8431 19 16.5 19C18.1569 19 19.5 17.6569 19.5 16C19.5 14.3431 18.1569 13 16.5 13Z"
-                  stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-
             </button>
           </td>
         </tr>
@@ -88,8 +79,14 @@ const props = defineProps({
   authorizations: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
+
+defineEmits(['approve', 'reject', 'refresh']);
 </script>
 
 <style scoped>
@@ -107,7 +104,8 @@ const props = defineProps({
   margin-bottom: 1.5rem;
 }
 
-.no-authorizations-message {
+.no-authorizations-message,
+.loading-message {
   text-align: center;
   padding: 2rem;
   color: #6C757D;

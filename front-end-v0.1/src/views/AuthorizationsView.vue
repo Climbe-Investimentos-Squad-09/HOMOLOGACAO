@@ -1,33 +1,67 @@
 <template>
   <div class="authorizations-view">
-    <AuthorizationsTable :authorizations="allAuthorizations" />
+    <AuthorizationsTable 
+      :authorizations="formattedAuthorizations" 
+      :loading="loading"
+      @approve="handleApprove"
+      @reject="handleReject"
+      @refresh="loadAuthorizations"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import AuthorizationsTable from '../components/authorizations/AuthorizationsTable.vue';
+import { ref, computed, onMounted } from 'vue'
+import AuthorizationsTable from '../components/authorizations/AuthorizationsTable.vue'
+import { getUsers, updateUserStatus, SituacaoUsuario } from '@/api/users'
 
-const allAuthorizations = ref([
-  {
-    id: 'AUTH-001',
-    fullName: 'Ana Silva',
-    email: 'john.smith@company.com',
-    category: 'Login',
-  },
-  {
-    id: 'AUTH-002',
-    fullName: 'Ana Silva',
-    email: 'john.smith@company.com',
-    category: 'Login',
-  },
-  {
-    id: 'AUTH-003',
-    fullName: 'Ana Silva',
-    email: 'john.smith@company.com',
-    category: 'Permissões',
-  },
-]);
+const allAuthorizations = ref([])
+const loading = ref(false)
+
+const loadAuthorizations = async () => {
+  loading.value = true
+  try {
+    allAuthorizations.value = await getUsers({ situacao: SituacaoUsuario.PENDENTE })
+  } catch (error) {
+    console.error('Erro ao carregar autorizações:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleApprove = async (user) => {
+  try {
+    await updateUserStatus(user.idUsuario, SituacaoUsuario.Ativo)
+    await loadAuthorizations()
+  } catch (error) {
+    console.error('Erro ao aprovar usuário:', error)
+    alert('Erro ao aprovar usuário. Tente novamente.')
+  }
+}
+
+const handleReject = async (user) => {
+  try {
+    await updateUserStatus(user.idUsuario, SituacaoUsuario.Bloqueado)
+    await loadAuthorizations()
+  } catch (error) {
+    console.error('Erro ao rejeitar usuário:', error)
+    alert('Erro ao rejeitar usuário. Tente novamente.')
+  }
+}
+
+const formattedAuthorizations = computed(() => {
+  return allAuthorizations.value.map(user => ({
+    id: user.idUsuario,
+    fullName: user.nomeCompleto,
+    email: user.email,
+    category: user.cargo ? 'Permissões' : 'Login',
+    rawUser: user
+  }))
+})
+
+onMounted(() => {
+  loadAuthorizations()
+})
 </script>
 
 <style scoped>

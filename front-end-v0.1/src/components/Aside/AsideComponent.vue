@@ -59,32 +59,11 @@
         <i class="bi bi-shield-lock-fill"></i>
         <span>Autorizações</span>
       </router-link>
-      <router-link to="/perfil" class="nav-item">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z"
-            stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M0 20C0 15.5817 4.47715 12 10 12C15.5228 12 20 15.5817 20 20" stroke="black" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <span>Perfil</span>
-      </router-link>
-      <router-link to="/configuracoes" class="nav-item">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10 12C11.1046 12 12 11.1046 12 10C12 8.89543 11.1046 8 10 8C8.89543 8 8 8.89543 8 10C8 11.1046 8.89543 12 10 12Z"
-            stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <path
-            d="M10 1V3M10 17V19M19 10H17M3 10H1M16.364 3.63604L14.8284 5.17157M5.17157 14.8284L3.63604 16.364M16.364 16.364L14.8284 14.8284M5.17157 5.17157L3.63604 3.63604"
-            stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <span>Configurações</span>
-      </router-link>
     </nav>
     <div class="sidebar-footer">
       <hr>
       <div class="profile-and-logout">
-        <div class="user-profile">
+        <div class="user-profile" @click="goToProfile">
           <div class="avatar"></div>
           <div class="user-info">
             <span class="user-name">{{ user?.name || 'Usuário' }}</span>
@@ -145,6 +124,10 @@ onMounted(() => {
 const handleLogout = () => {
   authStore.logout()
   router.push('/login')
+}
+
+const goToProfile = () => {
+  router.push('/perfil')
 }
 </script>
 
@@ -212,6 +195,14 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+  background-color: #F8F9FA;
 }
 
 .avatar {

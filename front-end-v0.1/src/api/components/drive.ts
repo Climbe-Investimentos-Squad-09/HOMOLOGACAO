@@ -1,4 +1,5 @@
 import apiClient from '../client';
+import { SendDriveDTO } from '../interfaces/drive/drive.dto';
 
 const BASE = "/api/v1/documents";
 
@@ -13,8 +14,8 @@ export async function getDocumentById(id: number) {
 }
 
 //Criar Documento -- SendDriveDTO
-export async function createDocument(data: any) {
-  return (await apiClient.post(BASE, data)).data;
+export async function createDocument():Promise<SendDriveDTO> {
+  return (await apiClient.post(BASE, Promise)).data;
 }
 
 //Remove Documento

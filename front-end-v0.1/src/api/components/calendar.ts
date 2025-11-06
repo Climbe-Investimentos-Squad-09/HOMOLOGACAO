@@ -1,5 +1,8 @@
 import apiClient from '../client';
 
+import { sendCalendarDTO } from '../interfaces/calendar/calendar.dto';
+import { indexAccountDTO } from '../interfaces/calendar/indexAccounts.dto';
+
 const BASE = "/api/v1/meetings";
 
 //Listar Calendars
@@ -13,14 +16,14 @@ export async function getMeetingById(id: number) {
 }
 
 //Criar Calendar -- sendCalendarDTO
-export async function createMeeting(data: any) {
-  return (await apiClient.post(BASE, data)).data;
+export async function createMeeting():Promise<sendCalendarDTO> {
+  return (await apiClient.post(BASE, Promise)).data;
 }
 
 //Inserir id no endpoint da Autenticação
 //Atualizar Calendar -- indexAccountDTO
-export async function updateMeeting(id: number) {
-  return (await apiClient.put(`${BASE}/${id}`)).data;
+export async function updateMeeting(id: number):Promise<indexAccountDTO> {
+  return (await apiClient.put(`${BASE}/${id}`, Promise)).data;
 }
 
 //Remove Calendar

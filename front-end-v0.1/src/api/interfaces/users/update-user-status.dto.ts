@@ -6,5 +6,4 @@ export enum SituacaoUsuario {
 
 export interface UpdateUserStatusDto {
   situacao: SituacaoUsuario;
-  Ativo: SituacaoUsuario;
 }

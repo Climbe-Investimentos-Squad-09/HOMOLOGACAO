@@ -1,5 +1,9 @@
 import apiClient from '../client';
 
+import { AssignPermissionDto } from '../interfaces/roles/assign-permission.dto';
+import { CreateRoleDto } from '../interfaces/roles/create-role.dto';
+import { UpdateRoleDto } from '../interfaces/roles/update-role.dto';
+
 const BASE = "/api/v1/roles";
 
 //Listar Papéis
@@ -8,16 +12,16 @@ export async function getAllRoles() {
 }
 
 //Atribuir usuário ao Papel -- AssignPermissionDto
-export async function applyUserRole(data: any) {
-  return (await apiClient.post(`${BASE}/assign`, data)).data;
+export async function applyUserRole():Promise<AssignPermissionDto> {
+  return (await apiClient.post(`${BASE}/assign`, Promise)).data;
 }
 
 //Criar Papel -- CreateRoleDto
-export async function createRole(data: any) {
-  return (await apiClient.post(BASE, data)).data;
+export async function createRole():Promise<CreateRoleDto> {
+  return (await apiClient.post(BASE, Promise)).data;
 }
 
 //Atualizar Papel -- UpdateRoleDto
-export async function updateRole(id: number) {
-  return (await apiClient.put(`${BASE}/${id}`)).data;
+export async function updateRole(id: number):Promise<UpdateRoleDto> {
+  return (await apiClient.put(`${BASE}/${id}`, Promise)).data;
 }

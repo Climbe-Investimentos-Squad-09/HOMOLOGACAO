@@ -111,7 +111,6 @@ const loadRoleName = async () => {
       const role = await getRoleById(user.value.profile)
       roleName.value = role.nomeCargo
     } catch (error) {
-      console.error('Erro ao carregar cargo:', error)
       roleName.value = 'Sem cargo'
     }
   }

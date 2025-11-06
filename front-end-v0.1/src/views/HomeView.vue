@@ -13,6 +13,11 @@
           <h1 class="welcome-title">Bem vindo(a)!</h1>
           <p class="welcome-subtitle">Faça o login inserindo seu e-mail e senha</p>
           
+          <div v-if="pendingMessage" class="pending-message">
+            <p>Sua solicitação foi encaminhada com sucesso!</p>
+            <p>Aguarde a aprovação para fazer login.</p>
+          </div>
+          
           <div class="login-form">
             <label class="input-label">E-mail</label>
             <input-component placeholder="Email" v-model="user" required />
@@ -42,7 +47,7 @@ import InputComponent from '@/components/InputComponent.vue'
 import SpinnerLoading from '@/components/SpinnerLoading.vue'
 import ButtonComponent from '@/components/ButtonComponent.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'LoginView',
@@ -55,37 +60,58 @@ export default {
   setup() {
     const authStore = useAuthStore()
     const router = useRouter()
-    return { authStore, router }
+    const route = useRoute()
+    return { authStore, router, route }
   },
   data() {
     return {
       oi: false,            
       user: '',             
-      pass: ''             
+      pass: '',
+      pendingMessage: false
+    }
+  },
+  mounted() {
+    if (this.route.query.message === 'pending') {
+      this.pendingMessage = true
+      setTimeout(() => {
+        this.pendingMessage = false
+        this.router.replace({ query: {} })
+      }, 5000)
     }
   },
   methods: {
     async login() {
       if (!this.user || !this.pass) {
-        this.$refs.loginBtn.showError('Preencha todos os campos')
+        if (this.$refs.loginBtn) {
+          this.$refs.loginBtn.showError('Preencha todos os campos')
+        }
         return
       }
 
       this.oi = true
       try {
         await this.authStore.login(this.user, this.pass)
-        this.$refs.loginBtn.showSuccess()
+        if (this.$refs.loginBtn) {
+          this.$refs.loginBtn.showSuccess()
+        }
         setTimeout(() => {
           this.router.push('/dashboard')
         }, 1000)
       } catch (err) {
-        console.error('Login falhou:', err)
-        if (err.response?.status === 403) {
-          this.$refs.loginBtn.showError('Aguardando aprovação')
-        } else if (err.response?.status === 401) {
-          this.$refs.loginBtn.showError('E-mail ou senha inválidos')
-        } else {
-          this.$refs.loginBtn.showError('Erro ao fazer login. Tente novamente.')
+        if (this.$refs.loginBtn) {
+          if (err.response?.status === 403) {
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || ''
+            if (errorMessage.toLowerCase().includes('bloqueado')) {
+              this.$refs.loginBtn.showError('Cadastro bloqueado para acesso')
+            } else {
+              this.$refs.loginBtn.showError('Aguardando aprovação')
+            }
+          } else if (err.response?.status === 401) {
+            this.$refs.loginBtn.showError('E-mail ou senha inválidos')
+          } else {
+            this.$refs.loginBtn.showError('Erro ao fazer login. Tente novamente.')
+          }
         }
       } finally {
         this.oi = false
@@ -340,5 +366,25 @@ export default {
   color: var(--primary-color-alt);
   text-decoration: underline;
   transform: translateY(-1px);
+}
+
+.pending-message {
+  background-color: #FFF4E6;
+  border: 1px solid #FFE4B5;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.pending-message p {
+  margin: 0.5rem 0;
+  color: #B8860B;
+  font-weight: 500;
+}
+
+.pending-message p:first-child {
+  font-weight: 600;
+  font-size: 1.05rem;
 }
 </style>

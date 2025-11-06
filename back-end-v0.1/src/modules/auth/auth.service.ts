@@ -8,6 +8,7 @@ import * as jwt from "jsonwebtoken";
 import { User as UserEntity } from "../user/entities/user.entity";
 import { Role } from "../roles/entities/role.entity";
 import { LoginDto, RegisterDto } from "./dtos/login.dto";
+import { SituacaoUsuario } from "../user/enums/situacao-usuario-enum.dto";
 
 @Injectable()
 export class AuthService {
@@ -98,6 +99,14 @@ export class AuthService {
       const hashedPassword = this.hashPassword(senha);
       if (user.senha !== hashedPassword) {
         throw new HttpException("Credenciais inválidas", HttpStatus.UNAUTHORIZED);
+      }
+
+      if (user.situacao === SituacaoUsuario.Bloqueado) {
+        throw new HttpException("Cadastro bloqueado para acesso", HttpStatus.FORBIDDEN);
+      }
+
+      if (user.situacao === SituacaoUsuario.PENDENTE) {
+        throw new HttpException("Aguardando aprovação", HttpStatus.FORBIDDEN);
       }
 
       const accessToken = this.generateJWT(user);

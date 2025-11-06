@@ -54,7 +54,6 @@ export default {
     },
     
     handleAddCompany(companyData) {
-      console.log('Nova empresa:', companyData)
       alert('Empresa adicionada com sucesso!')
     }
   }

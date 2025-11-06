@@ -8,7 +8,8 @@
     "start:dev": "ts-node-dev --respawn src/main.ts",
     "build": "tsc",
     "start:prod": "node dist/main.js",
-    "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts",
+    "update-permissions": "ts-node -r tsconfig-paths/register src/scripts/update-admin-permissions.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

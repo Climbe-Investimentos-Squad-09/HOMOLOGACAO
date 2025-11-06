@@ -33,6 +33,15 @@ export const COMPLIANCE_PERMS = [
   'propostas:editar',
   'propostas:excluir',
   'propostas:alterar_status',
+
+  // usuários
+  'usuarios:visualizar',
+  'usuarios:criar',
+  'usuarios:editar',
+  'usuarios:excluir',
+
+  // permissões
+  'permissoes:visualizar',
 ];
 
 // CEO: amplo, mas um pouco abaixo do SysAdmin

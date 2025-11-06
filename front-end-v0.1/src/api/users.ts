@@ -67,11 +67,7 @@ export interface UserFilters {
 }
 
 export async function getUsers(filters?: UserFilters): Promise<User[]> {
-  console.log('API: Buscando usuários com filtros:', filters)
   const response = await api.get('/users', { params: filters })
-  console.log('API: Resposta completa:', response)
-  console.log('API: Dados retornados:', response.data)
-  console.log('API: Tipo dos dados:', Array.isArray(response.data) ? 'Array' : typeof response.data)
   
   if (Array.isArray(response.data)) {
     return response.data
@@ -94,10 +90,7 @@ export async function getUserById(id: number): Promise<User> {
 }
 
 export async function createUser(dto: CreateUserDto): Promise<User> {
-  console.log('API: Criando usuário com dados:', dto)
   const response = await api.post('/users', dto)
-  console.log('API: Resposta da criação:', response)
-  console.log('API: Usuário criado:', response.data)
   return response.data
 }
 

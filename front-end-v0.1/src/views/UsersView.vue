@@ -50,13 +50,12 @@ const loadUsers = async () => {
         filters.situacao = situacoes[0]
       }
     }
-    console.log('Carregando usuários com filtros:', filters)
     const users = await getUsers(filters)
-    console.log('Usuários carregados:', users)
     allUsers.value = users || []
-    console.log('Total de usuários exibidos:', allUsers.value.length)
   } catch (error) {
-    console.error('Erro ao carregar usuários:', error)
+    if (error.response?.status === 403) {
+      alert('Você não tem permissão para visualizar usuários. Entre em contato com o administrador.')
+    }
     allUsers.value = []
   } finally {
     loading.value = false
@@ -81,7 +80,6 @@ const handleUserCreated = () => {
 }
 
 const handleEditUser = (user) => {
-  console.log('Editar usuário:', user)
 }
 
 const formattedUsers = computed(() => {

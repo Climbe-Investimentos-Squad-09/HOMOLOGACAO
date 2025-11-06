@@ -111,7 +111,6 @@ const loadRoles = async () => {
   try {
     roles.value = await getAllRoles()
   } catch (error) {
-    console.error('Erro ao carregar cargos:', error)
   }
 }
 
@@ -161,7 +160,6 @@ const handleSubmit = async () => {
     }
     
     const createdUser = await createUser(payload)
-    console.log('Usuário criado com sucesso:', createdUser)
     
     successMessage.value = 'Usuário criado com sucesso!'
     
@@ -170,12 +168,13 @@ const handleSubmit = async () => {
       emit('user-created')
     }, 1500)
   } catch (error) {
-    console.error('Erro ao criar usuário:', error)
     successMessage.value = ''
     if (error.response?.status === 409) {
       errorMessage.value = 'Email ou CPF já cadastrado'
     } else if (error.response?.status === 403) {
-      errorMessage.value = 'Você não tem permissão para criar usuários'
+      errorMessage.value = 'Você não tem permissão para criar usuários. Entre em contato com o administrador.'
+    } else if (error.response?.status === 401) {
+      errorMessage.value = 'Sessão expirada. Faça login novamente.'
     } else {
       errorMessage.value = error.response?.data?.message || error.message || 'Erro ao criar usuário. Tente novamente.'
     }

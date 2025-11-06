@@ -23,7 +23,10 @@ const loadAuthorizations = async () => {
   try {
     allAuthorizations.value = await getUsers({ situacao: SituacaoUsuario.PENDENTE })
   } catch (error) {
-    console.error('Erro ao carregar autorizações:', error)
+    if (error.response?.status === 403) {
+      alert('Você não tem permissão para visualizar autorizações. Entre em contato com o administrador.')
+    }
+    allAuthorizations.value = []
   } finally {
     loading.value = false
   }
@@ -34,7 +37,6 @@ const handleApprove = async (user) => {
     await updateUserStatus(user.idUsuario, SituacaoUsuario.Ativo)
     await loadAuthorizations()
   } catch (error) {
-    console.error('Erro ao aprovar usuário:', error)
     alert('Erro ao aprovar usuário. Tente novamente.')
   }
 }
@@ -44,7 +46,6 @@ const handleReject = async (user) => {
     await updateUserStatus(user.idUsuario, SituacaoUsuario.Bloqueado)
     await loadAuthorizations()
   } catch (error) {
-    console.error('Erro ao rejeitar usuário:', error)
     alert('Erro ao rejeitar usuário. Tente novamente.')
   }
 }

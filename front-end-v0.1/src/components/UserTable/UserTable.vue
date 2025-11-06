@@ -36,9 +36,7 @@ export default {
                 const res = await fetch('http://localhost:3000/api/auth/pending')
                 const json = await res.json()
                 this.dados = json
-                console.log(this.dados)
             } catch(err) {
-                console.error(err)
             }
         }
     },

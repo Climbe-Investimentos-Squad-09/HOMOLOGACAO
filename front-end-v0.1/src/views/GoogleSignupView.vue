@@ -62,8 +62,8 @@ import ImageComponent from '@/components/ImageComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
 import SpinnerLoading from '@/components/SpinnerLoading.vue'
 import ButtonComponent from '@/components/ButtonComponent.vue'
-import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { register } from '@/api/auth'
 
 export default {
   name: 'SignupView',
@@ -74,9 +74,8 @@ export default {
     ButtonComponent
   },
   setup() {
-    const authStore = useAuthStore()
     const router = useRouter()
-    return { authStore, router }
+    return { router }
   },
   data() {
     return {
@@ -89,32 +88,39 @@ export default {
   methods: {
     async register() {
       if (!this.fullName || !this.email || !this.senha) {
-        this.$refs.registerBtn.showError('Preencha todos os campos')
+        if (this.$refs.registerBtn) {
+          this.$refs.registerBtn.showError('Preencha todos os campos')
+        }
         return
       }
 
       if (this.senha.length < 6) {
-        this.$refs.registerBtn.showError('A senha deve ter pelo menos 6 caracteres')
+        if (this.$refs.registerBtn) {
+          this.$refs.registerBtn.showError('A senha deve ter pelo menos 6 caracteres')
+        }
         return
       }
 
       this.loading = true
       try {
-        await this.authStore.register({
+        await register({
           nome: this.fullName,
           email: this.email,
           senha: this.senha
         })
-        this.$refs.registerBtn.showSuccess()
+        if (this.$refs.registerBtn) {
+          this.$refs.registerBtn.showSuccess()
+        }
         setTimeout(() => {
-          this.router.push('/dashboard')
-        }, 1000)
+          this.router.push('/login?message=pending')
+        }, 1500)
       } catch (err) {
-        console.error('Erro no cadastro:', err)
-        if (err.response?.status === 409) {
-          this.$refs.registerBtn.showError('E-mail já cadastrado')
-        } else {
-          this.$refs.registerBtn.showError('Erro ao cadastrar. Tente novamente.')
+        if (this.$refs.registerBtn) {
+          if (err.response?.status === 409) {
+            this.$refs.registerBtn.showError('E-mail já cadastrado')
+          } else {
+            this.$refs.registerBtn.showError('Erro ao cadastrar. Tente novamente.')
+          }
         }
       } finally {
         this.loading = false

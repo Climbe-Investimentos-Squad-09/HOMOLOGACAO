@@ -46,4 +46,16 @@ export const PERMISSIONS: { nome: string; descricao: string }[] = [
   { nome: 'propostas:editar', descricao: 'Editar proposta' },
   { nome: 'propostas:excluir', descricao: 'Excluir proposta' },
   { nome: 'propostas:alterar_status', descricao: 'Alterar status da proposta' },
+
+  // usuários
+  { nome: 'usuarios:visualizar', descricao: 'Listar/consultar usuários' },
+  { nome: 'usuarios:criar', descricao: 'Criar usuário' },
+  { nome: 'usuarios:editar', descricao: 'Editar usuário' },
+  { nome: 'usuarios:excluir', descricao: 'Excluir usuário' },
+
+  // permissões
+  { nome: 'permissoes:visualizar', descricao: 'Listar/consultar permissões' },
+  { nome: 'permissoes:criar', descricao: 'Criar permissão' },
+  { nome: 'permissoes:editar', descricao: 'Editar permissão' },
+  { nome: 'permissoes:excluir', descricao: 'Excluir permissão' },
 ];

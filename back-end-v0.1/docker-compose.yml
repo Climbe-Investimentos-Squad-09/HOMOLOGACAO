@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: DockerFile
+    env_file: 
+      - .env.production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+    networks:
+      - app_network
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: testUser
+      DB_PASS: cad@45
+      DB_NAME: residencia00003
+
+  mysql:
+    image: mysql:5.7
+    restart: always
+    container_name: MySQL_API_Container
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: 
+      MYSQL_USER:  
+      MYSQL_PASSWORD: 
+    ports:
+      - "3307:3306"  # corrigido para mapear porta correta
+    volumes:
+      - ./ #Caminho com o arquivo exportado da estrutura do banco
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data:

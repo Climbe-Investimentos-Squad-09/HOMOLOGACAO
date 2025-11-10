@@ -4,36 +4,37 @@ services:
       context: .
       dockerfile: DockerFile
     env_file: 
-      - .env.production
+      - .env
     ports:
       - "3000:3000"
-    depends_on:
-      - mysql
+    environment:
+      DATABASE_URL: postgres://neondb_owner:npg_wWaAjxHn5m2e@p-tiny-wind-a43ihjdi-pooler.us-east-1.aws.neon.tech:5432/neondb
     networks:
       - app_network
-    environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: testUser
-      DB_PASS: cad@45
-      DB_NAME: residencia00003
+#    environment:
+#      DB_HOST: 
+#      DB_PORT: 3306
+#      DB_USER: 
+#      DB_PASS: 
+#      DB_NAME: 
 
-  mysql:
-    image: mysql:5.7
-    restart: always
-    container_name: MySQL_API_Container
-    environment:
-      MYSQL_ROOT_PASSWORD: 
-      MYSQL_DATABASE: 
-      MYSQL_USER:  
-      MYSQL_PASSWORD: 
-    ports:
-      - "3307:3306"  # corrigido para mapear porta correta
-    volumes:
-      - ./ #Caminho com o arquivo exportado da estrutura do banco
-      - mysql_data:/var/lib/mysql
-    networks:
-      - app_network
+
+  #mysql:
+#    image: mysql:5.7
+#    restart: always
+#    container_name: MySQL_API_Container
+#    environment:
+#      MYSQL_ROOT_PASSWORD: 
+#      MYSQL_DATABASE: 
+#      MYSQL_USER:  
+#      MYSQL_PASSWORD: 
+#    ports:
+#      - "3307:3306"  # corrigido para mapear porta correta
+#    volumes:
+#      - ./ #Caminho com o arquivo exportado da estrutura do banco
+#      - mysql_data:/var/lib/mysql
+#    networks:
+#      - app_network
 
 networks:
   app_network:

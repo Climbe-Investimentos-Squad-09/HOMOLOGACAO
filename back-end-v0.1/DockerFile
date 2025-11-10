@@ -15,6 +15,12 @@ COPY . .
 # Copia o arquivo de variáveis de ambiente de produção
 COPY ./.env.production ./.env
 
+# Aumenta o limite de memória do Node.js
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Build da aplicação (ex: transpilar TS para JS)
+RUN npm run build
+
 # Expõe a porta que sua API escuta (exemplo 3000)
 EXPOSE 3000
 

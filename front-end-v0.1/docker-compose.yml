@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     ports:
       - "5173:5173" 
     environment:
@@ -10,6 +10,10 @@ services:
       - NPM_CONFIG_OPTIONAL=true
     networks:
       - app_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host"]
 
 networks:
   app_network:

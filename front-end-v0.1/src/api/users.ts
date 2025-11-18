@@ -47,7 +47,7 @@ export interface UpdateUserStatusDto {
 }
 
 export interface UpdateUserRoleDto {
-  idCargo: number
+  idCargo: number | null
   permissoesExtras?: number[]
 }
 
@@ -105,7 +105,12 @@ export async function updateUserStatus(id: number, situacao: SituacaoUsuario): P
 }
 
 export async function updateUserRole(id: number, dto: UpdateUserRoleDto): Promise<User> {
-  const { data } = await api.post(`/users/${id}/role`, dto)
+  // Se idCargo for null, enviar explicitamente como null
+  const payload = { ...dto }
+  if (payload.idCargo === null || payload.idCargo === undefined) {
+    payload.idCargo = null
+  }
+  const { data } = await api.post(`/users/${id}/role`, payload)
   return data
 }
 

@@ -10,11 +10,25 @@
       :loading="loading"
       @edit-user="handleEditUser"
       @refresh="loadUsers"
+      @open-permissions-modal="handleOpenPermissionsModal"
     />
     <UsersCreateModal 
       v-if="showCreateModal" 
       @close="showCreateModal = false"
       @user-created="handleUserCreated"
+    />
+    <UsersEditModal
+      v-if="showEditModal && selectedUser"
+      :user="selectedUser"
+      @close="showEditModal = false"
+      @saved="handleUserSaved"
+      @deleted="handleUserDeleted"
+    />
+    <UsersPermissionsModal
+      v-if="showPermissionsModal && selectedUser"
+      :user="selectedUser"
+      @close="showPermissionsModal = false"
+      @saved="handlePermissionsSaved"
     />
   </div>
 </template>
@@ -24,9 +38,14 @@ import { ref, computed, onMounted } from 'vue'
 import UsersHeader from '../components/user/UsersHeader.vue'
 import UsersTable from '../components/user/UsersTable.vue'
 import UsersCreateModal from '../components/user/UsersCreateModal.vue'
+import UsersEditModal from '../components/user/UsersEditModal.vue'
+import UsersPermissionsModal from '../components/user/UsersPermissionsModal.vue'
 import { getUsers, SituacaoUsuario } from '@/api/users'
 
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showPermissionsModal = ref(false)
+const selectedUser = ref(null)
 const searchQuery = ref('')
 const selectedFilters = ref([])
 const allUsers = ref([])
@@ -80,6 +99,37 @@ const handleUserCreated = () => {
 }
 
 const handleEditUser = (user) => {
+  selectedUser.value = user
+  showEditModal.value = true
+}
+
+const handleOpenPermissionsModal = (user) => {
+  selectedUser.value = user
+  showPermissionsModal.value = true
+}
+
+const handleUserSaved = () => {
+  showEditModal.value = false
+  selectedUser.value = null
+  setTimeout(() => {
+    loadUsers()
+  }, 100)
+}
+
+const handleUserDeleted = () => {
+  showEditModal.value = false
+  selectedUser.value = null
+  setTimeout(() => {
+    loadUsers()
+  }, 100)
+}
+
+const handlePermissionsSaved = () => {
+  showPermissionsModal.value = false
+  selectedUser.value = null
+  setTimeout(() => {
+    loadUsers()
+  }, 100)
 }
 
 const formattedUsers = computed(() => {

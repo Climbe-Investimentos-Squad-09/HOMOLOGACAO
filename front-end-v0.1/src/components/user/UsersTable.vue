@@ -32,7 +32,22 @@
             </div>
           </td>
           <td>
-            <span class="role-badge">{{ user.role }}</span>
+            <select 
+              v-if="isAdmin"
+              :value="getRoleValue(user)"
+              @change="handleRoleChange(user, $event)"
+              class="role-select"
+            >
+              <option value="">Sem cargo</option>
+              <option 
+                v-for="role in roles" 
+                :key="role.idCargo" 
+                :value="String(role.idCargo)"
+              >
+                {{ role.nomeCargo }}
+              </option>
+            </select>
+            <span v-else class="role-badge">{{ user.role }}</span>
           </td>
           <td>
             <span class="contact-email">{{ user.contactEmail }}</span>
@@ -47,14 +62,14 @@
             </span>
           </td>
           <td>
-            <div class="permissions-list">
-              <span v-for="(permission, index) in user.permissions.slice(0, 3)" :key="index" class="permission-badge">
-                {{ permission }}
-              </span>
-              <span v-if="user.permissions.length > 3" class="permission-badge">
-                +{{ user.permissions.length - 3 }}
-              </span>
-            </div>
+            <button 
+              class="permissions-button" 
+              @click="$emit('open-permissions-modal', user)"
+              title="Gerenciar permissões"
+            >
+              <span v-if="user.permissions.length > 0" class="permissions-count">{{ user.permissions.length }}</span>
+              <span class="permissions-text">Permissões</span>
+            </button>
           </td>
           <td>{{ user.lastAccess }}</td>
           <td class="actions-cell">
@@ -71,6 +86,11 @@
 </template>
 
 <script setup>
+import { ref, onMounted, computed } from 'vue'
+import { getAllRoles } from '@/api/roles'
+import { updateUserRole } from '@/api/users'
+import { isAdmin as checkIsAdmin } from '@/utils/permissions'
+
 const props = defineProps({
   users: {
     type: Array,
@@ -82,7 +102,45 @@ const props = defineProps({
   }
 });
 
-defineEmits(['edit-user', 'refresh']);
+const emit = defineEmits(['edit-user', 'refresh', 'open-permissions-modal']);
+
+const roles = ref([])
+const isAdmin = computed(() => checkIsAdmin())
+
+// Função para obter o valor do cargo para o select
+const getRoleValue = (user) => {
+  const cargoId = user.rawUser?.cargo?.idCargo
+  return cargoId ? String(cargoId) : ''
+}
+
+const loadRoles = async () => {
+  try {
+    roles.value = await getAllRoles()
+  } catch (error) {
+    console.error('Erro ao carregar cargos:', error)
+  }
+}
+
+const handleRoleChange = async (user, event) => {
+  try {
+    const value = event.target.value
+    // Se o valor for string vazia, significa "Sem cargo" (null)
+    const roleId = value === '' || value === null || value === undefined 
+      ? null 
+      : parseInt(value, 10)
+    
+    await updateUserRole(user.id, { idCargo: roleId })
+    emit('refresh')
+  } catch (error) {
+    console.error('Erro ao atualizar cargo:', error)
+    alert('Erro ao atualizar cargo. Tente novamente.')
+    emit('refresh')
+  }
+}
+
+onMounted(() => {
+  loadRoles()
+})
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -182,6 +240,22 @@ const getStatusClass = (status) => {
   color: #757575;
 }
 
+.role-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #E9E9E9;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #3C6E6C;
+}
+
 .role-badge {
   background-color: #F6F6F6;
   color: #6B6B6B;
@@ -191,6 +265,37 @@ const getStatusClass = (status) => {
   font-size: 0.90rem;
   font-weight: 400;
   display: inline-block;
+}
+
+.permissions-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background-color: #3C6E6C;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.permissions-button:hover {
+  background-color: #4AA19D;
+}
+
+.permissions-count {
+  background-color: rgba(255, 255, 255, 0.3);
+  padding: 0.15rem 0.4rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.permissions-text {
+  font-size: 0.875rem;
 }
 
 .contact-email,

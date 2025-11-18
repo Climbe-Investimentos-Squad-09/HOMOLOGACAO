@@ -59,13 +59,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="role">Cargo:</label>
-                    <select id="role" v-model="formData.idCargo">
+                    <label for="role">Cargo: <span style="color: #AE3B3B;">*</span></label>
+                    <select id="role" v-model="formData.idCargo" required>
                         <option :value="undefined" selected disabled>Selecione um cargo</option>
                         <option v-for="role in roles" :key="role.idCargo" :value="role.idCargo">
                             {{ role.nomeCargo }}
                         </option>
                     </select>
+                    <small style="color: #6C757D; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                      Usuários criados por esta tela são aprovados automaticamente
+                    </small>
                 </div>
 
                 <div v-if="errorMessage" class="error-message">
@@ -139,6 +142,12 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!formData.value.idCargo) {
+    errorMessage.value = 'É necessário selecionar um cargo para criar o usuário'
+    successMessage.value = ''
+    return
+  }
+
   if (formData.value.senha && formData.value.senha.length < 6) {
     errorMessage.value = 'A senha deve ter pelo menos 6 caracteres'
     successMessage.value = ''
@@ -159,6 +168,8 @@ const handleSubmit = async () => {
       idCargo: formData.value.idCargo || undefined
     }
     
+    // O backend já aprova automaticamente quando tem cargo
+    // Garantimos que sempre tenha cargo ao criar pela tela de usuários
     const createdUser = await createUser(payload)
     
     successMessage.value = 'Usuário criado com sucesso!'

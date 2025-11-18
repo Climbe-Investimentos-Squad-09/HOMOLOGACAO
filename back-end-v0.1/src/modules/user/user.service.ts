@@ -69,7 +69,10 @@ export class UserService {
   }
 
   async findById(id: number) {
-    const u = await this.users.findOne({ where: { idUsuario: id } });
+    const u = await this.users.findOne({ 
+      where: { idUsuario: id },
+      relations: ['cargo', 'cargo.permissoes', 'permissoesExtras']
+    });
     if (!u) throw new NotFoundException('Usuário não encontrado');
     return u;
   }
@@ -91,13 +94,19 @@ export class UserService {
   // ----------------- ROLE & EXTRA PERMISSIONS -----------------
   async updateRole(id: number, dto: UpdateUserRoleDto) {
     const user = await this.findById(id);
-    const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
-    if (!role) throw new NotFoundException('Cargo não encontrado');
-
-    user.cargo = role;
+    
+    // Se idCargo for null ou undefined, remove o cargo (sem cargo)
+    if (dto.idCargo === null || dto.idCargo === undefined) {
+      user.cargo = undefined;
+    } else {
+      // Se tiver idCargo, busca o cargo
+      const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
+      if (!role) throw new NotFoundException('Cargo não encontrado');
+      user.cargo = role;
+    }
 
     // Ao receber cargo, desbloqueia se estava PENDENTE
-    if (user.situacao === SituacaoUsuario.PENDENTE) {
+    if (user.situacao === SituacaoUsuario.PENDENTE && user.cargo) {
       user.situacao = SituacaoUsuario.Ativo;
     }
 
@@ -132,9 +141,10 @@ export class UserService {
   async updateStatus(id: number, dto: UpdateUserStatusDto) {
     const user = await this.findById(id);
 
-    // Regras: não ativar sem cargo
-    if (dto.situacao === UpdateUserStatusDto.Ativo && !user.cargo) {
-      throw new ForbiddenException('Usuário não pode ser ATIVO sem cargo atribuído');
+    // Quando aprovar (Ativo), garantir que não tenha cargo (sem cargo por padrão)
+    if (dto.situacao === SituacaoUsuario.Ativo && user.situacao === SituacaoUsuario.PENDENTE) {
+      // Se estiver aprovando um usuário pendente, garantir que fique sem cargo
+      user.cargo = undefined;
     }
 
     user.situacao = dto.situacao as any;

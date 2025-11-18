@@ -89,7 +89,10 @@ export class AuthService {
     try {
       const { email, senha } = loginDto;
 
-      const user = await this.userRepository.findOne({ where: { email } });
+      const user = await this.userRepository.findOne({ 
+        where: { email },
+        relations: ['cargo', 'cargo.permissoes', 'permissoesExtras']
+      });
       if (!user) throw new HttpException("Credenciais inválidas", HttpStatus.UNAUTHORIZED);
 
       if (!user.senha) {

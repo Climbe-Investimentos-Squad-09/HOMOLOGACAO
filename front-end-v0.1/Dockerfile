@@ -1,5 +1,5 @@
 # ----------------------------
-# Etapa 1: Build da aplicação Vite
+# Build da aplicação Vite
 # ----------------------------
 FROM node:20-alpine as build
 

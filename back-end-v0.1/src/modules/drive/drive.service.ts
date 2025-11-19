@@ -3,17 +3,27 @@ import { google, drive_v3 } from "googleapis";
 import { AuthModule } from '../auth/auth.module';
 import { OAuth2Client } from 'google-auth-library';
 import { Injectable, Inject } from '@nestjs/common';
+import { File } from './entities/files.entity';
+
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as FS from 'fs/promises';
 import FileType from 'file-type';
 
 import { gmailService } from '../gmail/gmail.service';
 import  {SendDriveDTO}  from './dtos/drive.dto';
+import { CreateFileDto } from './dtos/create-file.dto';
 
 @Injectable()
 export class driveService{
     private Drive: drive_v3.Drive;
     //Construtor
-    constructor(private GmailService: gmailService,) {
+    constructor(
+            @InjectRepository(File)
+            private readonly filesRepo: Repository<File>,
+
+            private GmailService: gmailService,
+        ) {
         const oAuth2Client = new OAuth2Client(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
@@ -92,6 +102,27 @@ export class driveService{
                 media: media, 
                 fields: "id"
             });
+
+            if(
+                (response.data.id !== "" && response.data.id !== undefined  && response.data.id !== null) &&
+                (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
+                (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
+                ){
+                this.registerFile({
+                    idArquivo: response.data.id,
+                    
+                    nomeArquivo: response.data.name,
+                
+                    nomeEmpresa: data.name,
+                
+                    urlArquivo: response.data.driveId,
+                
+                    emailUsuario: "", //Adicionar Escopo de email no projeto cloud (Requisitar email do usuário) ou usar o nome do usuário
+                
+                    dataEnvio: new Date,
+                })
+            }
+
             return response;
         }catch (err) {
             throw err;
@@ -180,8 +211,8 @@ export class driveService{
         nome: string
     ){
         
-        const emailProprietario = "caio.chagas@souunit.com.br";
-        // The metadata for the new folder.
+        const emailProprietario = ""; //Definir email fixo
+        // Metadados da Pasta
         const fileMetadata = {
             name: nome,
             mimeType: 'application/vnd.google-apps.folder',
@@ -213,4 +244,16 @@ export class driveService{
         return file.data.id?.toString();
     }
 
+    async registerFile(dto: CreateFileDto): Promise<File> {
+        const file = this.filesRepo.create({
+              idArquivo: { idArquivo: dto.idArquivo } as any,
+              nomeArquivo: { nomeArquivo: dto.nomeArquivo } as any,
+              nomeEmpresa: { nomeEmpresa: dto.nomeEmpresa } as any,
+              urlArquivo: { urlArquivo: dto.urlArquivo } as any,
+              emailUsuario: { emailUsuario: dto.emailUsuario } as any,
+              dataEnvio: { dataEnvio: dto.dataEnvio } as any,
+            });
+        
+            return this.filesRepo.save(file);
+    }
 }

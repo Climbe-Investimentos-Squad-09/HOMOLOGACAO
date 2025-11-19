@@ -1,3 +1,6 @@
+# ----------------------------
+# Build da aplicação Node
+# ----------------------------
 FROM node:latest
 
 # Define diretório de trabalho para backend

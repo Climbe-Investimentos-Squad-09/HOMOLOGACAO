@@ -14,11 +14,20 @@ import { gmailService } from '../gmail/gmail.service';
 import  {SendDriveDTO}  from './dtos/drive.dto';
 import { CreateFileDto } from './dtos/create-file.dto';
 
+import { Companies } from '../companies/entities/companies.entity';
+import { Proposals } from '../proposals/entities/proposals.entity';
+
 @Injectable()
 export class driveService{
     private Drive: drive_v3.Drive;
     //Construtor
     constructor(
+            @InjectRepository(Companies)
+            private readonly companiesRepo: Repository<Companies>,
+
+            @InjectRepository(Proposals)
+            private readonly proposalsRepo: Repository<Proposals>,
+
             @InjectRepository(File)
             private readonly filesRepo: Repository<File>,
 
@@ -74,14 +83,6 @@ export class driveService{
         const nome = data.name;
         let id = await this.searchFolder(nome);
 
-        if(id !== "" && id !== undefined){
-            
-        }else{
-            let valor = await this.createFolder(nome);
-       
-            if (valor !== undefined) id = valor ?? "";
-        }
-
         try{
             //Metadados
             const fileMetadata = {
@@ -103,6 +104,7 @@ export class driveService{
                 fields: "id"
             });
 
+            /*
             if(
                 (response.data.id !== "" && response.data.id !== undefined  && response.data.id !== null) &&
                 (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
@@ -122,6 +124,7 @@ export class driveService{
                     dataEnvio: new Date,
                 })
             }
+            */
 
             return response;
         }catch (err) {
@@ -208,15 +211,52 @@ export class driveService{
     }
 
     async createFolder(
-        nome: string
+        nome: string,
+        id: any,
+        empr: boolean
     ){
-        
-        const emailProprietario = ""; //Definir email fixo
+        const emailProprietario = ""; //Definir email fixo para envio da planilha
+
         // Metadados da Pasta
-        const fileMetadata = {
-            name: nome,
-            mimeType: 'application/vnd.google-apps.folder',
-        };
+        let fileMetadata = {}
+
+        //Nome da pastaProposta, se não for definida
+        let nomeProposta = nome;
+        
+        //Criação com, ou sem, Pasta Mãe
+        //Para pastas de propostas e pastas de empresas
+        if((id == undefined && empr!)|| (id == null && empr!)){
+            if(nome == "" || nome == undefined || nome == null){
+                let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
+                .where('u.idEmpresa = :id', { idEmpresa: id })
+                .getCount();
+
+                nomeProposta = "Proposta", (await qntPropostas) + 1
+            }
+            
+            
+            const el = await this.companiesRepo.createQueryBuilder('u')
+            .select(['u.nomeFantasia'])
+            .where('u.idEmpresa = :id', { idEmpresa: id })
+            .getOne();
+            
+            let val;
+
+            if(el !== null){
+                val = await this.searchFolder(el.nomeFantasia);
+            }
+
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [`${val}`]
+            };
+        }else{
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
+        }
 
         // Create the new folder.
         const file = await this.Drive.files.create({

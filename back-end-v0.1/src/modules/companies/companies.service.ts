@@ -6,11 +6,15 @@ import { CreateCompanyMinimalDto } from './dtos/create-minimal-company.dto';
 import { CompleteCompanyDto } from './dtos/complete-company.dto';
 import { isValidCNPJ, formatCNPJ } from '../../utils/cnpj.util';
 
+import { driveService } from '../drive/drive.service';
+
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectRepository(Companies)
     private readonly repo: Repository<Companies>,
+
+    private DriveService: driveService
   ) {}
 
   // ----------------- CREATE (pré-cadastro mínimo) -----------------
@@ -57,6 +61,8 @@ export class CompaniesService {
       email: dto.email,
       representanteLegal: dto.representanteLegal,
     });
+
+    this.DriveService.createFolder(dto.nomeFantasia, "", true)
     return this.repo.save(entity);
   }
 
@@ -83,6 +89,9 @@ export class CompaniesService {
     }
 
     const toSave = this.repo.merge(company, dto);
+    if(dto.nomeFantasia !== "" && dto.nomeFantasia !== undefined){
+      this.DriveService.createFolder(dto.nomeFantasia, "", true)
+    }
     return this.repo.save(toSave);
   }
 

@@ -15,6 +15,8 @@ import { UpdateContractDto } from './dtos/update-contract.dto';
 import { UpdateContractStatusDto } from './dtos/update-contract-status.dto';
 import { AssignContractDto, AssignManyContractDto } from './dtos/assign-contract.dto';
 
+import { driveService } from '../drive/drive.service';
+
 @Injectable()
 export class ContractsService {
   constructor(
@@ -26,6 +28,8 @@ export class ContractsService {
     private readonly contractAssignRepo: Repository<ContractAssignee>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private DriveService: driveService
   ) {}
 
   // -------------------------------------------------------------------

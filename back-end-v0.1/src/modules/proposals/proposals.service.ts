@@ -9,6 +9,8 @@ import { UpdateProposalsDto } from './dtos/update-proposals.dto';
 import { AssignProposalDto } from './dtos/assign-proposals.dto';
 import { User } from '../user/entities/user.entity';
 
+import { driveService } from '../drive/drive.service';
+
 @Injectable()
 export class ProposalsService {
   constructor(
@@ -18,6 +20,8 @@ export class ProposalsService {
     private readonly propAssignRepo: Repository<ProposalAssignee>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private DriveService: driveService
   ) {}
 
   // -------------------------------------------------------------------
@@ -45,6 +49,8 @@ export class ProposalsService {
       dataCriacao: dto.dataCriacao ? new Date(dto.dataCriacao) : undefined,
     });
 
+
+    this.DriveService.createFolder("", dto.idEmpresa, false)
     return this.proposalsRepo.save(proposal);
   }
 

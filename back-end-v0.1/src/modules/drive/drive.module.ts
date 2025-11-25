@@ -3,12 +3,15 @@ import { DriveController } from './drive.controller';
 import { driveService } from './drive.service';
 import { AuthModule } from '../auth/auth.module';
 import { GmailModule } from '../gmail/gmail.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Companies } from '../companies/entities/companies.entity';
+import { Proposals } from '../proposals/entities/proposals.entity';
 
 @Module({
   controllers: [DriveController], // Lista de controladores do módulo
   providers: [driveService], // Lista de provedores (serviços, guardas, etc.)
   exports: [driveService], // Provedores que podem ser usados por outros módulos
-  imports: [AuthModule, GmailModule]
+  imports: [TypeOrmModule.forFeature([Companies, Proposals]), AuthModule, GmailModule]
 })
 
 export class DriveModule {}

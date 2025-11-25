@@ -9,6 +9,7 @@ export function authGuard(to, from, next) {
     const routePermissions = {
       'propostas': 'propostas:visualizar',
       'contratos': 'contratos:visualizar',
+      'documentos': 'documentos_juridicos:visualizar',
       'calendario': 'reunioes:visualizar',
       'usuarios': 'usuarios:visualizar',
       'autorizacoes': 'usuarios:visualizar',

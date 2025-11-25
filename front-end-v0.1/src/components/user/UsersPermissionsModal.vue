@@ -173,7 +173,7 @@ const moduleNames = {
   'propostas': 'Propostas',
   'contratos': 'Contratos',
   'cargos': 'Cargos',
-  'documentos_juridicos': 'Documentos Jurídicos',
+  'documentos_juridicos': 'Documentos',
   'planilha': 'Planilha',
   'reunioes': 'Reuniões',
   'empresas': 'Empresas',
@@ -248,7 +248,7 @@ const loadPermissions = async () => {
 
 const simplifyPermissions = (permissions) => {
   const simplified = {}
-  const mainModules = ['propostas', 'contratos', 'empresas', 'usuarios', 'autorizacoes']
+  const mainModules = ['propostas', 'contratos', 'documentos_juridicos', 'empresas', 'usuarios', 'autorizacoes']
   
   permissions.forEach(perm => {
     const [module, action] = perm.nome.split(':')

@@ -58,6 +58,12 @@ const router = createRouter({
       component: ContractsView,
       props: { openModal: true },
       beforeEnter: authGuard,
+    },
+    {
+      path: '/documentos',
+      name: 'documentos',
+      component: () => import('../views/DocumentsView.vue'),
+      beforeEnter: authGuard,
     }, 
     {
       path: '/autorizacoes',

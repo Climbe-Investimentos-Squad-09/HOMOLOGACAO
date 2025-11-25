@@ -34,6 +34,8 @@ const pageTitle = computed(() => {
       return 'Calendário';
     case 'contratos':
       return 'Contratos';
+    case 'documentos':
+      return 'Documentos';
     case 'propostas':
       return 'Propostas';
     case 'autorizacoes':

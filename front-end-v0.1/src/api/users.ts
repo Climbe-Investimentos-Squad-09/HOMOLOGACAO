@@ -105,11 +105,16 @@ export async function updateUserStatus(id: number, situacao: SituacaoUsuario): P
 }
 
 export async function updateUserRole(id: number, dto: UpdateUserRoleDto): Promise<User> {
-  // Se idCargo for null, enviar explicitamente como null
-  const payload = { ...dto }
-  if (payload.idCargo === null || payload.idCargo === undefined) {
-    payload.idCargo = null
+  const payload: any = {
+    idCargo: dto.idCargo === null || dto.idCargo === undefined || dto.idCargo === '' 
+      ? null 
+      : Number(dto.idCargo)
   }
+  
+  if (dto.permissoesExtras && dto.permissoesExtras.length > 0) {
+    payload.permissoesExtras = dto.permissoesExtras
+  }
+  
   const { data } = await api.post(`/users/${id}/role`, payload)
   return data
 }

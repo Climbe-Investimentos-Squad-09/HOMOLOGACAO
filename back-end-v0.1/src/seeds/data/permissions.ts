@@ -30,6 +30,12 @@ export const PERMISSIONS: { nome: string; descricao: string }[] = [
   { nome: 'reunioes:convidar', descricao: 'Convidar participantes' },
   { nome: 'reunioes:criar_atividade', descricao: 'Criar atividades nas reuniões' },
 
+  // empresas
+  { nome: 'empresas:visualizar', descricao: 'Listar/consultar empresas' },
+  { nome: 'empresas:criar', descricao: 'Criar empresa' },
+  { nome: 'empresas:editar', descricao: 'Editar empresa' },
+  { nome: 'empresas:excluir', descricao: 'Excluir empresa' },
+
   // relatórios
   { nome: 'relatorios:visualizar', descricao: 'Listar/consultar relatórios' },
   { nome: 'relatorios:criar', descricao: 'Criar relatórios' },

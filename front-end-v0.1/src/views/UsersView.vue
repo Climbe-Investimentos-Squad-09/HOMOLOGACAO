@@ -126,6 +126,7 @@ const handleUserDeleted = () => {
 }
 
 const handlePermissionsSaved = async () => {
+  const editedUserId = selectedUser.value?.id
   showPermissionsModal.value = false
   selectedUser.value = null
   
@@ -134,7 +135,8 @@ const handlePermissionsSaved = async () => {
   
   // Se o usuário editado for o usuário logado, recarregar permissões
   const authStore = useAuthStore()
-  if (authStore.user?.id === selectedUser.value?.id) {
+  if (authStore.user?.id === editedUserId) {
+    console.log('🔄 Recarregando permissões do usuário logado após edição')
     await authStore.loadUserPermissions()
   }
 }

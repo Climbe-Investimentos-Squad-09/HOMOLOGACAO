@@ -159,7 +159,7 @@ const canViewUsers = computed(() => {
   return permissions.value.includes('usuarios:visualizar')
 })
 const canViewCompanies = computed(() => {
-  return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão
+  return permissions.value.includes('empresas:visualizar')
 })
 const canViewAuthorizations = computed(() => {
   return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão

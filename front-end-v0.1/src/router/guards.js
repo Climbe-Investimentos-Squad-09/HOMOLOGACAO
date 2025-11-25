@@ -12,7 +12,7 @@ export function authGuard(to, from, next) {
       'calendario': 'reunioes:visualizar',
       'usuarios': 'usuarios:visualizar',
       'autorizacoes': 'usuarios:visualizar',
-      'empresas': 'usuarios:visualizar'
+      'empresas': 'empresas:visualizar'
     }
     
     const requiredPermission = routePermissions[to.name]

@@ -109,33 +109,40 @@ const isAdmin = computed(() => checkIsAdmin())
 
 // Função para obter o valor do cargo para o select
 const getRoleValue = (user) => {
-  const cargoId = user.rawUser?.cargo?.idCargo
-  return cargoId ? String(cargoId) : ''
+  // Verificar se o cargo existe e tem idCargo
+  const cargo = user.rawUser?.cargo
+  if (cargo && cargo.idCargo) {
+    return String(cargo.idCargo)
+  }
+  // Se não tiver cargo ou idCargo for null/undefined, retornar string vazia (Sem cargo)
+  return ''
 }
 
 const loadRoles = async () => {
   try {
     roles.value = await getAllRoles()
   } catch (error) {
-    console.error('Erro ao carregar cargos:', error)
+    // Ignorar erro silenciosamente
   }
 }
 
 const handleRoleChange = async (user, event) => {
   try {
     const value = event.target.value
-    // Se o valor for string vazia, significa "Sem cargo" (null)
     const roleId = value === '' || value === null || value === undefined 
       ? null 
       : parseInt(value, 10)
     
-    // Enviar explicitamente null se for para remover cargo
     const payload = roleId === null ? { idCargo: null } : { idCargo: roleId }
-    await updateUserRole(user.id, payload)
+    const updatedUser = await updateUserRole(user.id, payload)
+    
+    if (user.rawUser) {
+      user.rawUser.cargo = roleId === null ? null : (updatedUser?.cargo || null)
+    }
+    
     emit('refresh')
   } catch (error) {
-    console.error('Erro ao atualizar cargo:', error)
-    alert('Erro ao atualizar cargo. Tente novamente.')
+    alert(`Erro ao atualizar cargo: ${error.response?.data?.message || error.message || 'Tente novamente.'}`)
     emit('refresh')
   }
 }

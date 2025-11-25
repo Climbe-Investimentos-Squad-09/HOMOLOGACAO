@@ -95,22 +95,24 @@ export class UserService {
   async updateRole(id: number, dto: UpdateUserRoleDto) {
     const user = await this.findById(id);
     
-    // Se idCargo for null ou undefined, remove o cargo (sem cargo)
     if (dto.idCargo === null || dto.idCargo === undefined) {
+      await this.users
+        .createQueryBuilder()
+        .relation(User, 'cargo')
+        .of(id)
+        .set(null);
+      
       user.cargo = undefined;
     } else {
-      // Se tiver idCargo, busca o cargo
       const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
       if (!role) throw new NotFoundException('Cargo não encontrado');
       user.cargo = role;
     }
 
-    // Ao receber cargo, desbloqueia se estava PENDENTE
     if (user.situacao === SituacaoUsuario.PENDENTE && user.cargo) {
       user.situacao = SituacaoUsuario.Ativo;
     }
 
-    // (opcional) aplica extras no mesmo endpoint
     if (dto.permissoesExtras?.length) {
       const extras = await this.perms.find({ where: { idPermissao: In(dto.permissoesExtras as any) } as any });
       user.permissoesExtras = extras;

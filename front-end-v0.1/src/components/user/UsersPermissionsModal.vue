@@ -28,7 +28,7 @@
             </div>
           </div>
           
-          <div class="permissions-list" v-if="groupedPermissions.length > 0">
+          <div class="permissions-list" v-if="filteredAvailableGroups.length > 0">
             <div v-for="group in filteredAvailableGroups" :key="group.module" class="permission-group">
               <h4 class="group-title">{{ group.moduleName }}</h4>
               <div 
@@ -176,6 +176,7 @@ const moduleNames = {
   'documentos_juridicos': 'Documentos Jurídicos',
   'planilha': 'Planilha',
   'reunioes': 'Reuniões',
+  'empresas': 'Empresas',
   'relatorios': 'Relatórios',
   'arquivos': 'Arquivos',
   'usuarios': 'Usuários',
@@ -187,31 +188,71 @@ const loadPermissions = async () => {
     const permissions = await getPermissions()
     allPermissions.value = permissions
     
-    // Carregar permissões do usuário (já vem no rawUser)
     const userPerms = props.user.rawUser?.permissoesExtras || []
-    selectedPermissions.value = userPerms.map(p => ({
+    const uniqueUserPerms = Array.from(
+      new Map(userPerms.map(p => [p.idPermissao, p])).values()
+    )
+    
+    const deduplicatedPerms = []
+    const moduleEditMap = new Map()
+    
+    uniqueUserPerms.forEach(p => {
+      const [module, action] = p.nome.split(':')
+      
+      if (action === 'criar' || action === 'editar') {
+        const existing = moduleEditMap.get(module)
+        if (action === 'editar') {
+          if (existing && existing.action === 'criar') {
+            const index = deduplicatedPerms.findIndex(perm => perm.idPermissao === existing.perm.idPermissao)
+            if (index >= 0) {
+              deduplicatedPerms.splice(index, 1)
+            }
+          }
+          deduplicatedPerms.push(p)
+          moduleEditMap.set(module, { perm: p, action: 'editar' })
+        } else if (action === 'criar' && !existing) {
+          deduplicatedPerms.push(p)
+          moduleEditMap.set(module, { perm: p, action: 'criar' })
+        }
+      } else {
+        deduplicatedPerms.push(p)
+      }
+    })
+    
+    selectedPermissions.value = deduplicatedPerms.map(p => ({
       idPermissao: p.idPermissao,
       nome: p.nome,
       descricao: p.descricao
     }))
     
-    // Filtrar permissões disponíveis (todas menos as selecionadas)
-    const selectedIds = new Set(userPerms.map(p => p.idPermissao))
-    availablePermissions.value = permissions.filter(p => !selectedIds.has(p.idPermissao))
+    const selectedIds = new Set(deduplicatedPerms.map(p => p.idPermissao))
+    
+    availablePermissions.value = permissions.filter(p => {
+      if (selectedIds.has(p.idPermissao)) return false
+      
+      const [module, action] = p.nome.split(':')
+      if (action === 'criar' || action === 'editar') {
+        const hasEditOrCreate = deduplicatedPerms.some(perm => {
+          const [mod, act] = perm.nome.split(':')
+          return mod === module && (act === 'criar' || act === 'editar')
+        })
+        if (hasEditOrCreate) return false
+      }
+      
+      return true
+    })
   } catch (error) {
-    console.error('Erro ao carregar permissões:', error)
+    // Ignorar erro silenciosamente
   }
 }
 
-// Simplificar permissões: apenas 2 por tela (visualizar e editar/criar)
 const simplifyPermissions = (permissions) => {
   const simplified = {}
+  const mainModules = ['propostas', 'contratos', 'empresas', 'usuarios', 'autorizacoes']
   
   permissions.forEach(perm => {
     const [module, action] = perm.nome.split(':')
     
-    // Ignorar módulos que não são telas principais
-    const mainModules = ['propostas', 'contratos', 'reunioes', 'usuarios', 'empresas', 'autorizacoes']
     if (!mainModules.includes(module)) return
     
     if (!simplified[module]) {
@@ -223,28 +264,18 @@ const simplifyPermissions = (permissions) => {
       }
     }
     
-    // Mapear permissões para visualizar ou editar
-    if (action === 'visualizar') {
+    if (action === 'visualizar' && !simplified[module].visualizar) {
       simplified[module].visualizar = perm
-    } else if (action === 'criar' || action === 'editar') {
-      // Se já tiver editar, manter; senão usar criar
-      if (!simplified[module].editar) {
-        simplified[module].editar = perm
-      }
+    } else if (action === 'editar') {
+      simplified[module].editar = perm
+    } else if (action === 'criar' && !simplified[module].editar) {
+      simplified[module].editar = perm
     }
   })
   
   return Object.values(simplified).filter(group => group.visualizar || group.editar)
 }
 
-const groupPermissions = (permissions) => {
-  // Usar versão simplificada
-  return simplifyPermissions(permissions)
-}
-
-const groupedPermissions = computed(() => {
-  return groupPermissions(allPermissions.value)
-})
 
 const filteredAvailableGroups = computed(() => {
   const filtered = availablePermissions.value.filter(p => {
@@ -254,7 +285,10 @@ const filteredAvailableGroups = computed(() => {
            (p.descricao && p.descricao.toLowerCase().includes(search)) ||
            moduleName.toLowerCase().includes(search)
   })
-  return simplifyPermissions(filtered)
+  const simplified = simplifyPermissions(filtered)
+  return simplified.filter((group, index, self) => 
+    index === self.findIndex(g => g.module === group.module)
+  )
 })
 
 const filteredSelectedGroups = computed(() => {
@@ -265,7 +299,10 @@ const filteredSelectedGroups = computed(() => {
            (p.descricao && p.descricao.toLowerCase().includes(search)) ||
            moduleName.toLowerCase().includes(search)
   })
-  return simplifyPermissions(filtered)
+  const simplified = simplifyPermissions(filtered)
+  return simplified.filter((group, index, self) => 
+    index === self.findIndex(g => g.module === group.module)
+  )
 })
 
 const isSelected = (id) => {
@@ -276,15 +313,12 @@ const isSelectedForRemoval = (id) => {
   return selectedSelected.value.some(p => p.idPermissao === id)
 }
 
-// Verificar se o módulo tem permissão de visualizar (nas selecionadas ou disponíveis)
 const hasVisualizarPermission = (module) => {
-  // Verificar nas permissões selecionadas
   const hasInSelected = selectedPermissions.value.some(p => {
     const [mod, action] = p.nome.split(':')
     return mod === module && action === 'visualizar'
   })
   
-  // Verificar nas permissões disponíveis selecionadas para adicionar
   const hasInAvailable = selectedAvailable.value.some(p => {
     const [mod, action] = p.nome.split(':')
     return mod === module && action === 'visualizar'
@@ -293,7 +327,6 @@ const hasVisualizarPermission = (module) => {
   return hasInSelected || hasInAvailable
 }
 
-// Verificar se o módulo tem permissão de visualizar apenas nas selecionadas (para a coluna de selecionadas)
 const hasVisualizarPermissionInSelected = (module) => {
   return selectedPermissions.value.some(p => {
     const [mod, action] = p.nome.split(':')
@@ -302,6 +335,31 @@ const hasVisualizarPermissionInSelected = (module) => {
 }
 
 const togglePermission = (perm) => {
+  const alreadyInSelected = selectedPermissions.value.some(p => p.idPermissao === perm.idPermissao)
+  if (alreadyInSelected) return
+  
+  const [module, action] = perm.nome.split(':')
+  
+  if (action === 'criar' || action === 'editar') {
+    const existingInSelected = selectedPermissions.value.findIndex(p => {
+      const [mod, act] = p.nome.split(':')
+      return mod === module && (act === 'criar' || act === 'editar')
+    })
+    
+    if (existingInSelected >= 0) {
+      return
+    }
+    
+    const existingInAvailable = selectedAvailable.value.findIndex(p => {
+      const [mod, act] = p.nome.split(':')
+      return mod === module && (act === 'criar' || act === 'editar')
+    })
+    
+    if (existingInAvailable >= 0) {
+      selectedAvailable.value.splice(existingInAvailable, 1)
+    }
+  }
+  
   const index = selectedAvailable.value.findIndex(p => p.idPermissao === perm.idPermissao)
   if (index >= 0) {
     selectedAvailable.value.splice(index, 1)
@@ -315,27 +373,93 @@ const toggleSelectedPermission = (perm) => {
   if (index >= 0) {
     selectedSelected.value.splice(index, 1)
   } else {
+    const [module, action] = perm.nome.split(':')
+    if (action === 'criar' || action === 'editar') {
+      const hasOther = selectedSelected.value.some(p => {
+        const [mod, act] = p.nome.split(':')
+        return mod === module && (act === 'criar' || act === 'editar') && p.idPermissao !== perm.idPermissao
+      })
+      if (hasOther) {
+        const otherIndex = selectedSelected.value.findIndex(p => {
+          const [mod, act] = p.nome.split(':')
+          return mod === module && (act === 'criar' || act === 'editar') && p.idPermissao !== perm.idPermissao
+        })
+        if (otherIndex >= 0) {
+          selectedSelected.value.splice(otherIndex, 1)
+        }
+      }
+    }
     selectedSelected.value.push(perm)
   }
 }
 
 const moveToSelected = () => {
-  selectedAvailable.value.forEach(perm => {
+  const selectedIds = new Set(selectedPermissions.value.map(p => p.idPermissao))
+  const toAdd = selectedAvailable.value.filter(perm => !selectedIds.has(perm.idPermissao))
+  
+  toAdd.forEach(perm => {
+    const [module, action] = perm.nome.split(':')
+    
+    if (action === 'criar' || action === 'editar') {
+      const existingIndex = selectedPermissions.value.findIndex(p => {
+        const [mod, act] = p.nome.split(':')
+        return mod === module && (act === 'criar' || act === 'editar')
+      })
+      
+      if (existingIndex >= 0) {
+        selectedPermissions.value.splice(existingIndex, 1)
+      }
+      
+      const availableIndex = availablePermissions.value.findIndex(p => {
+        const [mod, act] = p.nome.split(':')
+        return mod === module && (act === 'criar' || act === 'editar')
+      })
+      
+      if (availableIndex >= 0) {
+        availablePermissions.value.splice(availableIndex, 1)
+      }
+    }
+    
     const index = availablePermissions.value.findIndex(p => p.idPermissao === perm.idPermissao)
     if (index >= 0) {
       availablePermissions.value.splice(index, 1)
-      selectedPermissions.value.push(perm)
     }
+    
+    selectedPermissions.value.push(perm)
+    selectedIds.add(perm.idPermissao)
   })
+  
   selectedAvailable.value = []
 }
 
 const moveToAvailable = () => {
   selectedSelected.value.forEach(perm => {
+    const [module, action] = perm.nome.split(':')
+    
+    if (action === 'criar' || action === 'editar') {
+      const otherAction = action === 'criar' ? 'editar' : 'criar'
+      const otherPerm = selectedPermissions.value.find(p => {
+        const [mod, act] = p.nome.split(':')
+        return mod === module && act === otherAction
+      })
+      
+      if (otherPerm) {
+        const otherIndex = selectedPermissions.value.findIndex(p => p.idPermissao === otherPerm.idPermissao)
+        if (otherIndex >= 0) {
+          selectedPermissions.value.splice(otherIndex, 1)
+          if (!availablePermissions.value.some(p => p.idPermissao === otherPerm.idPermissao)) {
+            availablePermissions.value.push(otherPerm)
+          }
+        }
+      }
+    }
+    
     const index = selectedPermissions.value.findIndex(p => p.idPermissao === perm.idPermissao)
     if (index >= 0) {
       selectedPermissions.value.splice(index, 1)
-      availablePermissions.value.push(perm)
+      if (!availablePermissions.value.some(p => p.idPermissao === perm.idPermissao)) {
+        availablePermissions.value.push(perm)
+      }
     }
   })
   selectedSelected.value = []
@@ -344,7 +468,6 @@ const moveToAvailable = () => {
 const handleSave = async () => {
   loading.value = true
   try {
-    // Validar: se tem editar/criar, deve ter visualizar
     const modulesWithEdit = new Set()
     selectedPermissions.value.forEach(p => {
       const [module, action] = p.nome.split(':')
@@ -353,7 +476,6 @@ const handleSave = async () => {
       }
     })
     
-    // Verificar se todos os módulos com editar têm visualizar
     for (const module of modulesWithEdit) {
       const hasVisualizar = selectedPermissions.value.some(p => {
         const [mod, action] = p.nome.split(':')
@@ -366,25 +488,42 @@ const handleSave = async () => {
       }
     }
     
-    // Obter IDs das permissões atuais do usuário (do rawUser)
-    const currentPermIds = new Set((props.user.rawUser?.permissoesExtras || []).map(p => p.idPermissao))
-    const newPermIds = new Set(selectedPermissions.value.map(p => p.idPermissao))
+    const currentPerms = (props.user.rawUser?.permissoesExtras || [])
+    const currentPermIds = new Set(currentPerms.map(p => p.idPermissao))
     
-    // Encontrar permissões para adicionar
-    const toAdd = selectedPermissions.value
-      .filter(p => !currentPermIds.has(p.idPermissao))
-      .map(p => p.idPermissao)
+    const finalPermIds = new Set()
+    const modulesProcessed = new Set()
     
-    // Encontrar permissões para remover
-    const toRemove = Array.from(currentPermIds)
-      .filter(id => !newPermIds.has(id))
+    selectedPermissions.value.forEach(p => {
+      const [module, action] = p.nome.split(':')
+      
+      if (action === 'criar' || action === 'editar') {
+        if (!modulesProcessed.has(module)) {
+          modulesProcessed.add(module)
+          finalPermIds.add(p.idPermissao)
+          
+          const otherAction = action === 'criar' ? 'editar' : 'criar'
+          const otherPerm = allPermissions.value.find(perm => {
+            const [mod, act] = perm.nome.split(':')
+            return mod === module && act === otherAction
+          })
+          
+          if (otherPerm) {
+            finalPermIds.add(otherPerm.idPermissao)
+          }
+        }
+      } else {
+        finalPermIds.add(p.idPermissao)
+      }
+    })
     
-    // Adicionar novas permissões
+    const toAdd = Array.from(finalPermIds).filter(id => !currentPermIds.has(id))
+    const toRemove = Array.from(currentPermIds).filter(id => !finalPermIds.has(id))
+    
     if (toAdd.length > 0) {
       await addPermissions(props.user.id, { permissionIds: toAdd })
     }
     
-    // Remover permissões
     if (toRemove.length > 0) {
       await removePermissions(props.user.id, { permissionIds: toRemove })
     }
@@ -392,7 +531,6 @@ const handleSave = async () => {
     emit('saved')
     emit('close')
   } catch (error) {
-    console.error('Erro ao salvar permissões:', error)
     alert('Erro ao salvar permissões. Tente novamente.')
   } finally {
     loading.value = false

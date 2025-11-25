@@ -115,6 +115,11 @@ export class AuthService {
       const accessToken = this.generateJWT(user);
       const refreshToken = this.generateRefreshToken(user);
 
+      // Carregar permissões do cargo e extras
+      const rolePerms = user.cargo?.permissoes?.map(p => p.nome) || [];
+      const extraPerms = user.permissoesExtras?.map(p => p.nome) || [];
+      const allPerms = [...new Set([...rolePerms, ...extraPerms])];
+
       return {
         success: true,
         message: "Autenticação bem-sucedida",
@@ -125,6 +130,7 @@ export class AuthService {
           email: user.email,
           name: user.nomeCompleto,
           profile: user.cargo?.idCargo ?? null,
+          permissions: allPerms, // Incluir permissões na resposta do login
         },
       };
     } catch (error: any) {

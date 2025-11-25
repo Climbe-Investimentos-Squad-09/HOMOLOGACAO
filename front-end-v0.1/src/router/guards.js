@@ -5,16 +5,6 @@ export function authGuard(to, from, next) {
   const authStore = useAuthStore()
   
   if (authStore.isAuthenticated) {
-    // Se o usuário não tem cargo, só pode acessar dashboard, perfil e calendário
-    if (!userHasRole()) {
-      if (to.name === 'dashboard' || to.name === 'perfil' || to.name === 'calendario') {
-        next()
-      } else {
-        next('/dashboard')
-      }
-      return
-    }
-    
     // Verificar permissões para rotas específicas
     const routePermissions = {
       'propostas': 'propostas:visualizar',
@@ -26,6 +16,24 @@ export function authGuard(to, from, next) {
     }
     
     const requiredPermission = routePermissions[to.name]
+    
+    // Se não tem cargo, só pode acessar dashboard, perfil e calendário (ou telas com permissão)
+    if (!userHasRole()) {
+      // Permitir acesso se tiver a permissão necessária (mesmo sem cargo)
+      if (requiredPermission && hasPermission(requiredPermission)) {
+        next()
+        return
+      }
+      // Ou se for dashboard, perfil ou calendário
+      if (to.name === 'dashboard' || to.name === 'perfil' || to.name === 'calendario') {
+        next()
+      } else {
+        next('/dashboard')
+      }
+      return
+    }
+    
+    // Se tem cargo, verificar permissão
     if (requiredPermission && !hasPermission(requiredPermission)) {
       next('/dashboard')
       return

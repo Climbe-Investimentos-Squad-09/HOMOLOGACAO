@@ -40,12 +40,22 @@
                 <span class="permission-name">Visualizar {{ group.moduleName }}</span>
               </div>
               <div 
-                v-if="group.editar"
+                v-if="group.editar && hasVisualizarPermission(group.module)"
                 class="permission-item"
-                :class="{ 'selected': isSelected(group.editar.idPermissao) }"
+                :class="{ 
+                  'selected': isSelected(group.editar.idPermissao),
+                  'disabled': !hasVisualizarPermission(group.module)
+                }"
                 @click="togglePermission(group.editar)"
               >
                 <span class="permission-name">Editar ou criar {{ group.moduleName }}</span>
+              </div>
+              <div 
+                v-if="group.editar && !hasVisualizarPermission(group.module)"
+                class="permission-item disabled"
+                title="É necessário ter permissão de visualizar primeiro"
+              >
+                <span class="permission-name disabled-text">Editar ou criar {{ group.moduleName }} (requer visualizar)</span>
               </div>
             </div>
           </div>
@@ -103,12 +113,19 @@
                 <span class="permission-name">Visualizar {{ group.moduleName }}</span>
               </div>
               <div 
-                v-if="group.editar"
+                v-if="group.editar && hasVisualizarPermissionInSelected(group.module)"
                 class="permission-item selected"
                 :class="{ 'highlighted': isSelectedForRemoval(group.editar.idPermissao) }"
                 @click="toggleSelectedPermission(group.editar)"
               >
                 <span class="permission-name">Editar ou criar {{ group.moduleName }}</span>
+              </div>
+              <div 
+                v-if="group.editar && !hasVisualizarPermissionInSelected(group.module)"
+                class="permission-item selected disabled"
+                title="É necessário ter permissão de visualizar primeiro"
+              >
+                <span class="permission-name disabled-text">Editar ou criar {{ group.moduleName }} (requer visualizar)</span>
               </div>
             </div>
           </div>
@@ -259,6 +276,31 @@ const isSelectedForRemoval = (id) => {
   return selectedSelected.value.some(p => p.idPermissao === id)
 }
 
+// Verificar se o módulo tem permissão de visualizar (nas selecionadas ou disponíveis)
+const hasVisualizarPermission = (module) => {
+  // Verificar nas permissões selecionadas
+  const hasInSelected = selectedPermissions.value.some(p => {
+    const [mod, action] = p.nome.split(':')
+    return mod === module && action === 'visualizar'
+  })
+  
+  // Verificar nas permissões disponíveis selecionadas para adicionar
+  const hasInAvailable = selectedAvailable.value.some(p => {
+    const [mod, action] = p.nome.split(':')
+    return mod === module && action === 'visualizar'
+  })
+  
+  return hasInSelected || hasInAvailable
+}
+
+// Verificar se o módulo tem permissão de visualizar apenas nas selecionadas (para a coluna de selecionadas)
+const hasVisualizarPermissionInSelected = (module) => {
+  return selectedPermissions.value.some(p => {
+    const [mod, action] = p.nome.split(':')
+    return mod === module && action === 'visualizar'
+  })
+}
+
 const togglePermission = (perm) => {
   const index = selectedAvailable.value.findIndex(p => p.idPermissao === perm.idPermissao)
   if (index >= 0) {
@@ -302,6 +344,28 @@ const moveToAvailable = () => {
 const handleSave = async () => {
   loading.value = true
   try {
+    // Validar: se tem editar/criar, deve ter visualizar
+    const modulesWithEdit = new Set()
+    selectedPermissions.value.forEach(p => {
+      const [module, action] = p.nome.split(':')
+      if (action === 'criar' || action === 'editar') {
+        modulesWithEdit.add(module)
+      }
+    })
+    
+    // Verificar se todos os módulos com editar têm visualizar
+    for (const module of modulesWithEdit) {
+      const hasVisualizar = selectedPermissions.value.some(p => {
+        const [mod, action] = p.nome.split(':')
+        return mod === module && action === 'visualizar'
+      })
+      if (!hasVisualizar) {
+        alert(`Erro: Para editar/criar ${moduleNames[module] || module}, é necessário ter permissão de visualizar primeiro.`)
+        loading.value = false
+        return
+      }
+    }
+    
     // Obter IDs das permissões atuais do usuário (do rawUser)
     const currentPermIds = new Set((props.user.rawUser?.permissoesExtras || []).map(p => p.idPermissao))
     const newPermIds = new Set(selectedPermissions.value.map(p => p.idPermissao))
@@ -515,10 +579,27 @@ onMounted(() => {
   border-width: 2px;
 }
 
+.permission-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #F5F5F5;
+  border-color: #E0E0E0;
+}
+
+.permission-item.disabled:hover {
+  background-color: #F5F5F5;
+  border-color: #E0E0E0;
+}
+
 .permission-name {
   font-size: 0.875rem;
   color: #333;
   display: block;
+}
+
+.disabled-text {
+  color: #9E9E9E;
+  font-style: italic;
 }
 
 .empty-state {

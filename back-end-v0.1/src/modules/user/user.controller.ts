@@ -1,7 +1,8 @@
 // src/modules/user/user.controller.ts
 import {
-  Controller, Get, Post, Put, Patch, Delete, Param, Body, Query
+  Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, Req, UseGuards
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiBody
 } from '@nestjs/swagger';

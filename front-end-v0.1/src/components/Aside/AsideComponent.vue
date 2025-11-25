@@ -108,13 +108,14 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getRoleById } from '@/api/roles'
 import { hasPermission, userHasRole } from '@/utils/permissions'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const user = computed(() => authStore.user)
@@ -135,30 +136,32 @@ const userRole = computed(() => {
 const hasRole = computed(() => userHasRole())
 const permissions = computed(() => authStore.permissions || [])
 
+// Recarregar permissões quando a rota mudar (para pegar mudanças feitas em outras abas)
+watch(() => route.path, async () => {
+  if (authStore.isAuthenticated) {
+    await authStore.loadUserPermissions()
+  }
+})
+
 // Funções computed que dependem das permissões (usando diretamente o store para reatividade)
 // Calendário sempre visível (mesmo sem cargo)
 const canViewCalendar = computed(() => {
   return true // Calendário sempre visível
 })
-// Propostas, Contratos, Usuários, Empresas e Autorizações só aparecem se tiver cargo E permissão
+// Propostas, Contratos, Usuários, Empresas e Autorizações aparecem se tiver permissão (mesmo sem cargo, se tiver permissões extras)
 const canViewProposals = computed(() => {
-  if (!hasRole.value) return false
   return permissions.value.includes('propostas:visualizar')
 })
 const canViewContracts = computed(() => {
-  if (!hasRole.value) return false
   return permissions.value.includes('contratos:visualizar')
 })
 const canViewUsers = computed(() => {
-  if (!hasRole.value) return false
   return permissions.value.includes('usuarios:visualizar')
 })
 const canViewCompanies = computed(() => {
-  if (!hasRole.value) return false
   return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão
 })
 const canViewAuthorizations = computed(() => {
-  if (!hasRole.value) return false
   return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão
 })
 
@@ -179,6 +182,18 @@ onMounted(async () => {
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()
   }
+  
+  // Recarregar permissões periodicamente (a cada 30 segundos) para pegar mudanças
+  const intervalId = setInterval(async () => {
+    if (authStore.isAuthenticated) {
+      await authStore.loadUserPermissions()
+    }
+  }, 30000) // 30 segundos
+  
+  // Limpar intervalo quando componente for desmontado
+  onUnmounted(() => {
+    clearInterval(intervalId)
+  })
 })
 
 const handleLogout = () => {

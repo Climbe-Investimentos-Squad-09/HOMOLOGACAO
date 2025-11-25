@@ -129,7 +129,9 @@ const handleRoleChange = async (user, event) => {
       ? null 
       : parseInt(value, 10)
     
-    await updateUserRole(user.id, { idCargo: roleId })
+    // Enviar explicitamente null se for para remover cargo
+    const payload = roleId === null ? { idCargo: null } : { idCargo: roleId }
+    await updateUserRole(user.id, payload)
     emit('refresh')
   } catch (error) {
     console.error('Erro ao atualizar cargo:', error)

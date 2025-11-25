@@ -48,6 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value?.id) return
     
     try {
+      // Tentar carregar permissões, mas não falhar se não tiver permissão usuarios:visualizar
       const userData = await getUserById(user.value.id)
       
       // Atualizar o cargo do usuário se não estiver definido
@@ -69,8 +70,23 @@ export const useAuthStore = defineStore('auth', () => {
         allPerms,
         cargo: userData.cargo?.nomeCargo,
         cargoId: userData.cargo?.idCargo,
-        totalPerms: allPerms.length
+        totalPerms: allPerms.length,
+        userId: userData.idUsuario
       })
+      
+      // Log específico para debug de permissões extras
+      if (extraPerms.length > 0) {
+        console.log('✅ Permissões extras encontradas:', extraPerms)
+      } else {
+        console.log('⚠️ Nenhuma permissão extra encontrada')
+      }
+      
+      // Log específico para verificar permissões de contratos
+      if (allPerms.includes('contratos:visualizar')) {
+        console.log('✅ Permissão contratos:visualizar encontrada!')
+      } else {
+        console.log('❌ Permissão contratos:visualizar NÃO encontrada')
+      }
       
       // Se não tiver permissões e tiver cargo, pode ser que o cargo não tenha permissões vinculadas
       if (allPerms.length === 0 && userData.cargo) {
@@ -84,6 +100,24 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('permissions', JSON.stringify(allPerms))
     } catch (error) {
       console.error('Erro ao carregar permissões:', error)
+      // Se for erro 403, tentar usar permissões do middleware (que já foram carregadas no login)
+      if (error.response?.status === 403) {
+        console.warn('Não tem permissão para carregar dados do usuário. Usando permissões do token.')
+        // As permissões extras já devem estar no req.user do middleware
+        // Tentar usar as permissões que já temos no localStorage
+        const savedPerms = localStorage.getItem('permissions')
+        if (savedPerms) {
+          try {
+            const perms = JSON.parse(savedPerms)
+            permissions.value = perms
+            if (user.value) {
+              user.value.permissions = perms
+            }
+          } catch (e) {
+            console.error('Erro ao carregar permissões do localStorage:', e)
+          }
+        }
+      }
     }
   }
 
@@ -102,8 +136,20 @@ export const useAuthStore = defineStore('auth', () => {
     const response = await authApi.login(email, senha)
     setTokens(response.accessToken, response.refreshToken)
     setUser(response.user)
-    // Carregar permissões e cargo após login
-    await loadUserPermissions()
+    
+    // Se a resposta do login já incluir permissões, usar elas
+    if (response.user?.permissions && Array.isArray(response.user.permissions)) {
+      permissions.value = response.user.permissions
+      if (user.value) {
+        user.value.permissions = response.user.permissions
+      }
+      localStorage.setItem('permissions', JSON.stringify(response.user.permissions))
+      console.log('✅ Permissões carregadas do login:', response.user.permissions)
+    } else {
+      // Caso contrário, tentar carregar do backend
+      await loadUserPermissions()
+    }
+    
     // Se ainda não tiver profile após carregar, tentar buscar novamente
     if (!user.value?.profile) {
       try {

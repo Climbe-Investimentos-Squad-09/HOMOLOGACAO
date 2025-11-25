@@ -35,6 +35,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import UsersHeader from '../components/user/UsersHeader.vue'
 import UsersTable from '../components/user/UsersTable.vue'
 import UsersCreateModal from '../components/user/UsersCreateModal.vue'
@@ -124,12 +125,18 @@ const handleUserDeleted = () => {
   }, 100)
 }
 
-const handlePermissionsSaved = () => {
+const handlePermissionsSaved = async () => {
   showPermissionsModal.value = false
   selectedUser.value = null
-  setTimeout(() => {
-    loadUsers()
-  }, 100)
+  
+  // Recarregar usuários
+  await loadUsers()
+  
+  // Se o usuário editado for o usuário logado, recarregar permissões
+  const authStore = useAuthStore()
+  if (authStore.user?.id === selectedUser.value?.id) {
+    await authStore.loadUserPermissions()
+  }
 }
 
 const formattedUsers = computed(() => {

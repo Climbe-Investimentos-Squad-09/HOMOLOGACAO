@@ -107,18 +107,32 @@
               <div 
                 v-if="group.visualizar"
                 class="permission-item selected"
-                :class="{ 'highlighted': isSelectedForRemoval(group.visualizar.idPermissao) }"
+                :class="{ 
+                  'highlighted': isSelectedForRemoval(group.visualizar.idPermissao),
+                  'from-role': isPermissionFromRole(group.visualizar.idPermissao)
+                }"
                 @click="toggleSelectedPermission(group.visualizar)"
+                :title="isPermissionFromRole(group.visualizar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : ''"
               >
-                <span class="permission-name">Visualizar {{ group.moduleName }}</span>
+                <span class="permission-name">
+                  Visualizar {{ group.moduleName }}
+                  <span v-if="isPermissionFromRole(group.visualizar.idPermissao)" class="role-badge">(Cargo)</span>
+                </span>
               </div>
               <div 
                 v-if="group.editar && hasVisualizarPermissionInSelected(group.module)"
                 class="permission-item selected"
-                :class="{ 'highlighted': isSelectedForRemoval(group.editar.idPermissao) }"
+                :class="{ 
+                  'highlighted': isSelectedForRemoval(group.editar.idPermissao),
+                  'from-role': isPermissionFromRole(group.editar.idPermissao)
+                }"
                 @click="toggleSelectedPermission(group.editar)"
+                :title="isPermissionFromRole(group.editar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : ''"
               >
-                <span class="permission-name">Editar ou criar {{ group.moduleName }}</span>
+                <span class="permission-name">
+                  Editar ou criar {{ group.moduleName }}
+                  <span v-if="isPermissionFromRole(group.editar.idPermissao)" class="role-badge">(Cargo)</span>
+                </span>
               </div>
               <div 
                 v-if="group.editar && !hasVisualizarPermissionInSelected(group.module)"
@@ -188,9 +202,16 @@ const loadPermissions = async () => {
     const permissions = await getPermissions()
     allPermissions.value = permissions
     
-    const userPerms = props.user.rawUser?.permissoesExtras || []
+    // Carregar permissões do cargo (se o usuário tiver cargo)
+    const cargoPerms = props.user.rawUser?.cargo?.permissoes || []
+    
+    // Carregar permissões extras do usuário
+    const userExtrasPerms = props.user.rawUser?.permissoesExtras || []
+    
+    // Combinar permissões do cargo e extras (sem duplicatas)
+    const allUserPerms = [...cargoPerms, ...userExtrasPerms]
     const uniqueUserPerms = Array.from(
-      new Map(userPerms.map(p => [p.idPermissao, p])).values()
+      new Map(allUserPerms.map(p => [p.idPermissao, p])).values()
     )
     
     const deduplicatedPerms = []
@@ -313,6 +334,12 @@ const isSelectedForRemoval = (id) => {
   return selectedSelected.value.some(p => p.idPermissao === id)
 }
 
+// Verificar se uma permissão é do cargo (não pode ser removida)
+const isPermissionFromRole = (id) => {
+  const cargoPerms = props.user.rawUser?.cargo?.permissoes || []
+  return cargoPerms.some(p => p.idPermissao === id)
+}
+
 const hasVisualizarPermission = (module) => {
   const hasInSelected = selectedPermissions.value.some(p => {
     const [mod, action] = p.nome.split(':')
@@ -369,6 +396,11 @@ const togglePermission = (perm) => {
 }
 
 const toggleSelectedPermission = (perm) => {
+  // Não permitir remover permissões do cargo
+  if (isPermissionFromRole(perm.idPermissao)) {
+    return
+  }
+  
   const index = selectedSelected.value.findIndex(p => p.idPermissao === perm.idPermissao)
   if (index >= 0) {
     selectedSelected.value.splice(index, 1)
@@ -433,7 +465,13 @@ const moveToSelected = () => {
 }
 
 const moveToAvailable = () => {
-  selectedSelected.value.forEach(perm => {
+  // Filtrar apenas permissões extras (não do cargo)
+  const toRemove = selectedSelected.value.filter(perm => {
+    // Não permitir remover permissões do cargo
+    return !isPermissionFromRole(perm.idPermissao)
+  })
+  
+  toRemove.forEach(perm => {
     const [module, action] = perm.nome.split(':')
     
     if (action === 'criar' || action === 'editar') {
@@ -443,7 +481,7 @@ const moveToAvailable = () => {
         return mod === module && act === otherAction
       })
       
-      if (otherPerm) {
+      if (otherPerm && !isPermissionFromRole(otherPerm.idPermissao)) {
         const otherIndex = selectedPermissions.value.findIndex(p => p.idPermissao === otherPerm.idPermissao)
         if (otherIndex >= 0) {
           selectedPermissions.value.splice(otherIndex, 1)
@@ -488,19 +526,34 @@ const handleSave = async () => {
       }
     }
     
-    const currentPerms = (props.user.rawUser?.permissoesExtras || [])
-    const currentPermIds = new Set(currentPerms.map(p => p.idPermissao))
+    // Separar permissões do cargo e permissões extras
+    const cargoPerms = props.user.rawUser?.cargo?.permissoes || []
+    const cargoPermIds = new Set(cargoPerms.map(p => p.idPermissao))
+    const currentExtrasPerms = (props.user.rawUser?.permissoesExtras || [])
+    const currentExtrasPermIds = new Set(currentExtrasPerms.map(p => p.idPermissao))
     
-    const finalPermIds = new Set()
+    // Identificar quais permissões selecionadas são do cargo (não podem ser removidas)
+    const selectedPermIds = new Set(selectedPermissions.value.map(p => p.idPermissao))
+    const selectedExtrasPermIds = new Set(
+      Array.from(selectedPermIds).filter(id => !cargoPermIds.has(id))
+    )
+    
+    const finalExtrasPermIds = new Set()
     const modulesProcessed = new Set()
     
+    // Processar apenas as permissões extras (não as do cargo)
     selectedPermissions.value.forEach(p => {
+      // Se a permissão é do cargo, não adicionar às extras
+      if (cargoPermIds.has(p.idPermissao)) {
+        return
+      }
+      
       const [module, action] = p.nome.split(':')
       
       if (action === 'criar' || action === 'editar') {
         if (!modulesProcessed.has(module)) {
           modulesProcessed.add(module)
-          finalPermIds.add(p.idPermissao)
+          finalExtrasPermIds.add(p.idPermissao)
           
           const otherAction = action === 'criar' ? 'editar' : 'criar'
           const otherPerm = allPermissions.value.find(perm => {
@@ -509,16 +562,17 @@ const handleSave = async () => {
           })
           
           if (otherPerm) {
-            finalPermIds.add(otherPerm.idPermissao)
+            finalExtrasPermIds.add(otherPerm.idPermissao)
           }
         }
       } else {
-        finalPermIds.add(p.idPermissao)
+        finalExtrasPermIds.add(p.idPermissao)
       }
     })
     
-    const toAdd = Array.from(finalPermIds).filter(id => !currentPermIds.has(id))
-    const toRemove = Array.from(currentPermIds).filter(id => !finalPermIds.has(id))
+    // Calcular apenas as diferenças nas permissões extras (não tocar nas do cargo)
+    const toAdd = Array.from(finalExtrasPermIds).filter(id => !currentExtrasPermIds.has(id))
+    const toRemove = Array.from(currentExtrasPermIds).filter(id => !finalExtrasPermIds.has(id))
     
     if (toAdd.length > 0) {
       await addPermissions(props.user.id, { permissionIds: toAdd })
@@ -729,10 +783,28 @@ onMounted(() => {
   border-color: #E0E0E0;
 }
 
+.permission-item.from-role {
+  background-color: #E8F5E9;
+  border-color: #4CAF50;
+  cursor: default;
+}
+
+.permission-item.from-role:hover {
+  background-color: #E8F5E9;
+  border-color: #4CAF50;
+}
+
 .permission-name {
   font-size: 0.875rem;
   color: #333;
   display: block;
+}
+
+.role-badge {
+  font-size: 0.75rem;
+  color: #4CAF50;
+  font-weight: 600;
+  margin-left: 0.5rem;
 }
 
 .disabled-text {

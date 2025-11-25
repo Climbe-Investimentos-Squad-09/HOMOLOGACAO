@@ -65,4 +65,5 @@ export const ANALISTA_PERMS = [
   'reunioes:visualizar',
   'propostas:visualizar',
   'arquivos:download',
+  'usuarios:visualizar', // Adicionado conforme solicitado
 ];

@@ -16,6 +16,11 @@ export interface User {
   cargo?: {
     idCargo: number
     nomeCargo: string
+    permissoes?: Array<{
+      idPermissao: number
+      nome: string
+      descricao?: string
+    }>
   }
   permissoesExtras?: Array<{
     idPermissao: number

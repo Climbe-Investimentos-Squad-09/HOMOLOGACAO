@@ -65,7 +65,11 @@ export class UserService {
     if (email) where.email = ILike(`%${email}%`);
     if (situacao) where.situacao = situacao;
     if (idCargo) where.cargo = { idCargo: Number(idCargo) };
-    return this.users.find({ where, order: { idUsuario: 'DESC' } });
+    return this.users.find({ 
+      where, 
+      relations: ['cargo', 'cargo.permissoes', 'permissoesExtras'],
+      order: { idUsuario: 'DESC' } 
+    });
   }
 
   async findById(id: number) {
@@ -103,10 +107,19 @@ export class UserService {
         .set(null);
       
       user.cargo = undefined;
+      // Quando remove o cargo, mantém as permissões extras que já tinha
+      // (não remove permissões extras ao remover cargo)
     } else {
-      const role = await this.roles.findOne({ where: { idCargo: dto.idCargo as any } as any });
+      const role = await this.roles.findOne({ 
+        where: { idCargo: dto.idCargo as any } as any,
+        relations: ['permissoes']
+      });
       if (!role) throw new NotFoundException('Cargo não encontrado');
       user.cargo = role;
+      
+      // Quando atribui um cargo, as permissões do cargo são automaticamente
+      // disponibilizadas através da relação cargo.permissoes
+      // As permissões extras continuam existindo e podem ser adicionadas depois
     }
 
     if (user.situacao === SituacaoUsuario.PENDENTE && user.cargo) {

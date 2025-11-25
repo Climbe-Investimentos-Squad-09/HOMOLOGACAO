@@ -1,6 +1,10 @@
 <template>
   <div class="proposals-container">
-    <button class="create-proposal-button" @click="$emit('open-create-modal')">
+    <button 
+      v-if="canCreate" 
+      class="create-proposal-button" 
+      @click="$emit('open-create-modal')"
+    >
       + Criar proposta
     </button>
 
@@ -29,9 +33,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { canEditOrCreate } from '@/utils/permissions';
 
-const emit = defineEmits(['filters-changed']);
+const emit = defineEmits(['filters-changed', 'open-create-modal']);
+
+const canCreate = computed(() => canEditOrCreate('propostas'));
 
 const filterOptions = ["Aceito", "Revisão", "Rascunho"];
 const selectedFilters = ref([]);

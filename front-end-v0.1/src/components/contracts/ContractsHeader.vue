@@ -1,6 +1,10 @@
 <template>
   <div class="contracts-container">
-    <button class="create-contract-button" @click="$emit('open-create-modal')">
+    <button 
+      v-if="canCreate" 
+      class="create-contract-button" 
+      @click="$emit('open-create-modal')"
+    >
       + Criar contrato
     </button>
 
@@ -43,9 +47,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { canEditOrCreate } from '@/utils/permissions';
 
-const emit = defineEmits(['search-changed', 'filters-changed']);
+const emit = defineEmits(['search-changed', 'filters-changed', 'open-create-modal']);
+
+const canCreate = computed(() => canEditOrCreate('contratos'));
 
 const searchQuery = ref("");
 const filterOptions = ["Ativo", "Inativo", "Rascunho", "Revisão"];

@@ -49,6 +49,15 @@ export function isAdmin() {
 }
 
 /**
+ * Verifica se o usuário pode editar ou criar em um módulo específico
+ * @param {string} module - Nome do módulo (ex: 'propostas', 'contratos', 'empresas', 'usuarios')
+ * @returns {boolean}
+ */
+export function canEditOrCreate(module) {
+  return hasPermission(`${module}:editar`) || hasPermission(`${module}:criar`)
+}
+
+/**
  * Verifica se o usuário tem cargo
  * @returns {boolean}
  */

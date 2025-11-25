@@ -29,7 +29,7 @@
             </span>
           </td>
           <td class="actions-cell">
-            <button v-if="auth.category === 'Login'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
+            <button v-if="canEdit && auth.category === 'Login'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" width="32" height="32" rx="8" fill="#B5EDB9" />
                 <path
@@ -39,7 +39,7 @@
                   stroke-linejoin="round" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Login'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
+            <button v-if="canEdit && auth.category === 'Login'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" fill="#FFCFCF" />
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" stroke="#FFB9B9" />
@@ -48,7 +48,7 @@
                   fill="#AE3B3B" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Permissões'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
+            <button v-if="canEdit && auth.category === 'Permissões'" class="action-icon-button approve-button" title="Aprovar" @click="$emit('approve', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" width="32" height="32" rx="8" fill="#B5EDB9" />
                 <path
@@ -58,7 +58,7 @@
                   stroke-linejoin="round" />
               </svg>
             </button>
-            <button v-if="auth.category === 'Permissões'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
+            <button v-if="canEdit && auth.category === 'Permissões'" class="action-icon-button reject-button" title="Rejeitar" @click="$emit('reject', auth.rawUser)">
               <svg width="33" height="32" viewBox="0 0 33 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" fill="#FFCFCF" />
                 <rect x="1" y="0.5" width="31" height="31" rx="7.5" stroke="#FFB9B9" />
@@ -75,6 +75,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { canEditOrCreate } from '@/utils/permissions'
+
 const props = defineProps({
   authorizations: {
     type: Array,
@@ -86,7 +89,9 @@ const props = defineProps({
   }
 });
 
-defineEmits(['approve', 'reject', 'refresh']);
+const emit = defineEmits(['approve', 'reject', 'refresh']);
+
+const canEdit = computed(() => canEditOrCreate('usuarios'));
 </script>
 
 <style scoped>

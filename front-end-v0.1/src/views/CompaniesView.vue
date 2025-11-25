@@ -1,7 +1,11 @@
 <template>
   <div class="companies-container">
     <div class="content-header">
-      <button class="add-company-btn" @click="openModal">
+      <button 
+        v-if="canCreate" 
+        class="add-company-btn" 
+        @click="openModal"
+      >
         <i class="bi bi-plus"></i>
         <span>Adicionar empresa</span>
       </button>
@@ -30,6 +34,8 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+import { canEditOrCreate } from '@/utils/permissions'
 import CompaniesTable from '@/components/CompaniesTable/CompaniesTable.vue'
 import AddCompanyModal from '@/components/AddCompanyModal.vue'
 
@@ -38,6 +44,10 @@ export default {
   components: {
     CompaniesTable,
     AddCompanyModal
+  },
+  setup() {
+    const canCreate = computed(() => canEditOrCreate('empresas'))
+    return { canCreate }
   },
   data() {
     return {

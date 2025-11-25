@@ -10,7 +10,11 @@
         </svg>
         <input type="text" placeholder="Procure usuários..." class="search-input" v-model="searchQuery" @input="onSearchChange" />
       </div>
-      <button class="add-user-button" @click="$emit('open-create-modal')">
+      <button 
+        v-if="canCreate" 
+        class="add-user-button" 
+        @click="$emit('open-create-modal')"
+      >
         + Adicionar usuário
       </button>
     </div>
@@ -34,9 +38,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { canEditOrCreate } from '@/utils/permissions';
 
 const emit = defineEmits(["search-changed", "filters-changed", "open-create-modal"]);
+
+const canCreate = computed(() => canEditOrCreate('usuarios'));
 
 const searchQuery = ref("");
 const filterOptions = ["Ativo", "Bloqueado", "Pendente"];

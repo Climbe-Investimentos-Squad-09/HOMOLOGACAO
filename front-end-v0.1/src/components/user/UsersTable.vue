@@ -63,6 +63,7 @@
           </td>
           <td>
             <button 
+              v-if="canEdit"
               class="permissions-button" 
               @click="$emit('open-permissions-modal', user)"
               title="Gerenciar permissões"
@@ -73,7 +74,12 @@
           </td>
           <td>{{ user.lastAccess }}</td>
           <td class="actions-cell">
-            <button class="action-icon-button edit-button" title="Editar" @click="$emit('edit-user', user)">
+            <button 
+              v-if="canEdit" 
+              class="action-icon-button edit-button" 
+              title="Editar" 
+              @click="$emit('edit-user', user)"
+            >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M17.4167 6.33333L13.6667 2.58333L2.5 13.75V17.5H6.25L17.4167 6.33333Z" stroke="#6C757D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -89,7 +95,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getAllRoles } from '@/api/roles'
 import { updateUserRole } from '@/api/users'
-import { isAdmin as checkIsAdmin } from '@/utils/permissions'
+import { isAdmin as checkIsAdmin, canEditOrCreate } from '@/utils/permissions'
 
 const props = defineProps({
   users: {
@@ -106,6 +112,7 @@ const emit = defineEmits(['edit-user', 'refresh', 'open-permissions-modal']);
 
 const roles = ref([])
 const isAdmin = computed(() => checkIsAdmin())
+const canEdit = computed(() => canEditOrCreate('usuarios'))
 
 // Função para obter o valor do cargo para o select
 const getRoleValue = (user) => {

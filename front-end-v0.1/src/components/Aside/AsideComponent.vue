@@ -129,9 +129,9 @@ watch(() => route.path, async () => {
 })
 
 // Funções computed que dependem das permissões (usando diretamente o store para reatividade)
-// Calendário sempre visível (mesmo sem cargo)
+// Calendário visível se tiver permissão de visualizar reuniões
 const canViewCalendar = computed(() => {
-  return true // Calendário sempre visível
+  return permissions.value.includes('reunioes:visualizar')
 })
 // Propostas, Contratos, Usuários, Empresas e Autorizações aparecem se tiver permissão (mesmo sem cargo, se tiver permissões extras)
 const canViewProposals = computed(() => {

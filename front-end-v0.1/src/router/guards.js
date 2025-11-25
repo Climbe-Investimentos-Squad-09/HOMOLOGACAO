@@ -25,8 +25,8 @@ export function authGuard(to, from, next) {
         next()
         return
       }
-      // Ou se for dashboard, perfil ou calendário
-      if (to.name === 'dashboard' || to.name === 'perfil' || to.name === 'calendario') {
+      // Ou se for dashboard ou perfil
+      if (to.name === 'dashboard' || to.name === 'perfil') {
         next()
       } else {
         next('/dashboard')

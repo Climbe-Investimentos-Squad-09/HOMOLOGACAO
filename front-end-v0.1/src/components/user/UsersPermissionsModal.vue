@@ -220,7 +220,7 @@ const loadPermissions = async () => {
     uniqueUserPerms.forEach(p => {
       const [module, action] = p.nome.split(':')
       
-      if (action === 'criar' || action === 'editar') {
+      if (action === 'criar' || action === 'editar' || action === 'agendar') {
         const existing = moduleEditMap.get(module)
         if (action === 'editar') {
           if (existing && existing.action === 'criar') {
@@ -234,6 +234,10 @@ const loadPermissions = async () => {
         } else if (action === 'criar' && !existing) {
           deduplicatedPerms.push(p)
           moduleEditMap.set(module, { perm: p, action: 'criar' })
+        } else if (action === 'agendar' && !existing) {
+          // reunioes:agendar é tratado como criar/editar
+          deduplicatedPerms.push(p)
+          moduleEditMap.set(module, { perm: p, action: 'agendar' })
         }
       } else {
         deduplicatedPerms.push(p)
@@ -252,10 +256,10 @@ const loadPermissions = async () => {
       if (selectedIds.has(p.idPermissao)) return false
       
       const [module, action] = p.nome.split(':')
-      if (action === 'criar' || action === 'editar') {
+      if (action === 'criar' || action === 'editar' || action === 'agendar') {
         const hasEditOrCreate = deduplicatedPerms.some(perm => {
           const [mod, act] = perm.nome.split(':')
-          return mod === module && (act === 'criar' || act === 'editar')
+          return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar')
         })
         if (hasEditOrCreate) return false
       }
@@ -269,7 +273,7 @@ const loadPermissions = async () => {
 
 const simplifyPermissions = (permissions) => {
   const simplified = {}
-  const mainModules = ['propostas', 'contratos', 'documentos_juridicos', 'empresas', 'usuarios', 'autorizacoes']
+  const mainModules = ['propostas', 'contratos', 'documentos_juridicos', 'empresas', 'usuarios', 'reunioes']
   
   permissions.forEach(perm => {
     const [module, action] = perm.nome.split(':')
@@ -290,6 +294,9 @@ const simplifyPermissions = (permissions) => {
     } else if (action === 'editar') {
       simplified[module].editar = perm
     } else if (action === 'criar' && !simplified[module].editar) {
+      simplified[module].editar = perm
+    } else if (action === 'agendar' && !simplified[module].editar) {
+      // reunioes:agendar é tratado como criar/editar
       simplified[module].editar = perm
     }
   })
@@ -367,10 +374,10 @@ const togglePermission = (perm) => {
   
   const [module, action] = perm.nome.split(':')
   
-  if (action === 'criar' || action === 'editar') {
+  if (action === 'criar' || action === 'editar' || action === 'agendar') {
     const existingInSelected = selectedPermissions.value.findIndex(p => {
       const [mod, act] = p.nome.split(':')
-      return mod === module && (act === 'criar' || act === 'editar')
+      return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar')
     })
     
     if (existingInSelected >= 0) {
@@ -379,7 +386,7 @@ const togglePermission = (perm) => {
     
     const existingInAvailable = selectedAvailable.value.findIndex(p => {
       const [mod, act] = p.nome.split(':')
-      return mod === module && (act === 'criar' || act === 'editar')
+      return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar')
     })
     
     if (existingInAvailable >= 0) {
@@ -406,15 +413,15 @@ const toggleSelectedPermission = (perm) => {
     selectedSelected.value.splice(index, 1)
   } else {
     const [module, action] = perm.nome.split(':')
-    if (action === 'criar' || action === 'editar') {
+    if (action === 'criar' || action === 'editar' || action === 'agendar') {
       const hasOther = selectedSelected.value.some(p => {
         const [mod, act] = p.nome.split(':')
-        return mod === module && (act === 'criar' || act === 'editar') && p.idPermissao !== perm.idPermissao
+        return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar') && p.idPermissao !== perm.idPermissao
       })
       if (hasOther) {
         const otherIndex = selectedSelected.value.findIndex(p => {
           const [mod, act] = p.nome.split(':')
-          return mod === module && (act === 'criar' || act === 'editar') && p.idPermissao !== perm.idPermissao
+          return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar') && p.idPermissao !== perm.idPermissao
         })
         if (otherIndex >= 0) {
           selectedSelected.value.splice(otherIndex, 1)
@@ -432,10 +439,10 @@ const moveToSelected = () => {
   toAdd.forEach(perm => {
     const [module, action] = perm.nome.split(':')
     
-    if (action === 'criar' || action === 'editar') {
+    if (action === 'criar' || action === 'editar' || action === 'agendar') {
       const existingIndex = selectedPermissions.value.findIndex(p => {
         const [mod, act] = p.nome.split(':')
-        return mod === module && (act === 'criar' || act === 'editar')
+        return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar')
       })
       
       if (existingIndex >= 0) {
@@ -444,7 +451,7 @@ const moveToSelected = () => {
       
       const availableIndex = availablePermissions.value.findIndex(p => {
         const [mod, act] = p.nome.split(':')
-        return mod === module && (act === 'criar' || act === 'editar')
+        return mod === module && (act === 'criar' || act === 'editar' || act === 'agendar')
       })
       
       if (availableIndex >= 0) {
@@ -474,19 +481,24 @@ const moveToAvailable = () => {
   toRemove.forEach(perm => {
     const [module, action] = perm.nome.split(':')
     
-    if (action === 'criar' || action === 'editar') {
-      const otherAction = action === 'criar' ? 'editar' : 'criar'
-      const otherPerm = selectedPermissions.value.find(p => {
-        const [mod, act] = p.nome.split(':')
-        return mod === module && act === otherAction
-      })
-      
-      if (otherPerm && !isPermissionFromRole(otherPerm.idPermissao)) {
-        const otherIndex = selectedPermissions.value.findIndex(p => p.idPermissao === otherPerm.idPermissao)
-        if (otherIndex >= 0) {
-          selectedPermissions.value.splice(otherIndex, 1)
-          if (!availablePermissions.value.some(p => p.idPermissao === otherPerm.idPermissao)) {
-            availablePermissions.value.push(otherPerm)
+    if (action === 'criar' || action === 'editar' || action === 'agendar') {
+      // Para reunioes:agendar, não precisa remover outras permissões
+      if (action === 'agendar' && module === 'reunioes') {
+        // Não remove outras permissões
+      } else {
+        const otherAction = action === 'criar' ? 'editar' : 'criar'
+        const otherPerm = selectedPermissions.value.find(p => {
+          const [mod, act] = p.nome.split(':')
+          return mod === module && act === otherAction
+        })
+        
+        if (otherPerm && !isPermissionFromRole(otherPerm.idPermissao)) {
+          const otherIndex = selectedPermissions.value.findIndex(p => p.idPermissao === otherPerm.idPermissao)
+          if (otherIndex >= 0) {
+            selectedPermissions.value.splice(otherIndex, 1)
+            if (!availablePermissions.value.some(p => p.idPermissao === otherPerm.idPermissao)) {
+              availablePermissions.value.push(otherPerm)
+            }
           }
         }
       }
@@ -509,7 +521,7 @@ const handleSave = async () => {
     const modulesWithEdit = new Set()
     selectedPermissions.value.forEach(p => {
       const [module, action] = p.nome.split(':')
-      if (action === 'criar' || action === 'editar') {
+      if (action === 'criar' || action === 'editar' || action === 'agendar') {
         modulesWithEdit.add(module)
       }
     })
@@ -550,19 +562,24 @@ const handleSave = async () => {
       
       const [module, action] = p.nome.split(':')
       
-      if (action === 'criar' || action === 'editar') {
+      if (action === 'criar' || action === 'editar' || action === 'agendar') {
         if (!modulesProcessed.has(module)) {
           modulesProcessed.add(module)
           finalExtrasPermIds.add(p.idPermissao)
           
-          const otherAction = action === 'criar' ? 'editar' : 'criar'
-          const otherPerm = allPermissions.value.find(perm => {
-            const [mod, act] = perm.nome.split(':')
-            return mod === module && act === otherAction
-          })
-          
-          if (otherPerm) {
-            finalExtrasPermIds.add(otherPerm.idPermissao)
+          // Para reunioes:agendar, não precisa adicionar outras permissões
+          if (action === 'agendar' && module === 'reunioes') {
+            // Não adiciona outras permissões para agendar
+          } else {
+            const otherAction = action === 'criar' ? 'editar' : 'criar'
+            const otherPerm = allPermissions.value.find(perm => {
+              const [mod, act] = perm.nome.split(':')
+              return mod === module && act === otherAction
+            })
+            
+            if (otherPerm) {
+              finalExtrasPermIds.add(otherPerm.idPermissao)
+            }
           }
         }
       } else {

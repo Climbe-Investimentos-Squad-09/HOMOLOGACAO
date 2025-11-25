@@ -19,6 +19,7 @@ export const COMPLIANCE_PERMS = [
   'documentos_juridicos:excluir',
   'contratos:aplicar_complexidade',
   'planilha:edicao_restrita',
+  'reunioes:visualizar',
   'reunioes:agendar',
   'relatorios:visualizar',
   'relatorios:criar',

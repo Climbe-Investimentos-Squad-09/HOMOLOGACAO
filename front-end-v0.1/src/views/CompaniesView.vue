@@ -14,16 +14,56 @@
     <div class="search-filters">
       <div class="search-container">
         <i class="bi bi-search"></i>
-        <input type="text" placeholder="Procure empresas..." class="search-input">
+        <input 
+          type="text" 
+          placeholder="Procure empresas..." 
+          class="search-input"
+          v-model="searchQuery"
+          @input="handleSearch"
+        >
       </div>
-      <button class="filters-btn">
+      <button class="filters-btn" @click="toggleFilters">
         <i class="bi bi-funnel"></i>
         <span>Filtros</span>
-        <i class="bi bi-chevron-down"></i>
+        <i :class="['bi', showFilters ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
       </button>
     </div>
 
-    <CompaniesTable />
+    <div v-if="showFilters" class="filters-panel">
+      <div class="filters-grid">
+        <div class="filter-field">
+          <label>Nome Fantasia</label>
+          <input v-model="filters.nomeFantasia" type="text" placeholder="Nome fantasia" />
+        </div>
+        <div class="filter-field">
+          <label>Razão Social</label>
+          <input v-model="filters.razaoSocial" type="text" placeholder="Razão social" />
+        </div>
+        <div class="filter-field">
+          <label>CNPJ</label>
+          <input 
+            v-model="filters.cnpj" 
+            type="text" 
+            placeholder="00.000.000/0000-00"
+            v-maska="'##.###.###/####-##'"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Email</label>
+          <input v-model="filters.email" type="email" placeholder="email@empresa.com" />
+        </div>
+        <div class="filter-field">
+          <label>Representante Legal</label>
+          <input v-model="filters.representanteLegal" type="text" placeholder="Nome do representante" />
+        </div>
+      </div>
+      <div class="filters-actions">
+        <button class="clear-filters-btn" @click="clearFilters">Limpar filtros</button>
+        <button class="apply-filters-btn" @click="applyFilters">Aplicar filtros</button>
+      </div>
+    </div>
+
+    <CompaniesTable :filters="activeFilters" ref="companiesTable" />
 
     <AddCompanyModal 
       :isOpen="isModalOpen" 
@@ -35,12 +75,14 @@
 
 <script>
 import { computed } from 'vue'
+import { vMaska } from 'maska/vue'
 import { canEditOrCreate } from '@/utils/permissions'
 import CompaniesTable from '@/components/CompaniesTable/CompaniesTable.vue'
 import AddCompanyModal from '@/components/AddCompanyModal.vue'
 
 export default {
   name: 'CompaniesView',
+  directives: { maska: vMaska },
   components: {
     CompaniesTable,
     AddCompanyModal
@@ -51,7 +93,18 @@ export default {
   },
   data() {
     return {
-      isModalOpen: false
+      isModalOpen: false,
+      showFilters: false,
+      searchQuery: '',
+      filters: {
+        nomeFantasia: '',
+        razaoSocial: '',
+        cnpj: '',
+        email: '',
+        representanteLegal: ''
+      },
+      activeFilters: {},
+      searchTimeout: null
     }
   },
   methods: {
@@ -65,6 +118,48 @@ export default {
     
     handleAddCompany(companyData) {
       alert('Empresa adicionada com sucesso!')
+      this.$refs.companiesTable?.fetchCompanies()
+    },
+
+    toggleFilters() {
+      this.showFilters = !this.showFilters
+    },
+
+    handleSearch() {
+      clearTimeout(this.searchTimeout)
+      this.searchTimeout = setTimeout(() => {
+        const query = this.searchQuery.trim()
+        if (query) {
+          // Enviar para múltiplos campos - o backend fará OR implicitamente
+          // se não encontrar em um campo, tenta nos outros
+          this.activeFilters = { nomeFantasia: query }
+        } else {
+          this.activeFilters = {}
+        }
+      }, 300)
+    },
+
+    applyFilters() {
+      const applied = {}
+      Object.keys(this.filters).forEach(key => {
+        if (this.filters[key]?.trim()) {
+          applied[key] = this.filters[key].trim()
+        }
+      })
+      this.activeFilters = applied
+      this.searchQuery = ''
+    },
+
+    clearFilters() {
+      this.filters = {
+        nomeFantasia: '',
+        razaoSocial: '',
+        cnpj: '',
+        email: '',
+        representanteLegal: ''
+      }
+      this.activeFilters = {}
+      this.searchQuery = ''
     }
   }
 }
@@ -166,5 +261,82 @@ export default {
 
 .filters-btn i:last-child {
   font-size: 0.8rem;
+}
+
+.filters-panel {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.filter-field input {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.filter-field input:focus {
+  outline: none;
+  border-color: #00695c;
+  box-shadow: 0 0 0 3px rgba(0, 105, 92, 0.1);
+}
+
+.filters-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.clear-filters-btn,
+.apply-filters-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-filters-btn {
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.clear-filters-btn:hover {
+  background: #e9ecef;
+}
+
+.apply-filters-btn {
+  background: #00695c;
+  color: white;
+}
+
+.apply-filters-btn:hover {
+  background: #005246;
 }
 </style>

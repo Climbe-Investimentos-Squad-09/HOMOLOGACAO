@@ -17,24 +17,24 @@
             <h3 class="section-title">Informações Básicas</h3>
             
             <div class="form-group">
-              <label for="legalName" class="form-label">Nome legal:</label>
+              <label for="legalName" class="form-label">Razão Social: <span class="required">*</span></label>
               <input
                 type="text"
                 id="legalName"
                 v-model="formData.legalName"
-                placeholder="Insira o nome completo"
+                placeholder="Insira a razão social"
                 class="form-input"
                 required
               />
             </div>
 
             <div class="form-group">
-              <label for="fantasyName" class="form-label">Nome fantasia:</label>
+              <label for="fantasyName" class="form-label">Nome Fantasia: <span class="required">*</span></label>
               <input
                 type="text"
                 id="fantasyName"
                 v-model="formData.fantasyName"
-                placeholder="Insira o nome completo"
+                placeholder="Insira o nome fantasia"
                 class="form-input"
                 required
               />
@@ -46,12 +46,12 @@
             <h3 class="section-title">CNPJ</h3>
             
             <div class="form-group">
-              <label for="cnpj" class="form-label">CNPJ</label>
+              <label for="cnpj" class="form-label">CNPJ <span class="required">*</span></label>
               <input
                 type="text"
                 id="cnpj"
                 v-model="formData.cnpj"
-                placeholder="00.000.000/1111-11"
+                placeholder="00.000.000/0001-00"
                 class="form-input"
                 @input="formatCNPJ"
                 required
@@ -135,7 +135,7 @@
             <h3 class="section-title">Contato</h3>
             
             <div class="form-group">
-              <label for="email" class="form-label">Email:</label>
+              <label for="email" class="form-label">Email: <span class="required">*</span></label>
               <input
                 type="email"
                 id="email"
@@ -175,6 +175,8 @@
 </template>
 
 <script>
+import { createCompanyFull } from '@/api/companies'
+
 export default {
   name: 'AddCompanyModal',
   props: {
@@ -205,21 +207,53 @@ export default {
       this.$emit('close')
     },
     
-    handleSubmit() {
+    async handleSubmit() {
       // Validação básica
       if (!this.formData.legalName || !this.formData.fantasyName || !this.formData.cnpj || !this.formData.email) {
-        alert('Por favor, preencha todos os campos obrigatórios.')
+        alert('Por favor, preencha todos os campos obrigatórios (marcados com *).')
         return
       }
-      
-      // Emitir evento com os dados da empresa
-      this.$emit('add-company', { ...this.formData })
-      
-      // Limpar formulário
-      this.resetForm()
-      
-      // Fechar modal
-      this.closeModal()
+
+      try {
+        // Montar endereço completo se houver dados de endereço
+        let endereco = ''
+        if (this.formData.street) {
+          endereco = this.formData.street
+          if (this.formData.number) endereco += ', ' + this.formData.number
+          if (this.formData.neighborhood) endereco += ' - ' + this.formData.neighborhood
+          if (this.formData.city) endereco += ' - ' + this.formData.city
+          if (this.formData.cep) endereco += ' - CEP: ' + this.formData.cep
+        }
+
+        // Mapear os dados para o formato do backend
+        const companyData = {
+          razaoSocial: this.formData.legalName,
+          nomeFantasia: this.formData.fantasyName,
+          cnpj: this.formData.cnpj,
+          email: this.formData.email,
+          telefone: this.formData.phone || undefined,
+          endereco: endereco || undefined,
+          representanteLegal: undefined
+        }
+
+        // Chamar API para criar empresa
+        await createCompanyFull(companyData)
+        
+        // Emitir evento de sucesso
+        this.$emit('add-company', companyData)
+        
+        alert('Empresa cadastrada com sucesso!')
+        
+        // Limpar formulário
+        this.resetForm()
+        
+        // Fechar modal
+        this.closeModal()
+      } catch (error) {
+        console.error('Erro ao criar empresa:', error)
+        const errorMessage = error.response?.data?.message || 'Erro ao criar empresa. Verifique os dados e tente novamente.'
+        alert(errorMessage)
+      }
     },
     
     resetForm() {
@@ -370,6 +404,11 @@ export default {
   font-size: 0.9rem;
   font-weight: 500;
   color: #000;
+}
+
+.required {
+  color: #dc3545;
+  margin-left: 2px;
 }
 
 .form-input {

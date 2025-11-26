@@ -1,8 +1,11 @@
 <template>
   <div class="companies-table-container">
-    <div class="table-header">
-      <h3 class="table-title">Empresas ({{ companies.length }})</h3>
-    </div>
+      <div class="table-header">
+        <h3 class="table-title">Empresas ({{ companies.length }})</h3>
+        <div style="margin-top:8px">
+          <button class="action-btn" @click="addCompany">Adicionar empresa</button>
+        </div>
+      </div>
     
     <div class="table-wrapper">
       <table class="companies-table">
@@ -18,89 +21,175 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="company in companies" :key="company.id" class="table-row">
+          <tr v-for="company in companies" :key="company.idEmpresa" class="table-row">
             <td class="company-cell">
               <div class="company-info">
-                <div class="company-name">{{ company.name }}</div>
-                <div class="company-subtitle">{{ company.fullName }}</div>
+                <div class="company-name">{{ company.nomeFantasia }}</div>
+                <div class="company-subtitle">{{ company.razaoSocial }}</div>
               </div>
             </td>
-            <td class="cnpj-cell">{{ company.cnpj }}</td>
+            <td class="cnpj-cell">{{ company.cnpj || '—' }}</td>
             <td class="contact-cell">
               <div class="contact-info">
                 <div class="contact-email">{{ company.email }}</div>
-                <div class="contact-phone">{{ company.phone }}</div>
+                <div class="contact-phone">{{ company.telefone }}</div>
               </div>
             </td>
-            <td class="location-cell">{{ company.location }}</td>
+            <td class="location-cell">{{ company.endereco || '—' }}</td>
             <td class="status-cell">
-              <span :class="['status-badge', `status-${company.status}`]">
-                {{ company.statusText }}
+              <span :class="['status-badge', getStatusClass(company)]">
+                {{ getStatusText(company) }}
               </span>
             </td>
             <td class="contracts-cell">
               <div class="contracts-info">
                 <i class="bi bi-file-earmark-text"></i>
-                <span>{{ company.contracts }}</span>
+                <span>{{ (company.contratos && company.contratos.length) || 0 }}</span>
               </div>
             </td>
             <td class="actions-cell">
-              <button class="action-btn view-btn" title="Visualizar empresa">
+              <button class="action-btn view-btn" title="Visualizar empresa" @click="viewCompany(company)">
                 <i class="bi bi-eye"></i>
+              </button>
+              <button class="action-btn edit-btn" title="Editar empresa" @click="editCompany(company)">
+                <i class="bi bi-pencil"></i>
               </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <CompanyDetailsModal 
+      :isOpen="isModalOpen"
+      :company="selectedCompany"
+      @close="closeModal"
+      @save="handleSaveCompany"
+    />
   </div>
 </template>
 
 <script>
+import {
+  getCompanies,
+  getCompanyById,
+  createCompanyMinimal,
+  updateCompany,
+} from '../../api/companies'
+import CompanyDetailsModal from './CompanyDetailsModal.vue'
+
 export default {
   name: 'CompaniesTable',
+  components: {
+    CompanyDetailsModal
+  },
+  props: {
+    filters: {
+      type: Object,
+      default: () => ({})
+    }
+  },
   data() {
     return {
-      companies: [
-        {
-          id: 1,
-          name: 'TechCorp Inc.',
-          fullName: 'TechCorp Incorporations LLC',
-          cnpj: '12.345.678/0001-90',
-          email: 'john.smith@company.com',
-          phone: '+1 (555) 123-4567',
-          location: 'San Francisco, CA',
-          status: 'active',
-          statusText: 'Ativo',
-          contracts: 3
-        },
-        {
-          id: 2,
-          name: 'TechCorp Inc.',
-          fullName: 'TechCorp Incorporations LLC',
-          cnpj: '12.345.678/0001-90',
-          email: 'john.smith@company.com',
-          phone: '+1 (555) 123-4567',
-          location: 'San Francisco, CA',
-          status: 'inactive',
-          statusText: 'Inativo',
-          contracts: 3
-        },
-        {
-          id: 3,
-          name: 'TechCorp Inc.',
-          fullName: 'TechCorp Incorporations LLC',
-          cnpj: '12.345.678/0001-90',
-          email: 'john.smith@company.com',
-          phone: '+1 (555) 123-4567',
-          location: 'San Francisco, CA',
-          status: 'review',
-          statusText: 'Revisão',
-          contracts: 3
-        }
-      ]
+      companies: [],
+      loading: false,
+      isModalOpen: false,
+      selectedCompany: null,
     }
-  }
+  },
+  watch: {
+    filters: {
+      handler() {
+        this.fetchCompanies()
+      },
+      deep: true
+    }
+  },
+  created() {
+    this.fetchCompanies()
+  },
+  methods: {
+    async fetchCompanies() {
+      this.loading = true
+      try {
+        this.companies = await getCompanies(this.filters)
+      } catch (e) {
+        console.error('Erro ao carregar empresas', e)
+        alert('Erro ao carregar empresas')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    isCompanyComplete(company) {
+      // Verifica se TODOS os campos estão preenchidos
+      return !!(
+        company.razaoSocial?.trim() &&
+        company.nomeFantasia?.trim() &&
+        company.cnpj?.trim() &&
+        company.email?.trim() &&
+        company.telefone?.trim() &&
+        company.endereco?.trim() &&
+        company.representanteLegal?.trim()
+      )
+    },
+
+    getStatusClass(company) {
+      return this.isCompanyComplete(company) ? 'status-active' : 'status-review'
+    },
+
+    getStatusText(company) {
+      return this.isCompanyComplete(company) ? 'Completo' : 'Pré-cadastro'
+    },
+
+    async addCompany() {
+      const nomeFantasia = prompt('Nome fantasia (obrigatório):')
+      const email = prompt('Email (obrigatório):')
+      const contato = prompt('Contato:')
+      if (!nomeFantasia || !email) return alert('Nome fantasia e email são obrigatórios')
+
+      try {
+        await createCompanyMinimal({ nomeFantasia, email, contato })
+        await this.fetchCompanies()
+      } catch (err) {
+        console.error('Erro ao criar empresa', err)
+        alert('Erro ao criar empresa')
+      }
+    },
+
+    async viewCompany(company) {
+      try {
+        const data = await getCompanyById(company.idEmpresa)
+        this.selectedCompany = data
+        this.isModalOpen = true
+      } catch (err) {
+        console.error('Erro ao carregar empresa', err)
+        alert('Erro ao carregar detalhes da empresa')
+      }
+    },
+
+    editCompany(company) {
+      this.selectedCompany = company
+      this.isModalOpen = true
+    },
+
+    closeModal() {
+      this.isModalOpen = false
+      this.selectedCompany = null
+    },
+
+    async handleSaveCompany(editedCompany) {
+      try {
+        await updateCompany(editedCompany.idEmpresa, editedCompany)
+        await this.fetchCompanies()
+        this.closeModal()
+      } catch (err) {
+        console.error('Erro ao atualizar empresa', err)
+        alert('Erro ao atualizar empresa')
+        throw err
+      }
+    },
+  },
 }
 </script>
 
@@ -222,10 +311,11 @@ export default {
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .status-active {
@@ -267,7 +357,7 @@ export default {
 
 /* Actions Cell */
 .actions-cell {
-  min-width: 80px;
+  min-width: 120px;
 }
 
 .action-btn {
@@ -277,9 +367,10 @@ export default {
   padding: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: 0.25rem;
 }
 
 .action-btn:hover {
@@ -293,6 +384,10 @@ export default {
 
 .view-btn:hover i {
   color: #00695c;
+}
+
+.edit-btn:hover i {
+  color: #0066cc;
 }
 
 /* Responsive */

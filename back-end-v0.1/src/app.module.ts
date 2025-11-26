@@ -19,10 +19,12 @@ import { User } from './modules/user/entities/user.entity';
 import { AuthzMiddleware } from './modules/auth/middlewares/authz.middleware';
 import { AuditModule } from './audit/audit.module';
 import { ReunioesModule } from './modules/meetings/meeting.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports:
-    [ConfigModule.forRoot({ isGlobal: true }),
+    [ScheduleModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

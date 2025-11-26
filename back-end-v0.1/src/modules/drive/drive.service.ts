@@ -271,15 +271,17 @@ export class driveService{
             this.inviteUsertoFolder(emailProprietario, file.data.id)
         }
 
-        this.GmailService.sendEmail(
-            {
-                "toEmailAddress": emailProprietario,
-                    
-                "messageSubject": "Copiar Planilha",
-                    
-                "bodyText": "Insira a planilha para a pasta: " + file.data.id
-            }
-        );
+        if(empr!){
+            this.GmailService.sendEmail(
+                {
+                    "toEmailAddress": emailProprietario,
+                        
+                    "messageSubject": "Copiar Planilha",
+                        
+                    "bodyText": "Insira a planilha para a pasta: " + file.data.id
+                }
+            );
+        }
 
         return file.data.id?.toString();
     }
@@ -295,5 +297,20 @@ export class driveService{
             });
         
             return this.filesRepo.save(file);
+    }
+
+    //-------------------------------------------------------
+    //Cópia da Planilha - Fluxo Local do N8N
+    //-------------------------------------------------------
+    async copyFile(
+        id:string
+    ){
+        const copy = await this.Drive.files.copy({
+            fileId: "10UZHgd8KE-3Joo1zx7zwN6gnsfiYlFzB", //Id Fixo
+            requestBody: {
+                parents: [id]   // nova pasta
+            }
+        });
+        
     }
 }

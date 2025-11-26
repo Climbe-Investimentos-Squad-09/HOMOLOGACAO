@@ -34,8 +34,11 @@
               <div 
                 v-if="group.visualizar"
                 class="permission-item"
-                :class="{ 'selected': isSelected(group.visualizar.idPermissao) }"
-                @click="togglePermission(group.visualizar)"
+                :class="{ 
+                  'selected': isSelected(group.visualizar.idPermissao),
+                  'disabled': !canEditPermissions
+                }"
+                @click="canEditPermissions && togglePermission(group.visualizar)"
               >
                 <span class="permission-name">Visualizar {{ group.moduleName }}</span>
               </div>
@@ -44,9 +47,9 @@
                 class="permission-item"
                 :class="{ 
                   'selected': isSelected(group.editar.idPermissao),
-                  'disabled': !hasVisualizarPermission(group.module)
+                  'disabled': !hasVisualizarPermission(group.module) || !canEditPermissions
                 }"
-                @click="togglePermission(group.editar)"
+                @click="canEditPermissions && togglePermission(group.editar)"
               >
                 <span class="permission-name">Editar ou criar {{ group.moduleName }}</span>
               </div>
@@ -56,6 +59,21 @@
                 title="É necessário ter permissão de visualizar primeiro"
               >
                 <span class="permission-name disabled-text">Editar ou criar {{ group.moduleName }} (requer visualizar)</span>
+              </div>
+              <div 
+                v-if="group.module === 'usuarios' && canViewUsers && manageRolePerm && !hasManageRolePerm"
+                class="permission-item"
+                :class="{ 
+                  'selected': isSelected(manageRolePerm.idPermissao),
+                  'disabled': !canEditPermissions || !hasVisualizarUsuarios
+                }"
+                @click="canEditPermissions && hasVisualizarUsuarios && togglePermission(manageRolePerm)"
+                :title="!hasVisualizarUsuarios ? 'É necessário ter permissão de visualizar usuários primeiro' : ''"
+              >
+                <span class="permission-name" :class="{ 'disabled-text': !hasVisualizarUsuarios }">
+                  Editar permissões e cargos
+                  <span v-if="!hasVisualizarUsuarios" class="disabled-text"> (requer visualizar usuários)</span>
+                </span>
               </div>
             </div>
           </div>
@@ -69,7 +87,7 @@
           <button 
             class="action-btn move-right" 
             @click="moveToSelected"
-            :disabled="selectedAvailable.length === 0"
+            :disabled="selectedAvailable.length === 0 || !canEditPermissions"
             title="Adicionar selecionadas"
           >
             >>
@@ -77,7 +95,7 @@
           <button 
             class="action-btn move-left" 
             @click="moveToAvailable"
-            :disabled="selectedSelected.length === 0"
+            :disabled="selectedSelected.length === 0 || !canEditPermissions"
             title="Remover selecionadas"
           >
             <<
@@ -109,10 +127,11 @@
                 class="permission-item selected"
                 :class="{ 
                   'highlighted': isSelectedForRemoval(group.visualizar.idPermissao),
-                  'from-role': isPermissionFromRole(group.visualizar.idPermissao)
+                  'from-role': isPermissionFromRole(group.visualizar.idPermissao),
+                  'disabled': !canEditPermissions
                 }"
-                @click="toggleSelectedPermission(group.visualizar)"
-                :title="isPermissionFromRole(group.visualizar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : ''"
+                @click="canEditPermissions && toggleSelectedPermission(group.visualizar)"
+                :title="isPermissionFromRole(group.visualizar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : (!canEditPermissions ? 'Você não tem permissão para alterar' : '')"
               >
                 <span class="permission-name">
                   Visualizar {{ group.moduleName }}
@@ -124,10 +143,11 @@
                 class="permission-item selected"
                 :class="{ 
                   'highlighted': isSelectedForRemoval(group.editar.idPermissao),
-                  'from-role': isPermissionFromRole(group.editar.idPermissao)
+                  'from-role': isPermissionFromRole(group.editar.idPermissao),
+                  'disabled': !canEditPermissions
                 }"
-                @click="toggleSelectedPermission(group.editar)"
-                :title="isPermissionFromRole(group.editar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : ''"
+                @click="canEditPermissions && toggleSelectedPermission(group.editar)"
+                :title="isPermissionFromRole(group.editar.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : (!canEditPermissions ? 'Você não tem permissão para alterar' : '')"
               >
                 <span class="permission-name">
                   Editar ou criar {{ group.moduleName }}
@@ -141,9 +161,25 @@
               >
                 <span class="permission-name disabled-text">Editar ou criar {{ group.moduleName }} (requer visualizar)</span>
               </div>
+              <div 
+                v-if="group.module === 'usuarios' && canViewUsers && manageRolePerm && hasManageRolePerm"
+                class="permission-item selected"
+                :class="{ 
+                  'highlighted': isSelectedForRemoval(manageRolePerm.idPermissao),
+                  'from-role': isPermissionFromRole(manageRolePerm.idPermissao),
+                  'disabled': !canEditPermissions
+                }"
+                @click="canEditPermissions && toggleSelectedPermission(manageRolePerm)"
+                :title="isPermissionFromRole(manageRolePerm.idPermissao) ? 'Permissão do cargo (não pode ser removida)' : (!canEditPermissions ? 'Você não tem permissão para alterar' : '')"
+              >
+                <span class="permission-name">
+                  Editar permissões e cargos
+                  <span v-if="isPermissionFromRole(manageRolePerm.idPermissao)" class="role-badge">(Cargo)</span>
+                </span>
+              </div>
             </div>
           </div>
-          <div v-else class="empty-state">
+          <div v-else-if="selectedPermissions.length === 0" class="empty-state">
             <p>Nenhuma permissão selecionada</p>
           </div>
         </div>
@@ -151,7 +187,7 @@
 
       <div class="modal-footer">
         <button class="cancel-button" @click="$emit('close')">Fechar</button>
-        <button class="save-button" @click="handleSave" :disabled="loading">
+        <button v-if="canEditPermissions" class="save-button" @click="handleSave" :disabled="loading">
           {{ loading ? 'Salvando...' : 'Salvar' }}
         </button>
       </div>
@@ -163,6 +199,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getPermissions } from '@/api/permissions'
 import { addPermissions, removePermissions } from '@/api/users'
+import { canManageRoleAndPermissions, hasPermission } from '@/utils/permissions'
 
 const props = defineProps({
   user: {
@@ -181,6 +218,25 @@ const selectedSelected = ref([])
 const searchAvailable = ref('')
 const searchSelected = ref('')
 const loading = ref(false)
+const canManageRoleAndPerms = computed(() => canManageRoleAndPermissions())
+const hasManageRolePerm = computed(() => {
+  return selectedPermissions.value.some(p => p.nome === 'usuarios:gerenciar_cargo_permissoes')
+})
+const manageRolePerm = computed(() => {
+  return allPermissions.value.find(p => p.nome === 'usuarios:gerenciar_cargo_permissoes')
+})
+const canViewUsers = computed(() => {
+  return hasPermission('usuarios:visualizar')
+})
+const canEditPermissions = computed(() => {
+  return hasPermission('usuarios:gerenciar_cargo_permissoes')
+})
+const hasVisualizarUsuarios = computed(() => {
+  return selectedPermissions.value.some(p => {
+    const [module, action] = p.nome.split(':')
+    return module === 'usuarios' && action === 'visualizar'
+  })
+})
 
 // Mapeamento de módulos para nomes amigáveis
 const moduleNames = {
@@ -244,17 +300,20 @@ const loadPermissions = async () => {
       }
     })
     
+    rolePermissionsIds.value = new Set(cargoPerms.map(p => p.idPermissao))
+    
     selectedPermissions.value = deduplicatedPerms.map(p => ({
       idPermissao: p.idPermissao,
       nome: p.nome,
-      descricao: p.descricao
+      descricao: p.descricao,
+      isRolePerm: rolePermissionsIds.value.has(p.idPermissao)
     }))
     
     const selectedIds = new Set(deduplicatedPerms.map(p => p.idPermissao))
     
     availablePermissions.value = permissions.filter(p => {
       if (selectedIds.has(p.idPermissao)) return false
-      
+      if (p.nome === 'usuarios:gerenciar_cargo_permissoes') return false
       const [module, action] = p.nome.split(':')
       if (action === 'criar' || action === 'editar' || action === 'agendar') {
         const hasEditOrCreate = deduplicatedPerms.some(perm => {
@@ -263,7 +322,6 @@ const loadPermissions = async () => {
         })
         if (hasEditOrCreate) return false
       }
-      
       return true
     })
   } catch (error) {
@@ -307,6 +365,7 @@ const simplifyPermissions = (permissions) => {
 
 const filteredAvailableGroups = computed(() => {
   const filtered = availablePermissions.value.filter(p => {
+    if (p.nome === 'usuarios:gerenciar_cargo_permissoes') return false
     const search = searchAvailable.value.toLowerCase()
     const moduleName = moduleNames[p.nome.split(':')[0]] || p.nome.split(':')[0]
     return p.nome.toLowerCase().includes(search) || 
@@ -314,13 +373,33 @@ const filteredAvailableGroups = computed(() => {
            moduleName.toLowerCase().includes(search)
   })
   const simplified = simplifyPermissions(filtered)
-  return simplified.filter((group, index, self) => 
+  const groups = simplified.filter((group, index, self) => 
     index === self.findIndex(g => g.module === group.module)
   )
+  
+  if (canViewUsers.value && manageRolePerm.value && !hasManageRolePerm.value) {
+    const usuariosGroup = groups.find(g => g.module === 'usuarios')
+    if (usuariosGroup) {
+      usuariosGroup.hasManagePerm = true
+      usuariosGroup.managePerm = manageRolePerm.value
+    } else if (canViewUsers.value) {
+      groups.push({
+        module: 'usuarios',
+        moduleName: 'Usuários',
+        visualizar: null,
+        editar: null,
+        hasManagePerm: true,
+        managePerm: manageRolePerm.value
+      })
+    }
+  }
+  
+  return groups
 })
 
 const filteredSelectedGroups = computed(() => {
   const filtered = selectedPermissions.value.filter(p => {
+    if (p.nome === 'usuarios:gerenciar_cargo_permissoes') return false
     const search = searchSelected.value.toLowerCase()
     const moduleName = moduleNames[p.nome.split(':')[0]] || p.nome.split(':')[0]
     return p.nome.toLowerCase().includes(search) || 
@@ -328,9 +407,28 @@ const filteredSelectedGroups = computed(() => {
            moduleName.toLowerCase().includes(search)
   })
   const simplified = simplifyPermissions(filtered)
-  return simplified.filter((group, index, self) => 
+  const groups = simplified.filter((group, index, self) => 
     index === self.findIndex(g => g.module === group.module)
   )
+  
+  if (canViewUsers.value && manageRolePerm.value) {
+    const usuariosGroup = groups.find(g => g.module === 'usuarios')
+    if (usuariosGroup) {
+      usuariosGroup.hasManagePerm = true
+      usuariosGroup.managePerm = manageRolePerm.value
+    } else if (canViewUsers.value) {
+      groups.push({
+        module: 'usuarios',
+        moduleName: 'Usuários',
+        visualizar: null,
+        editar: null,
+        hasManagePerm: true,
+        managePerm: manageRolePerm.value
+      })
+    }
+  }
+  
+  return groups
 })
 
 const isSelected = (id) => {
@@ -342,9 +440,10 @@ const isSelectedForRemoval = (id) => {
 }
 
 // Verificar se uma permissão é do cargo (não pode ser removida)
+const rolePermissionsIds = ref(new Set())
+
 const isPermissionFromRole = (id) => {
-  const cargoPerms = props.user.rawUser?.cargo?.permissoes || []
-  return cargoPerms.some(p => p.idPermissao === id)
+  return rolePermissionsIds.value.has(id)
 }
 
 const hasVisualizarPermission = (module) => {
@@ -371,6 +470,20 @@ const hasVisualizarPermissionInSelected = (module) => {
 const togglePermission = (perm) => {
   const alreadyInSelected = selectedPermissions.value.some(p => p.idPermissao === perm.idPermissao)
   if (alreadyInSelected) return
+  
+  if (perm.nome === 'usuarios:gerenciar_cargo_permissoes') {
+    if (!hasVisualizarUsuarios.value) {
+      alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+      return
+    }
+    const index = selectedAvailable.value.findIndex(p => p.idPermissao === perm.idPermissao)
+    if (index >= 0) {
+      selectedAvailable.value.splice(index, 1)
+    } else {
+      selectedAvailable.value.push(perm)
+    }
+    return
+  }
   
   const [module, action] = perm.nome.split(':')
   
@@ -437,6 +550,20 @@ const moveToSelected = () => {
   const toAdd = selectedAvailable.value.filter(perm => !selectedIds.has(perm.idPermissao))
   
   toAdd.forEach(perm => {
+    if (perm.nome === 'usuarios:gerenciar_cargo_permissoes') {
+      if (!hasVisualizarUsuarios.value) {
+        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+        return
+      }
+      const index = availablePermissions.value.findIndex(p => p.idPermissao === perm.idPermissao)
+      if (index >= 0) {
+        availablePermissions.value.splice(index, 1)
+      }
+      selectedPermissions.value.push(perm)
+      selectedIds.add(perm.idPermissao)
+      return
+    }
+    
     const [module, action] = perm.nome.split(':')
     
     if (action === 'criar' || action === 'editar' || action === 'agendar') {
@@ -472,19 +599,26 @@ const moveToSelected = () => {
 }
 
 const moveToAvailable = () => {
-  // Filtrar apenas permissões extras (não do cargo)
   const toRemove = selectedSelected.value.filter(perm => {
-    // Não permitir remover permissões do cargo
     return !isPermissionFromRole(perm.idPermissao)
   })
   
   toRemove.forEach(perm => {
+    if (perm.nome === 'usuarios:gerenciar_cargo_permissoes') {
+      const index = selectedPermissions.value.findIndex(p => p.idPermissao === perm.idPermissao)
+      if (index >= 0) {
+        selectedPermissions.value.splice(index, 1)
+        if (!availablePermissions.value.some(p => p.idPermissao === perm.idPermissao)) {
+          availablePermissions.value.push(perm)
+        }
+      }
+      return
+    }
+    
     const [module, action] = perm.nome.split(':')
     
     if (action === 'criar' || action === 'editar' || action === 'agendar') {
-      // Para reunioes:agendar, não precisa remover outras permissões
       if (action === 'agendar' && module === 'reunioes') {
-        // Não remove outras permissões
       } else {
         const otherAction = action === 'criar' ? 'editar' : 'criar'
         const otherPerm = selectedPermissions.value.find(p => {
@@ -516,6 +650,11 @@ const moveToAvailable = () => {
 }
 
 const handleSave = async () => {
+  if (!canEditPermissions.value) {
+    alert('Você não tem permissão para alterar permissões de usuários.')
+    return
+  }
+  
   loading.value = true
   try {
     const modulesWithEdit = new Set()
@@ -533,6 +672,30 @@ const handleSave = async () => {
       })
       if (!hasVisualizar) {
         alert(`Erro: Para editar/criar ${moduleNames[module] || module}, é necessário ter permissão de visualizar primeiro.`)
+        loading.value = false
+        return
+      }
+    }
+    
+    if (selectedPermissions.value.some(p => p.nome === 'usuarios:gerenciar_cargo_permissoes')) {
+      const hasVisualizarUsuarios = selectedPermissions.value.some(p => {
+        const [mod, action] = p.nome.split(':')
+        return mod === 'usuarios' && action === 'visualizar'
+      })
+      if (!hasVisualizarUsuarios) {
+        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+        loading.value = false
+        return
+      }
+    }
+    
+    if (selectedPermissions.value.some(p => p.nome === 'usuarios:gerenciar_cargo_permissoes')) {
+      const hasVisualizarUsuarios = selectedPermissions.value.some(p => {
+        const [mod, action] = p.nome.split(':')
+        return mod === 'usuarios' && action === 'visualizar'
+      })
+      if (!hasVisualizarUsuarios) {
+        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
         loading.value = false
         return
       }
@@ -789,15 +952,25 @@ onMounted(() => {
 }
 
 .permission-item.disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
-  background-color: #F5F5F5;
-  border-color: #E0E0E0;
+  pointer-events: none;
 }
 
 .permission-item.disabled:hover {
-  background-color: #F5F5F5;
-  border-color: #E0E0E0;
+  background-color: inherit;
+  border-color: inherit;
+}
+
+.permission-item.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.permission-item.disabled:hover {
+  background-color: inherit;
+  border-color: inherit;
 }
 
 .permission-item.from-role {

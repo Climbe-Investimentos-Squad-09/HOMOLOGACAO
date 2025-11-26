@@ -58,6 +58,7 @@ export const PERMISSIONS: { nome: string; descricao: string }[] = [
   { nome: 'usuarios:criar', descricao: 'Criar usuário' },
   { nome: 'usuarios:editar', descricao: 'Editar usuário' },
   { nome: 'usuarios:excluir', descricao: 'Excluir usuário' },
+  { nome: 'usuarios:gerenciar_cargo_permissoes', descricao: 'Gerenciar cargo e permissões de usuários' },
 
   // permissões
   { nome: 'permissoes:visualizar', descricao: 'Listar/consultar permissões' },

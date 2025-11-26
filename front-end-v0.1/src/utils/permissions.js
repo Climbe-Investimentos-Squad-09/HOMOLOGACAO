@@ -91,7 +91,11 @@ export async function hasRoleName(roleNames) {
  * @returns {Promise<boolean>}
  */
 export async function canAccessAudit() {
-  return await hasRoleName(['SysAdmin', 'CEO', 'Compliance'])
+  return await hasRoleName(['SysAdmin'])
+}
+
+export function canManageRoleAndPermissions() {
+  return hasPermission('usuarios:gerenciar_cargo_permissoes')
 }
 
 /**

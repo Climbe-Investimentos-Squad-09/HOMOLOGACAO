@@ -135,26 +135,25 @@ watch(() => route.path, async () => {
 // Funções computed que dependem das permissões (usando diretamente o store para reatividade)
 // Calendário visível se tiver permissão de visualizar reuniões
 const canViewCalendar = computed(() => {
-  return permissions.value.includes('reunioes:visualizar')
+  return hasRole.value && permissions.value.includes('reunioes:visualizar')
 })
-// Propostas, Contratos, Usuários, Empresas e Autorizações aparecem se tiver permissão (mesmo sem cargo, se tiver permissões extras)
 const canViewProposals = computed(() => {
-  return permissions.value.includes('propostas:visualizar')
+  return hasRole.value && permissions.value.includes('propostas:visualizar')
 })
 const canViewContracts = computed(() => {
-  return permissions.value.includes('contratos:visualizar')
+  return hasRole.value && permissions.value.includes('contratos:visualizar')
 })
 const canViewDocuments = computed(() => {
-  return permissions.value.includes('documentos_juridicos:visualizar')
+  return hasRole.value && permissions.value.includes('documentos_juridicos:visualizar')
 })
 const canViewUsers = computed(() => {
-  return permissions.value.includes('usuarios:visualizar')
+  return hasRole.value && permissions.value.includes('usuarios:visualizar')
 })
 const canViewCompanies = computed(() => {
-  return permissions.value.includes('empresas:visualizar')
+  return hasRole.value && permissions.value.includes('empresas:visualizar')
 })
 const canViewAuthorizations = computed(() => {
-  return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão
+  return hasRole.value && permissions.value.includes('usuarios:visualizar')
 })
 const canViewAudits = ref(false)
 

@@ -33,7 +33,7 @@
           </td>
           <td>
             <select 
-              v-if="isAdmin"
+              v-if="canManageRole"
               :value="getRoleValue(user)"
               @change="handleRoleChange(user, $event)"
               class="role-select"
@@ -95,7 +95,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getAllRoles } from '@/api/roles'
 import { updateUserRole } from '@/api/users'
-import { isAdmin as checkIsAdmin, canEditOrCreate } from '@/utils/permissions'
+import { isAdmin as checkIsAdmin, canEditOrCreate, canManageRoleAndPermissions } from '@/utils/permissions'
 
 const props = defineProps({
   users: {
@@ -113,6 +113,7 @@ const emit = defineEmits(['edit-user', 'refresh', 'open-permissions-modal']);
 const roles = ref([])
 const isAdmin = computed(() => checkIsAdmin())
 const canEdit = computed(() => canEditOrCreate('usuarios'))
+const canManageRole = computed(() => canManageRoleAndPermissions())
 
 // Função para obter o valor do cargo para o select
 const getRoleValue = (user) => {

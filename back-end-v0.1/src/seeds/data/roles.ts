@@ -20,34 +20,28 @@ export const COMPLIANCE_PERMS = [
   'contratos:aplicar_complexidade',
   'planilha:edicao_restrita',
   'reunioes:visualizar',
-  'reunioes:agendar',
   'relatorios:visualizar',
   'relatorios:criar',
   'relatorios:editar',
   'relatorios:excluir',
   'arquivos:upload',
   'arquivos:download',
-
-  // propostas
   'propostas:visualizar',
   'propostas:criar',
   'propostas:editar',
   'propostas:excluir',
   'propostas:alterar_status',
-
-  // usuários
   'usuarios:visualizar',
   'usuarios:criar',
   'usuarios:editar',
   'usuarios:excluir',
-
-  // permissões
   'permissoes:visualizar',
 ];
 
 // CEO: amplo, mas um pouco abaixo do SysAdmin
 export const CEO_PERMS = [
   ...COMPLIANCE_PERMS,
+  'reunioes:agendar',
   'reunioes:editar',
   'reunioes:excluir',
   'reunioes:convidar',
@@ -58,6 +52,7 @@ export const CEO_PERMS = [
 export const CS_PERMS = [
   'reunioes:visualizar',
   'propostas:visualizar',
+  'documentos_juridicos:visualizar',
   'arquivos:download',
 ];
 
@@ -65,6 +60,6 @@ export const CS_PERMS = [
 export const ANALISTA_PERMS = [
   'reunioes:visualizar',
   'propostas:visualizar',
+  'documentos_juridicos:visualizar',
   'arquivos:download',
-  'usuarios:visualizar', // Adicionado conforme solicitado
 ];

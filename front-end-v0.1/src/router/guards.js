@@ -18,14 +18,7 @@ export function authGuard(to, from, next) {
     
     const requiredPermission = routePermissions[to.name]
     
-    // Se não tem cargo, só pode acessar dashboard, perfil e calendário (ou telas com permissão)
     if (!userHasRole()) {
-      // Permitir acesso se tiver a permissão necessária (mesmo sem cargo)
-      if (requiredPermission && hasPermission(requiredPermission)) {
-        next()
-        return
-      }
-      // Ou se for dashboard ou perfil
       if (to.name === 'dashboard' || to.name === 'perfil') {
         next()
       } else {

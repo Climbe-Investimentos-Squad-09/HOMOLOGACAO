@@ -58,7 +58,7 @@
                     />
                 </div>
 
-                <div class="form-group">
+                <div v-if="canManageRole" class="form-group">
                     <label for="role">Cargo: <span style="color: #AE3B3B;">*</span></label>
                     <select id="role" v-model="formData.idCargo" required>
                         <option :value="undefined" selected disabled>Selecione um cargo</option>
@@ -68,6 +68,13 @@
                     </select>
                     <small style="color: #6C757D; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
                       Usuários criados por esta tela são aprovados automaticamente
+                    </small>
+                </div>
+                <div v-else class="form-group">
+                    <label>Cargo:</label>
+                    <input type="text" value="Sem cargo" disabled style="background-color: #f0f0f0; cursor: not-allowed;" />
+                    <small style="color: #6C757D; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                      Você não tem permissão para atribuir cargo. O usuário será criado sem cargo.
                     </small>
                 </div>
 
@@ -90,9 +97,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { createUser } from '@/api/users'
 import { getAllRoles } from '@/api/roles'
+import { canManageRoleAndPermissions } from '@/utils/permissions'
 
 const emit = defineEmits(['close', 'user-created'])
 
@@ -109,6 +117,7 @@ const roles = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const canManageRole = computed(() => canManageRoleAndPermissions())
 
 const loadRoles = async () => {
   try {
@@ -142,7 +151,7 @@ const handleSubmit = async () => {
     return
   }
 
-  if (!formData.value.idCargo) {
+  if (canManageRole.value && !formData.value.idCargo) {
     errorMessage.value = 'É necessário selecionar um cargo para criar o usuário'
     successMessage.value = ''
     return

@@ -15,6 +15,16 @@
           <h1 class="welcome-title">Cadastre-se</h1>
           <p class="welcome-subtitle">Preencha os dados para criar sua conta</p>
           
+          <div v-if="warningMessage" class="warning-message">
+            <span class="warning-icon">!</span>
+            <span class="warning-text">{{ warningMessage }}</span>
+          </div>
+          
+          <div v-if="successMessage" class="success-message">
+            <span class="success-icon">✓</span>
+            <span class="success-text">{{ successMessage }}</span>
+          </div>
+          
           <div class="signup-form">
             <label class="input-label">Nome completo</label>
             <input-component 
@@ -41,7 +51,7 @@
 
             <button-component
               ref="registerBtn"
-              :disabled="loading"
+              :disabled="loading || buttonDisabled"
               @click="register"
               text="Cadastrar"
               class="register-button"
@@ -82,52 +92,89 @@ export default {
       loading: false,
       fullName: '',
       email: '',
-      senha: ''
+      senha: '',
+      warningMessage: '',
+      successMessage: '',
+      buttonDisabled: false
+    }
+  },
+  watch: {
+    fullName() {
+      if (this.fullName) {
+        this.clearMessages()
+      }
+    },
+    email() {
+      if (this.email) {
+        this.clearMessages()
+      }
+    },
+    senha() {
+      if (this.senha) {
+        this.clearMessages()
+      }
     }
   },
   methods: {
     async register() {
+      this.warningMessage = ''
+      this.successMessage = ''
+      
       if (!this.fullName || !this.email || !this.senha) {
-        if (this.$refs.registerBtn) {
-          this.$refs.registerBtn.showError('Preencha todos os campos')
-        }
         return
       }
 
       if (this.senha.length < 6) {
-        if (this.$refs.registerBtn) {
-          this.$refs.registerBtn.showError('A senha deve ter pelo menos 6 caracteres')
-        }
         return
       }
 
       this.loading = true
+      this.buttonDisabled = false
+      
       try {
-        await register({
+        const response = await register({
           nome: this.fullName,
           email: this.email,
           senha: this.senha
         })
-        if (this.$refs.registerBtn) {
-          this.$refs.registerBtn.showSuccess()
-        }
-        setTimeout(() => {
-          this.router.push('/login?message=pending')
-        }, 1500)
-      } catch (err) {
-        if (this.$refs.registerBtn) {
-          if (err.response?.status === 409) {
-            this.$refs.registerBtn.showError('E-mail já cadastrado')
-          } else {
-            this.$refs.registerBtn.showError('Erro ao cadastrar. Tente novamente.')
-          }
-        }
-      } finally {
+        
         this.loading = false
+        this.buttonDisabled = true
+        
+        if (response.accessToken && response.refreshToken) {
+          this.successMessage = 'Cadastro realizado!'
+          setTimeout(() => {
+            this.router.push('/dashboard')
+          }, 1500)
+        } else {
+          this.warningMessage = 'Sua solicitação foi encaminhada com sucesso'
+          setTimeout(() => {
+            this.router.push('/login?message=pending')
+          }, 3000)
+        }
+      } catch (err) {
+        this.loading = false
+        this.buttonDisabled = true
+        
+        const errorStatus = err.response?.status
+        const errorMessage = err.response?.data?.message || err.message || ''
+        
+        if (errorStatus === 409 || errorMessage.toLowerCase().includes('já existe') || errorMessage.toLowerCase().includes('already exists')) {
+          this.warningMessage = 'E-mail já cadastrado'
+        } else {
+          this.warningMessage = 'Erro ao cadastrar. Tente novamente.'
+        }
       }
     },
     goToLogin() {
       this.router.push('/login')
+    },
+    clearMessages() {
+      if (this.warningMessage || this.successMessage) {
+        this.warningMessage = ''
+        this.successMessage = ''
+        this.buttonDisabled = false
+      }
     }
   }
 }
@@ -330,5 +377,53 @@ export default {
   .welcome-subtitle {
     font-size: 0.9rem;
   }
+}
+
+.warning-message {
+  width: 100%;
+  background-color: #f97316;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.warning-icon {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.warning-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.success-message {
+  width: 100%;
+  background-color: #22c55e;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.success-icon {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.success-text {
+  flex: 1;
+  font-weight: 500;
 }
 </style>

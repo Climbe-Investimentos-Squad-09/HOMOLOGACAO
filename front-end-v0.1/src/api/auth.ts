@@ -15,8 +15,13 @@ interface AuthResponse {
   user: User
 }
 
-interface RegisterResponse extends AuthResponse {
-  statusCode: number
+interface RegisterResponse {
+  success: boolean
+  message: string
+  accessToken: string | null
+  refreshToken: string | null
+  user: User
+  statusCode?: number
 }
 
 export async function login(email: string, senha: string): Promise<AuthResponse> {

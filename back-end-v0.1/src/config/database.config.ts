@@ -12,6 +12,12 @@ export const databaseConfig = async (
   database: configService.get<string>('DB_NAME'),
   autoLoadEntities: true,
   synchronize: true,
-  logging: true,
+  logging: false,
   ssl: configService.get<string>('DB_SSL') === 'true',
+  extra: {
+    max: 20,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+  },
+  poolSize: 20,
 });

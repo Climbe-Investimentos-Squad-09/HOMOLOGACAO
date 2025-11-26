@@ -17,16 +17,12 @@
     <span class="button-text">
       <template v-if="status === 'loading'">Carregando...</template>
       <template v-else-if="status === 'success'">
-        <span class="material-symbols-outlined">
-          check
-        </span>
-        Concluído
+        <span class="material-symbols-outlined">check</span>
+        <span class="success-message-text">{{ successMessage || 'Concluído' }}</span>
       </template>
       <template v-else-if="status === 'error'">
-        <span class="material-symbols-outlined">
-          error
-        </span>
-        Algo está errado
+        <span class="material-symbols-outlined">error</span>
+        <span class="error-message-text">{{ errorMessage || 'Algo está errado' }}</span>
       </template>
       <template v-else>{{ text }}</template>
     </span>
@@ -44,7 +40,9 @@ export default {
   },
   data() {
     return {
-      status: 'idle'
+      status: 'idle',
+      successMessage: '',
+      errorMessage: ''
     }
   },
   methods: {
@@ -52,16 +50,50 @@ export default {
       if (this.status !== 'idle' || this.disabled) return;
 
       this.status = 'loading';
+      this.successMessage = '';
+      this.errorMessage = '';
       this.$emit('click', event);
-
     },
-    showSuccess() {
-      this.status = 'success';
-      setTimeout(() => this.status = 'idle', 10000);
+    reset() {
+      this.status = 'idle';
+      this.successMessage = '';
+      this.errorMessage = '';
+      this.$nextTick(() => {
+        this.status = 'idle';
+      });
     },
-    showError() {
-      this.status = 'error';
-      setTimeout(() => this.status = 'idle', 10000);
+    showSuccess(message) {
+      this.status = 'idle';
+      this.successMessage = '';
+      this.errorMessage = '';
+      this.$nextTick(() => {
+        this.successMessage = message || 'Concluído';
+        this.errorMessage = '';
+        this.status = 'success';
+        const timeout = message ? 6000 : 3000;
+        setTimeout(() => {
+          if (this.status === 'success') {
+            this.status = 'idle';
+            this.successMessage = '';
+          }
+        }, timeout);
+      });
+    },
+    showError(message) {
+      this.status = 'idle';
+      this.successMessage = '';
+      this.errorMessage = '';
+      this.$nextTick(() => {
+        this.errorMessage = message || 'Algo está errado';
+        this.successMessage = '';
+        this.status = 'error';
+        setTimeout(() => {
+          if (this.status === 'error') {
+            this.status = 'idle';
+            this.errorMessage = '';
+          }
+        }, 5000);
+      });
     }
   }
 }
@@ -89,13 +121,56 @@ export default {
 }
 
 .button-loader.success {
-  background-color: #4CAF50 !important;
-  box-shadow: 0 0 10px #4CAF50;
+  background-color: #22c55e !important;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  animation: successPulse 0.6s ease-out;
 }
 
 .button-loader.error {
-  background-color: #F44336 !important;
-  box-shadow: 0 0 10px #F44336;
+  background-color: #ef4444 !important;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  animation: errorShake 0.5s ease-out;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.error-message-text,
+.success-message-text {
+  margin-left: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.success-message-text {
+  color: white;
+}
+
+.error-message-text {
+  color: white;
 }
 
 .button-loader:hover:not(.loading):not(.disabled) {

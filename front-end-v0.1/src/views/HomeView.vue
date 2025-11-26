@@ -18,6 +18,16 @@
             <p>Aguarde a aprovação para fazer login.</p>
           </div>
           
+          <div v-if="warningMessage" class="warning-message">
+            <span class="warning-icon">!</span>
+            <span class="warning-text">{{ warningMessage }}</span>
+          </div>
+          
+          <div v-if="successMessage" class="success-message">
+            <span class="success-icon">✓</span>
+            <span class="success-text">{{ successMessage }}</span>
+          </div>
+          
           <div class="login-form">
             <label class="input-label">E-mail</label>
             <input-component placeholder="Email" v-model="user" required />
@@ -26,7 +36,7 @@
 
             <button-component
               ref="loginBtn"
-              :disabled="oi"
+              :disabled="oi || buttonDisabled"
               @click="login"
               text="Confirmar"
             />
@@ -68,7 +78,10 @@ export default {
       oi: false,            
       user: '',             
       pass: '',
-      pendingMessage: false
+      pendingMessage: false,
+      warningMessage: '',
+      successMessage: '',
+      buttonDisabled: false
     }
   },
   mounted() {
@@ -80,45 +93,70 @@ export default {
       }, 5000)
     }
   },
+  watch: {
+    user() {
+      if (this.user) {
+        this.clearMessages()
+      }
+    },
+    pass() {
+      if (this.pass) {
+        this.clearMessages()
+      }
+    }
+  },
   methods: {
     async login() {
+      this.warningMessage = ''
+      this.successMessage = ''
+      
       if (!this.user || !this.pass) {
-        if (this.$refs.loginBtn) {
-          this.$refs.loginBtn.showError('Preencha todos os campos')
-        }
         return
       }
 
       this.oi = true
+      this.buttonDisabled = false
+      
       try {
         await this.authStore.login(this.user, this.pass)
-        if (this.$refs.loginBtn) {
-          this.$refs.loginBtn.showSuccess()
-        }
+        this.successMessage = 'Login realizado com sucesso!'
         setTimeout(() => {
           this.router.push('/dashboard')
         }, 1000)
       } catch (err) {
-        if (this.$refs.loginBtn) {
-          if (err.response?.status === 403) {
-            const errorMessage = err.response?.data?.message || err.response?.data?.error || ''
-            if (errorMessage.toLowerCase().includes('bloqueado')) {
-              this.$refs.loginBtn.showError('Cadastro bloqueado para acesso')
-            } else {
-              this.$refs.loginBtn.showError('Aguardando aprovação')
-            }
-          } else if (err.response?.status === 401) {
-            this.$refs.loginBtn.showError('E-mail ou senha inválidos')
+        this.oi = false
+        this.buttonDisabled = true
+        
+        if (err.response?.status === 403) {
+          const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || ''
+          const lowerMessage = errorMessage.toLowerCase()
+          if (lowerMessage.includes('bloqueado') || lowerMessage.includes('bloqueado para acesso')) {
+            this.warningMessage = 'Sua conta foi negada para acesso'
+          } else if (lowerMessage.includes('aguardando') || lowerMessage.includes('aprovação') || lowerMessage.includes('pendente')) {
+            this.warningMessage = 'Sua conta está em análise. Aguarde a confirmação.'
           } else {
-            this.$refs.loginBtn.showError('Erro ao fazer login. Tente novamente.')
+            this.warningMessage = 'Aguardando aprovação'
           }
+        } else if (err.response?.status === 401) {
+          this.warningMessage = 'E-mail ou senha inválidos'
+        } else {
+          this.warningMessage = 'Erro ao fazer login. Tente novamente.'
         }
       } finally {
-        this.oi = false
+        if (this.oi) {
+          this.oi = false
+        }
       }
     },
     goToGoogleSignup() {
       this.router.push('/google-signup')
+    },
+    clearMessages() {
+      if (this.warningMessage || this.successMessage) {
+        this.warningMessage = ''
+        this.successMessage = ''
+        this.buttonDisabled = false
+      }
     }
   }
 }
@@ -341,14 +379,6 @@ export default {
     gap: 1.25rem; 
   }
 }
-.login-form input:invalid:not(:placeholder-shown) {
-  border-color: rgba(239, 68, 68, 0.6);
-  background: rgba(239, 68, 68, 0.1);
-}
-.login-form input:valid:not(:placeholder-shown) {
-  border-color: rgba(57, 198, 187, 0.6);
-  background: rgba(34, 197, 94, 0.1);
-}
 
 .no-account-link {
   text-decoration: none;
@@ -386,5 +416,53 @@ export default {
 .pending-message p:first-child {
   font-weight: 600;
   font-size: 1.05rem;
+}
+
+.warning-message {
+  width: 100%;
+  background-color: #f97316;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.warning-icon {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.warning-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.success-message {
+  width: 100%;
+  background-color: #22c55e;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.success-icon {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.success-text {
+  flex: 1;
+  font-weight: 500;
 }
 </style>

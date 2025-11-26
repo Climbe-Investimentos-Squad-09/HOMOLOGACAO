@@ -72,6 +72,12 @@ export class AuthController {
         ...result,
       };
     } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      if (error.code === '23505' || error.constraint?.includes('UQ_')) {
+        throw new HttpException("Usuário já existe com este email", HttpStatus.CONFLICT);
+      }
       throw new HttpException(
         error.message || "Erro ao registrar usuário",
         error.status || HttpStatus.INTERNAL_SERVER_ERROR

@@ -126,8 +126,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(payload) {
     const response = await authApi.register(payload)
-    setTokens(response.accessToken, response.refreshToken)
-    setUser(response.user)
+    if (response.accessToken && response.refreshToken) {
+      setTokens(response.accessToken, response.refreshToken)
+      setUser(response.user)
+    }
     return response
   }
 

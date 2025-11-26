@@ -181,12 +181,12 @@ onMounted(async () => {
     await authStore.loadUserPermissions()
   }
 
-  // Recarregar permissões periodicamente (a cada 30 segundos) para pegar mudanças
+  // Recarregar permissões periodicamente (a cada 2 minutos) para pegar mudanças
   const intervalId = setInterval(async () => {
     if (authStore.isAuthenticated) {
       await authStore.loadUserPermissions()
     }
-  }, 30000) // 30 segundos
+  }, 120000) // 2 minutos
 
   // Limpar intervalo quando componente for desmontado
   onUnmounted(() => {

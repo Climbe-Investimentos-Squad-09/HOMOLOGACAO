@@ -60,7 +60,30 @@ export class AuthService {
       }
 
       const newUser = this.userRepository.create(payload);
-      const savedUser = await this.userRepository.save(newUser);
+      let savedUser;
+      try {
+        savedUser = await this.userRepository.save(newUser);
+      } catch (saveError: any) {
+        if (saveError.code === '23505' || saveError.constraint?.includes('UQ_') || saveError.detail?.includes('already exists')) {
+          throw new HttpException("Usuário já existe com este email", HttpStatus.CONFLICT);
+        }
+        throw new HttpException("Erro ao registrar usuário", HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      if (savedUser.situacao === SituacaoUsuario.PENDENTE) {
+        return {
+          success: true,
+          message: "Usuário registrado com sucesso. Aguarde aprovação.",
+          accessToken: null,
+          refreshToken: null,
+          user: {
+            id: savedUser.idUsuario,
+            email: savedUser.email,
+            name: savedUser.nomeCompleto,
+            profile: savedUser.cargo?.idCargo ?? null,
+          },
+        };
+      }
 
       const accessToken = this.generateJWT(savedUser);
       const refreshToken = this.generateRefreshToken(savedUser);
@@ -74,12 +97,14 @@ export class AuthService {
           id: savedUser.idUsuario,
           email: savedUser.email,
           name: savedUser.nomeCompleto,
-          profile: savedUser.cargo?.idCargo ?? null, // id do cargo
+          profile: savedUser.cargo?.idCargo ?? null,
         },
       };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
-      console.error("Erro no registro com email/senha:", error);
+      if (error.code === '23505' || error.constraint?.includes('UQ_') || error.detail?.includes('already exists')) {
+        throw new HttpException("Usuário já existe com este email", HttpStatus.CONFLICT);
+      }
       throw new HttpException("Erro ao registrar usuário", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -135,7 +160,6 @@ export class AuthService {
       };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
-      console.error("Erro no login com email/senha:", error);
       throw new HttpException("Erro ao autenticar usuário", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -149,7 +173,6 @@ export class AuthService {
         prompt: "consent",
       });
     } catch (error) {
-      console.error("Erro ao gerar URL de autorização:", error);
       throw new HttpException("Erro ao gerar URL de autorização", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -202,7 +225,6 @@ export class AuthService {
         },
       };
     } catch (error: any) {
-      console.error("Erro na autenticação Google:", error);
       throw new HttpException("Erro ao processar autenticação Google", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

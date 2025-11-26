@@ -200,6 +200,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getPermissions } from '@/api/permissions'
 import { addPermissions, removePermissions } from '@/api/users'
 import { canManageRoleAndPermissions, hasPermission } from '@/utils/permissions'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   user: {
@@ -225,6 +226,7 @@ const hasManageRolePerm = computed(() => {
 const manageRolePerm = computed(() => {
   return allPermissions.value.find(p => p.nome === 'usuarios:gerenciar_cargo_permissoes')
 })
+const { success, error } = useToast()
 const canViewUsers = computed(() => {
   return hasPermission('usuarios:visualizar')
 })
@@ -473,7 +475,7 @@ const togglePermission = (perm) => {
   
   if (perm.nome === 'usuarios:gerenciar_cargo_permissoes') {
     if (!hasVisualizarUsuarios.value) {
-      alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+      error('Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
       return
     }
     const index = selectedAvailable.value.findIndex(p => p.idPermissao === perm.idPermissao)
@@ -552,7 +554,7 @@ const moveToSelected = () => {
   toAdd.forEach(perm => {
     if (perm.nome === 'usuarios:gerenciar_cargo_permissoes') {
       if (!hasVisualizarUsuarios.value) {
-        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+        error('Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
         return
       }
       const index = availablePermissions.value.findIndex(p => p.idPermissao === perm.idPermissao)
@@ -651,7 +653,7 @@ const moveToAvailable = () => {
 
 const handleSave = async () => {
   if (!canEditPermissions.value) {
-    alert('Você não tem permissão para alterar permissões de usuários.')
+    error('Você não tem permissão para alterar permissões de usuários.')
     return
   }
   
@@ -671,7 +673,7 @@ const handleSave = async () => {
         return mod === module && action === 'visualizar'
       })
       if (!hasVisualizar) {
-        alert(`Erro: Para editar/criar ${moduleNames[module] || module}, é necessário ter permissão de visualizar primeiro.`)
+        error(`Para editar/criar ${moduleNames[module] || module}, é necessário ter permissão de visualizar primeiro.`)
         loading.value = false
         return
       }
@@ -683,7 +685,7 @@ const handleSave = async () => {
         return mod === 'usuarios' && action === 'visualizar'
       })
       if (!hasVisualizarUsuarios) {
-        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+        error('Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
         loading.value = false
         return
       }
@@ -759,14 +761,15 @@ const handleSave = async () => {
     }
     
     if (toRemove.length > 0) {
-      await removePermissions(props.user.id, { permissionIds: toRemove })
-    }
-    
-    emit('saved')
-    emit('close')
-  } catch (error) {
-    alert('Erro ao salvar permissões. Tente novamente.')
-  } finally {
+        await removePermissions(props.user.id, { permissionIds: toRemove })
+      }
+      
+      success('Permissões atualizadas com sucesso!')
+      emit('saved')
+      emit('close')
+    } catch (err) {
+      error('Erro ao salvar permissões. Tente novamente.')
+    } finally {
     loading.value = false
   }
 }

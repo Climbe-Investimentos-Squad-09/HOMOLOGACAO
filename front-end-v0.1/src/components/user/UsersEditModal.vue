@@ -65,6 +65,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { updateUser, deleteUser } from '@/api/users'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   user: {
@@ -81,6 +82,7 @@ const formData = ref({
   contato: ''
 })
 
+const { success, error } = useToast()
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -111,7 +113,7 @@ const handleSave = async () => {
       contato: formData.value.contato || undefined
     })
     
-    successMessage.value = 'Usuário atualizado com sucesso!'
+    success('Usuário atualizado com sucesso!')
     
     setTimeout(() => {
       emit('saved')
@@ -141,6 +143,7 @@ const handleDelete = async () => {
 
   try {
     await deleteUser(props.user.id)
+    success('Usuário deletado com sucesso!')
     emit('deleted')
     emit('close')
   } catch (error) {

@@ -9,6 +9,7 @@
     </div>
   </div>
   <router-view v-else />
+  <ToastNotification />
 </template>
 
 <script setup>
@@ -17,6 +18,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AsideComponent from './components/Aside/AsideComponent.vue';
 import NavComponent from './components/Nav/NavBar.vue';
+import ToastNotification from './components/ToastNotification.vue';
 
 const route = useRoute()
 const authStore = useAuthStore()

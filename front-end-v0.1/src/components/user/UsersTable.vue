@@ -96,6 +96,7 @@ import { ref, onMounted, computed } from 'vue'
 import { getAllRoles } from '@/api/roles'
 import { updateUserRole } from '@/api/users'
 import { isAdmin as checkIsAdmin, canEditOrCreate, canManageRoleAndPermissions } from '@/utils/permissions'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   users: {
@@ -113,6 +114,7 @@ const emit = defineEmits(['edit-user', 'refresh', 'open-permissions-modal']);
 const roles = ref([])
 const isAdmin = computed(() => checkIsAdmin())
 const canEdit = computed(() => canEditOrCreate('usuarios'))
+const { error: showError, success: showSuccess } = useToast()
 const canManageRole = computed(() => canManageRoleAndPermissions())
 
 // Função para obter o valor do cargo para o select
@@ -149,8 +151,9 @@ const handleRoleChange = async (user, event) => {
     }
     
     emit('refresh')
-  } catch (error) {
-    alert(`Erro ao atualizar cargo: ${error.response?.data?.message || error.message || 'Tente novamente.'}`)
+    showSuccess('Cargo atualizado com sucesso!')
+  } catch (err) {
+    showError(`Erro ao atualizar cargo: ${err.response?.data?.message || err.message || 'Tente novamente.'}`)
     emit('refresh')
   }
 }

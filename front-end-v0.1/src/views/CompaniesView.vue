@@ -117,7 +117,6 @@ export default {
     },
     
     handleAddCompany(companyData) {
-      alert('Empresa adicionada com sucesso!')
       this.$refs.companiesTable?.fetchCompanies()
     },
 

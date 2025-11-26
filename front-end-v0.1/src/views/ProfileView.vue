@@ -12,74 +12,73 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Nome Completo:</label>
-              <input type="text" value="João Silva" />
+              <input 
+                type="text" 
+                v-model="formData.nomeCompleto"
+                :disabled="loading"
+              />
             </div>
             <div class="form-group">
-              <label>CPF</label>
-              <input type="text" value="123456789-12" />
+              <label>CPF:</label>
+              <input 
+                type="text" 
+                v-model="formData.cpf"
+                :disabled="true"
+                placeholder="CPF não pode ser alterado"
+              />
             </div>
             <div class="form-group">
               <label>Email:</label>
-              <input type="email" value="joao.silva@empresa.com" />
+              <input 
+                type="email" 
+                v-model="formData.email"
+                :disabled="loading"
+              />
             </div>
             <div class="form-group">
-              <label>Telefone</label>
-              <input type="tel" value="(11) 99999-9999" />
-            </div>
-            <div class="form-group cep-field">
-              <label>CEP</label>
-              <input type="text" value="00000-000" />
-            </div>
-            <div class="form-group">
-              <label>Rua/Avenida:</label>
-              <input type="text" placeholder="Insira rua/avenida" />
-            </div>
-            <div class="form-group">
-              <label>Número:</label>
-              <input type="text" placeholder="Insira o número da empresa" />
-            </div>
-            <div class="form-group">
-              <label>Bairro:</label>
-              <input type="text" placeholder="Insira o bairro" />
-            </div>
-            <div class="form-group">
-              <label>Cidade:</label>
-              <input type="text" placeholder="Insira a cidade onde reside a empresa" />
+              <label>Telefone:</label>
+              <input 
+                type="tel" 
+                v-model="formData.contato"
+                :disabled="loading"
+                placeholder="(00) 00000-0000"
+              />
             </div>
           </div>
-          <button class="save-btn">Salvar alterações</button>
+          <button 
+            class="save-btn" 
+            @click="handleSave"
+            :disabled="loading || !hasChanges"
+          >
+            {{ loading ? 'Salvando...' : 'Salvar alterações' }}
+          </button>
         </div>
 
         <div class="right-column">
-          <div class="photo-section">
-            <h3>Foto do perfil:</h3>
-            <div class="photo-container">
-              <div class="photo-placeholder"></div>
-              <button class="change-photo-btn">
-                <span class="material-icons camera-icon">camera_alt</span>
-                Alterar foto
-              </button>
-            </div>
-          </div>
-          
           <div class="account-section">
             <h3>Informações da conta:</h3>
             <div class="account-info">
               <div class="info-item">
                 <span class="label">Cargo:</span>
-                <span class="value">Administrador</span>
+                <span class="value">{{ userRole || 'Sem cargo' }}</span>
               </div>
               <div class="info-item">
                 <span class="label">Membro desde:</span>
-                <span class="value">Janeiro 2024</span>
+                <span class="value">{{ formattedDate }}</span>
               </div>
               <div class="info-item">
                 <span class="label">Permissões:</span>
                 <div class="permissions">
-                  <span class="permission-tag">Documentos</span>
-                  <span class="permission-tag">Empresas</span>
-                  <span class="permission-tag">Contratos</span>
-                  <span class="permission-tag">Propostas</span>
+                  <span 
+                    v-for="perm in displayedPermissions" 
+                    :key="perm"
+                    class="permission-tag"
+                  >
+                    {{ perm }}
+                  </span>
+                  <span v-if="displayedPermissions.length === 0" class="no-permissions">
+                    Nenhuma permissão
+                  </span>
                 </div>
               </div>
             </div>
@@ -90,20 +89,159 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'ProfileView',
-  data() {
-    return {
-      // Dados do perfil podem ser adicionados aqui
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getUserById, updateUser } from '@/api/users'
+import { getRoleById } from '@/api/roles'
+import { useToast } from '@/composables/useToast'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const { success, error } = useToast()
+
+const loading = ref(false)
+const userData = ref(null)
+const formData = ref({
+  nomeCompleto: '',
+  email: '',
+  cpf: '',
+  contato: ''
+})
+
+const userRole = ref('')
+const displayedPermissions = ref([])
+
+const formattedDate = computed(() => {
+  if (!userData.value?.dataCriacao) return 'N/A'
+  const date = new Date(userData.value.dataCriacao)
+  return date.toLocaleDateString('pt-BR', { 
+    year: 'numeric', 
+    month: 'long' 
+  })
+})
+
+const hasChanges = computed(() => {
+  if (!userData.value) return false
+  return (
+    formData.value.nomeCompleto !== userData.value.nomeCompleto ||
+    formData.value.email !== userData.value.email ||
+    formData.value.contato !== (userData.value.contato || '')
+  )
+})
+
+const loadUserData = async () => {
+  try {
+    const userId = authStore.user?.id
+    if (!userId) {
+      router.push('/login')
+      return
     }
-  },
-  methods: {
-    goToSettings() {
-      this.$router.push('/configuracoes')
+
+    const data = await getUserById(userId)
+    userData.value = data
+    
+    formData.value = {
+      nomeCompleto: data.nomeCompleto || '',
+      email: data.email || '',
+      cpf: data.cpf || '',
+      contato: data.contato || ''
     }
+
+    if (data.cargo) {
+      try {
+        const role = await getRoleById(data.cargo.idCargo)
+        userRole.value = role.nomeCargo
+      } catch (error) {
+        userRole.value = data.cargo.nomeCargo || 'Sem cargo'
+      }
+    } else {
+      userRole.value = 'Sem cargo'
+    }
+
+    const rolePerms = data.cargo?.permissoes || []
+    const extraPerms = data.permissoesExtras || []
+    const allPerms = [...rolePerms, ...extraPerms]
+    
+    const moduleNames = {
+      'propostas': 'Propostas',
+      'contratos': 'Contratos',
+      'documentos_juridicos': 'Documentos',
+      'empresas': 'Empresas',
+      'usuarios': 'Usuários',
+      'reunioes': 'Reuniões',
+      'relatorios': 'Relatórios',
+      'cargos': 'Cargos',
+      'permissoes': 'Permissões'
+    }
+
+    const uniqueModules = new Set()
+    allPerms.forEach(perm => {
+      const [module] = perm.nome.split(':')
+      if (moduleNames[module]) {
+        uniqueModules.add(moduleNames[module])
+      }
+    })
+
+    displayedPermissions.value = Array.from(uniqueModules).sort()
+  } catch (err) {
+    console.error('Erro ao carregar dados do usuário:', err)
+    error('Erro ao carregar dados do perfil. Tente novamente.')
   }
 }
+
+const handleSave = async () => {
+  if (!hasChanges.value) return
+
+  loading.value = true
+  try {
+    const userId = authStore.user?.id
+    if (!userId) {
+      router.push('/login')
+      return
+    }
+
+    const userIdToUpdate = userData.value?.idUsuario || userId
+
+    const updateDto = {
+      nomeCompleto: formData.value.nomeCompleto,
+      email: formData.value.email,
+      contato: formData.value.contato || undefined
+    }
+
+    await updateUser(userIdToUpdate, updateDto)
+    
+    await loadUserData()
+    
+    if (authStore.user) {
+      authStore.setUser({
+        ...authStore.user,
+        name: formData.value.nomeCompleto,
+        email: formData.value.email
+      })
+    }
+
+    success('Perfil atualizado com sucesso!')
+  } catch (err) {
+    console.error('Erro ao atualizar perfil:', err)
+    if (err.response?.status === 409) {
+      error('Este email já está cadastrado. Por favor, use outro email.')
+    } else {
+      error('Erro ao atualizar perfil. Tente novamente.')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const goToSettings = () => {
+  router.push('/configuracoes')
+}
+
+onMounted(() => {
+  loadUserData()
+})
 </script>
 
 <style scoped>
@@ -134,6 +272,10 @@ export default {
   font-weight: 600;
 }
 
+.tab:hover {
+  background: #dee2e6;
+}
+
 .profile-content {
   background: #f8f9fa;
   border-radius: 12px;
@@ -143,8 +285,6 @@ export default {
 .profile-main {
   display: flex;
   gap: 2rem;
-  margin-bottom: 2rem;
-  padding: 0 2rem;
 }
 
 .profile-main .info-section {
@@ -156,26 +296,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.profile-main .photo-section {
-  width: 100%;
-}
-
-.photo-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.profile-main .account-section {
-  width: 100%;
-}
-
-.account-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-  font-size: 1.2rem;
 }
 
 .info-section {
@@ -223,8 +343,9 @@ export default {
   border-color: #2ea89d;
 }
 
-.cep-field {
-  grid-column: 1 / -1;
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 
 .save-btn {
@@ -239,47 +360,13 @@ export default {
   transition: background 0.2s;
 }
 
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
   background: #25968c;
 }
 
-.photo-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.photo-container {
-  text-align: center;
-}
-
-.photo-placeholder {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: #e9ecef;
-  margin: 0 auto 1rem;
-}
-
-.change-photo-btn {
-  background: white;
-  border: 1px solid #e9ecef;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  margin: 0 auto;
-}
-
-.camera-icon {
-  font-size: 1rem;
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .account-section {
@@ -287,6 +374,12 @@ export default {
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.account-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.2rem;
 }
 
 .account-info {
@@ -297,14 +390,13 @@ export default {
 
 .info-item {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .label {
   font-weight: 600;
   color: #333;
-  min-width: 120px;
 }
 
 .value {
@@ -326,20 +418,10 @@ export default {
   color: #666;
 }
 
-.material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 1.2rem;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
+.no-permissions {
+  color: #999;
+  font-style: italic;
+  font-size: 0.8rem;
 }
 
 @media (max-width: 768px) {

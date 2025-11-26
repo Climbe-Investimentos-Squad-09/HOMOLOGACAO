@@ -14,7 +14,9 @@
 import { ref, computed, onMounted } from 'vue'
 import AuthorizationsTable from '../components/authorizations/AuthorizationsTable.vue'
 import { getUsers, updateUserStatus, SituacaoUsuario } from '@/api/users'
+import { useToast } from '@/composables/useToast'
 
+const { success, error } = useToast()
 const allAuthorizations = ref([])
 const loading = ref(false)
 
@@ -22,9 +24,9 @@ const loadAuthorizations = async () => {
   loading.value = true
   try {
     allAuthorizations.value = await getUsers({ situacao: SituacaoUsuario.PENDENTE })
-  } catch (error) {
-    if (error.response?.status === 403) {
-      alert('Você não tem permissão para visualizar autorizações. Entre em contato com o administrador.')
+  } catch (err) {
+    if (err.response?.status === 403) {
+      error('Você não tem permissão para visualizar autorizações. Entre em contato com o administrador.')
     }
     allAuthorizations.value = []
   } finally {
@@ -36,8 +38,9 @@ const handleApprove = async (user) => {
   try {
     await updateUserStatus(user.idUsuario, SituacaoUsuario.Ativo)
     await loadAuthorizations()
-  } catch (error) {
-    alert('Erro ao aprovar usuário. Tente novamente.')
+    success('Usuário autorizado com sucesso!')
+  } catch (err) {
+    error('Erro ao aprovar usuário. Tente novamente.')
   }
 }
 
@@ -45,8 +48,9 @@ const handleReject = async (user) => {
   try {
     await updateUserStatus(user.idUsuario, SituacaoUsuario.Bloqueado)
     await loadAuthorizations()
-  } catch (error) {
-    alert('Erro ao rejeitar usuário. Tente novamente.')
+    success('Usuário rejeitado com sucesso!')
+  } catch (err) {
+    error('Erro ao rejeitar usuário. Tente novamente.')
   }
 }
 

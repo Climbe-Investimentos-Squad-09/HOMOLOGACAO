@@ -77,6 +77,9 @@ import {
   updateCompany,
 } from '../../api/companies'
 import CompanyDetailsModal from './CompanyDetailsModal.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success, error } = useToast()
 
 export default {
   name: 'CompaniesTable',
@@ -115,7 +118,7 @@ export default {
         this.companies = await getCompanies(this.filters)
       } catch (e) {
         console.error('Erro ao carregar empresas', e)
-        alert('Erro ao carregar empresas')
+        error('Erro ao carregar empresas')
       } finally {
         this.loading = false
       }
@@ -146,14 +149,18 @@ export default {
       const nomeFantasia = prompt('Nome fantasia (obrigatório):')
       const email = prompt('Email (obrigatório):')
       const contato = prompt('Contato:')
-      if (!nomeFantasia || !email) return alert('Nome fantasia e email são obrigatórios')
+      if (!nomeFantasia || !email) {
+        error('Nome fantasia e email são obrigatórios')
+        return
+      }
 
       try {
         await createCompanyMinimal({ nomeFantasia, email, contato })
         await this.fetchCompanies()
+        success('Empresa adicionada com sucesso!')
       } catch (err) {
         console.error('Erro ao criar empresa', err)
-        alert('Erro ao criar empresa')
+        error('Erro ao criar empresa')
       }
     },
 
@@ -164,7 +171,7 @@ export default {
         this.isModalOpen = true
       } catch (err) {
         console.error('Erro ao carregar empresa', err)
-        alert('Erro ao carregar detalhes da empresa')
+        error('Erro ao carregar detalhes da empresa')
       }
     },
 
@@ -183,9 +190,10 @@ export default {
         await updateCompany(editedCompany.idEmpresa, editedCompany)
         await this.fetchCompanies()
         this.closeModal()
+        success('Empresa atualizada com sucesso!')
       } catch (err) {
         console.error('Erro ao atualizar empresa', err)
-        alert('Erro ao atualizar empresa')
+        error('Erro ao atualizar empresa')
         throw err
       }
     },

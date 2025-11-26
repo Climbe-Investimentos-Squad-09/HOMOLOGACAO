@@ -6,97 +6,130 @@
     </div>
 
     <div class="settings-content">
-      <div class="settings-main">
-        <div class="password-section">
-          <h3>Alterar senha:</h3>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Senha atual:</label>
-              <input type="password" v-model="currentPassword" />
-            </div>
-            <div class="form-group">
-              <label>Nova senha:</label>
-              <input type="password" v-model="newPassword" />
-            </div>
-            <div class="form-group">
-              <label>Confirmar nova senha:</label>
-              <input type="password" v-model="confirmPassword" />
-            </div>
+      <div class="password-section">
+        <h3>Alterar senha:</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Senha atual:</label>
+            <input 
+              type="password" 
+              v-model="currentPassword"
+              :disabled="loading"
+              placeholder="Digite sua senha atual"
+            />
           </div>
-          <button class="save-btn">Salvar alterações</button>
-        </div>
-
-        <div class="permission-section">
-          <h3>Solicitar permissão:</h3>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Permissão:</label>
-              <select v-model="selectedPermission">
-                <option value="">Selecione uma permissão</option>
-                <option value="admin">Administrador</option>
-                <option value="manager">Gerente</option>
-                <option value="user">Usuário</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Justificativa:</label>
-              <textarea v-model="justification" rows="4" placeholder="Descreva o motivo da solicitação..."></textarea>
-            </div>
+          <div class="form-group">
+            <label>Nova senha:</label>
+            <input 
+              type="password" 
+              v-model="newPassword"
+              :disabled="loading"
+              placeholder="Mínimo de 6 caracteres"
+            />
           </div>
-          <button class="send-btn">Enviar</button>
-        </div>
-      </div>
-
-      <div class="notifications-section">
-        <h3>Notificações:</h3>
-        <div class="notification-settings">
-          <div class="notification-item">
-            <label>Notificações por email:</label>
-            <div class="toggle-switch">
-              <input type="checkbox" id="email-notifications" v-model="emailNotifications">
-              <label for="email-notifications" class="toggle-label"></label>
-            </div>
-          </div>
-          <div class="notification-item">
-            <label>Notificações Push:</label>
-            <div class="toggle-switch">
-              <input type="checkbox" id="push-notifications" v-model="pushNotifications">
-              <label for="push-notifications" class="toggle-label"></label>
-            </div>
-          </div>
-          <div class="notification-item">
-            <label>Alertas de login:</label>
-            <div class="toggle-switch">
-              <input type="checkbox" id="login-alerts" v-model="loginAlerts">
-              <label for="login-alerts" class="toggle-label"></label>
-            </div>
+          <div class="form-group">
+            <label>Confirmar nova senha:</label>
+            <input 
+              type="password" 
+              v-model="confirmPassword"
+              :disabled="loading"
+              placeholder="Digite a senha novamente"
+            />
           </div>
         </div>
+        <div v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+        <button 
+          class="save-btn" 
+          @click="handleChangePassword"
+          :disabled="loading || !canSave"
+        >
+          {{ loading ? 'Salvando...' : 'Salvar alterações' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'SettingsView',
-  data() {
-    return {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-      selectedPermission: '',
-      justification: '',
-      emailNotifications: false,
-      pushNotifications: false,
-      loginAlerts: false
-    }
-  },
-  methods: {
-    goToProfile() {
-      this.$router.push('/perfil')
-    }
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { updateUser } from '@/api/users'
+import { login } from '@/api/auth'
+import { useToast } from '@/composables/useToast'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const { success, error } = useToast()
+
+const loading = ref(false)
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const errorMessage = ref('')
+
+const canSave = computed(() => {
+  return currentPassword.value.length > 0 &&
+         newPassword.value.length >= 6 && 
+         newPassword.value === confirmPassword.value
+})
+
+const handleChangePassword = async () => {
+  if (!canSave.value) {
+    errorMessage.value = 'Preencha todos os campos. A senha deve ter no mínimo 6 caracteres e as senhas devem coincidir.'
+    return
   }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const userId = authStore.user?.id
+    if (!userId) {
+      router.push('/login')
+      return
+    }
+
+    const userEmail = authStore.user?.email
+    if (!userEmail) {
+      error('Email não encontrado. Faça login novamente.')
+      return
+    }
+
+    try {
+      await login(userEmail, currentPassword.value)
+    } catch (loginError) {
+      errorMessage.value = 'Senha atual incorreta.'
+      loading.value = false
+      return
+    }
+
+    const userIdToUpdate = userId
+
+    await updateUser(userIdToUpdate, {
+      senha: newPassword.value
+    })
+
+    currentPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+    success('Senha alterada com sucesso!')
+  } catch (err) {
+    console.error('Erro ao alterar senha:', err)
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      error('Senha atual incorreta.')
+    } else {
+      error('Erro ao alterar senha. Tente novamente.')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const goToProfile = () => {
+  router.push('/perfil')
 }
 </script>
 
@@ -128,37 +161,25 @@ export default {
   font-weight: 600;
 }
 
+.tab:hover {
+  background: #dee2e6;
+}
+
 .settings-content {
   background: #f8f9fa;
   border-radius: 12px;
   padding: 2rem;
 }
 
-.settings-main {
-  display: flex;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding: 0 2rem;
-}
-
 .password-section {
-  flex: 1;
+  max-width: 600px;
   background: white;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.permission-section {
-  flex: 1;
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.password-section h3,
-.permission-section h3 {
+.password-section h3 {
   margin: 0 0 1.5rem 0;
   color: #333;
   font-size: 1.2rem;
@@ -183,9 +204,7 @@ export default {
   font-weight: 500;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.form-group input {
   padding: 0.75rem;
   border: 1px solid #e9ecef;
   border-radius: 6px;
@@ -193,15 +212,27 @@ export default {
   transition: border-color 0.2s;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.form-group input:focus {
   outline: none;
   border-color: #2ea89d;
 }
 
-.save-btn,
-.send-btn {
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+}
+
+.save-btn {
   background: #2ea89d;
   color: white;
   border: none;
@@ -213,97 +244,18 @@ export default {
   transition: background 0.2s;
 }
 
-.save-btn:hover,
-.send-btn:hover {
+.save-btn:hover:not(:disabled) {
   background: #25968c;
 }
 
-.notifications-section {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
-}
-
-.notifications-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.notification-settings {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.notification-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.notification-item:last-child {
-  border-bottom: none;
-}
-
-.notification-item label {
-  font-size: 1rem;
-  color: #333;
-  font-weight: 500;
-}
-
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-label {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 24px;
-}
-
-.toggle-label:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-input:checked + .toggle-label {
-  background-color: #2ea89d;
-}
-
-input:checked + .toggle-label:before {
-  transform: translateX(26px);
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .settings-main {
-    flex-direction: column;
+  .password-section {
+    max-width: 100%;
   }
 }
 </style>

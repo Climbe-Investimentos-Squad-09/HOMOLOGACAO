@@ -361,22 +361,81 @@ export default {
   transform: translateY(0);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+@media (max-width: 1200px) {
+  .overlay-content {
+    max-width: 450px;
+    padding: 2.5rem 2rem;
+  }
+
+  .welcome-title {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 968px) {
+  .overlay-content {
+    max-width: 400px;
+    padding: 2rem 1.75rem;
+  }
+
+  .welcome-title {
+    font-size: 2rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .overlay-content {
+    max-width: 100%;
+    padding: 2rem 1.5rem;
+    gap: 20px;
+  }
+
+  .welcome-title {
+    font-size: 1.8rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .login-form {
+    gap: 1.25rem;
+  }
+}
+
 @media (max-width: 480px) {
   .overlay { 
     gap: 1.5rem; 
+    padding: 0.75rem;
   }
   .overlay-content { 
-    padding: 2rem 1.5rem; 
-    gap: 20px; 
+    padding: 1.75rem 1.25rem; 
+    gap: 18px; 
   }
   .logo-container img {
     max-width: 120px;
   }
   .welcome-title { 
-    font-size: 2rem; 
+    font-size: 1.75rem; 
+  }
+  .welcome-subtitle {
+    font-size: 0.9rem;
   }
   .login-form { 
     gap: 1.25rem; 
+  }
+  .login-form input {
+    padding: 14px 18px;
+    font-size: 15px;
   }
 }
 

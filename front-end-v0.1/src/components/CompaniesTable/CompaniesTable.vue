@@ -117,7 +117,6 @@ export default {
       try {
         this.companies = await getCompanies(this.filters)
       } catch (e) {
-        console.error('Erro ao carregar empresas', e)
         error('Erro ao carregar empresas')
       } finally {
         this.loading = false
@@ -159,7 +158,6 @@ export default {
         await this.fetchCompanies()
         success('Empresa adicionada com sucesso!')
       } catch (err) {
-        console.error('Erro ao criar empresa', err)
         error('Erro ao criar empresa')
       }
     },
@@ -170,7 +168,6 @@ export default {
         this.selectedCompany = data
         this.isModalOpen = true
       } catch (err) {
-        console.error('Erro ao carregar empresa', err)
         error('Erro ao carregar detalhes da empresa')
       }
     },
@@ -192,7 +189,6 @@ export default {
         this.closeModal()
         success('Empresa atualizada com sucesso!')
       } catch (err) {
-        console.error('Erro ao atualizar empresa', err)
         error('Erro ao atualizar empresa')
         throw err
       }

@@ -27,8 +27,6 @@ const canCreateMeeting = computed(() => {
 })
 
 const handleCreateMeeting = () => {
-  // Por enquanto não faz nada, como solicitado
-  console.log('Criar reunião - funcionalidade em desenvolvimento')
 }
 </script>
 

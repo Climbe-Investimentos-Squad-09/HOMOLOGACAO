@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import UsersHeader from '../components/user/UsersHeader.vue'
 import UsersTable from '../components/user/UsersTable.vue'
@@ -42,6 +42,8 @@ import UsersCreateModal from '../components/user/UsersCreateModal.vue'
 import UsersEditModal from '../components/user/UsersEditModal.vue'
 import UsersPermissionsModal from '../components/user/UsersPermissionsModal.vue'
 import { getUsers, SituacaoUsuario } from '@/api/users'
+
+const alertModal = inject('alertModal', null)
 
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
@@ -74,7 +76,13 @@ const loadUsers = async () => {
     allUsers.value = users || []
   } catch (error) {
     if (error.response?.status === 403) {
-      alert('Você não tem permissão para visualizar usuários. Entre em contato com o administrador.')
+      if (alertModal) {
+        alertModal.openAlert({
+          title: 'Acesso negado',
+          message: 'Você não tem permissão para visualizar usuários. Entre em contato com o administrador.',
+          type: 'error'
+        })
+      }
     }
     allUsers.value = []
   } finally {
@@ -130,13 +138,10 @@ const handlePermissionsSaved = async () => {
   showPermissionsModal.value = false
   selectedUser.value = null
   
-  // Recarregar usuários
   await loadUsers()
   
-  // Se o usuário editado for o usuário logado, recarregar permissões
   const authStore = useAuthStore()
   if (authStore.user?.id === editedUserId) {
-    console.log('🔄 Recarregando permissões do usuário logado após edição')
     await authStore.loadUserPermissions()
   }
 }
@@ -166,6 +171,18 @@ onMounted(() => {
 <style scoped>
 .users-view {
   padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .users-view {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .users-view {
+    padding: 0.5rem;
+  }
 }
 </style>
 

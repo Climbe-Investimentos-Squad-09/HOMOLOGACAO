@@ -1,6 +1,6 @@
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-container">
+    <div class="modal-container" @click.stop>
       <div class="modal-header">
         <h3>Detalhes da Auditoria #{{ audit?.id }}</h3>
         <button class="close-btn" @click="closeModal">
@@ -175,7 +175,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
   padding: 1rem;
 }
 

@@ -92,7 +92,7 @@ onUnmounted(() => {
   border-bottom: 1px solid #E9ECEF;
   position: relative;
   overflow: visible;
-  z-index: 100;
+  z-index: 10;
 }
 
 .page-title {

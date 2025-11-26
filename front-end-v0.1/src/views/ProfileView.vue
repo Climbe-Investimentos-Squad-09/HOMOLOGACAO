@@ -186,7 +186,6 @@ const loadUserData = async () => {
 
     displayedPermissions.value = Array.from(uniqueModules).sort()
   } catch (err) {
-    console.error('Erro ao carregar dados do usuário:', err)
     error('Erro ao carregar dados do perfil. Tente novamente.')
   }
 }
@@ -224,7 +223,6 @@ const handleSave = async () => {
 
     success('Perfil atualizado com sucesso!')
   } catch (err) {
-    console.error('Erro ao atualizar perfil:', err)
     if (err.response?.status === 409) {
       error('Este email já está cadastrado. Por favor, use outro email.')
     } else {

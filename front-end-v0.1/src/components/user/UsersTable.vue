@@ -117,14 +117,11 @@ const canEdit = computed(() => canEditOrCreate('usuarios'))
 const { error: showError, success: showSuccess } = useToast()
 const canManageRole = computed(() => canManageRoleAndPermissions())
 
-// Função para obter o valor do cargo para o select
 const getRoleValue = (user) => {
-  // Verificar se o cargo existe e tem idCargo
   const cargo = user.rawUser?.cargo
   if (cargo && cargo.idCargo) {
     return String(cargo.idCargo)
   }
-  // Se não tiver cargo ou idCargo for null/undefined, retornar string vazia (Sem cargo)
   return ''
 }
 
@@ -132,7 +129,6 @@ const loadRoles = async () => {
   try {
     roles.value = await getAllRoles()
   } catch (error) {
-    // Ignorar erro silenciosamente
   }
 }
 
@@ -390,6 +386,94 @@ const getStatusClass = (status) => {
 
 .action-icon-button:hover {
   opacity: 0.7;
+}
+
+@media (max-width: 1200px) {
+  .users-table {
+    font-size: 0.9rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+@media (max-width: 968px) {
+  .users-table-container {
+    overflow-x: auto;
+  }
+
+  .users-table {
+    min-width: 800px;
+  }
+
+  .user-info-cell {
+    min-width: 200px;
+  }
+
+  .contact-email,
+  .contact-phone {
+    display: block;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .users-table {
+    min-width: 700px;
+    font-size: 0.85rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.5rem 0.4rem;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-name {
+    font-size: 0.9rem;
+  }
+
+  .user-email {
+    font-size: 0.75rem;
+  }
+
+  .role-select {
+    font-size: 0.8rem;
+    padding: 0.25rem;
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .permissions-button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-title {
+    font-size: 1.1rem;
+    padding: 1rem;
+  }
+
+  .users-table {
+    min-width: 600px;
+    font-size: 0.8rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.4rem 0.3rem;
+  }
 }
 </style>
 

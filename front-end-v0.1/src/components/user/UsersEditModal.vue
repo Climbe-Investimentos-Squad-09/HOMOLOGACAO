@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
+    <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2>Editar usuário</h2>
         <button class="close-button" @click="$emit('close')">✕</button>
@@ -66,6 +66,7 @@
 import { ref, onMounted } from 'vue'
 import { updateUser, deleteUser } from '@/api/users'
 import { useToast } from '@/composables/useToast'
+import { useConfirmModal } from '@/composables/useConfirmModal'
 
 const props = defineProps({
   user: {
@@ -83,6 +84,7 @@ const formData = ref({
 })
 
 const { success, error } = useToast()
+const confirmModal = useConfirmModal()
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -132,28 +134,32 @@ const handleSave = async () => {
   }
 }
 
-const handleDelete = async () => {
-  if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
-    return
-  }
+const handleDelete = () => {
+  confirmModal.openModal({
+    title: 'Excluir usuário',
+    message: 'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',
+    type: 'danger',
+    confirmText: 'Excluir',
+    onConfirm: async () => {
+      loading.value = true
+      errorMessage.value = ''
+      successMessage.value = ''
 
-  loading.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  try {
-    await deleteUser(props.user.id)
-    success('Usuário deletado com sucesso!')
-    emit('deleted')
-    emit('close')
-  } catch (error) {
-    if (error.response?.status === 403) {
-      errorMessage.value = 'Você não tem permissão para excluir usuários.'
-    } else {
-      errorMessage.value = error.response?.data?.message || 'Erro ao excluir usuário. Tente novamente.'
+      try {
+        await deleteUser(props.user.id)
+        success('Usuário deletado com sucesso!')
+        emit('deleted')
+        emit('close')
+      } catch (error) {
+        if (error.response?.status === 403) {
+          errorMessage.value = 'Você não tem permissão para excluir usuários.'
+        } else {
+          errorMessage.value = error.response?.data?.message || 'Erro ao excluir usuário. Tente novamente.'
+        }
+        loading.value = false
+      }
     }
-    loading.value = false
-  }
+  })
 }
 
 onMounted(() => {
@@ -169,7 +175,8 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
@@ -178,6 +185,8 @@ onMounted(() => {
   border-radius: 8px;
   width: 520px;
   max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -313,6 +322,45 @@ onMounted(() => {
 .save-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .footer-right {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .delete-button,
+  .cancel-button,
+  .save-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-group input {
+    padding: 10px;
+  }
 }
 </style>
 

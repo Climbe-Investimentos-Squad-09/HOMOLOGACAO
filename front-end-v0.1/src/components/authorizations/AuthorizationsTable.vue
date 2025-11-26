@@ -201,4 +201,55 @@ const canEdit = computed(() => canEditOrCreate('usuarios'));
 .view-button svg path {
   stroke: #9E9E9E;
 }
+
+@media (max-width: 968px) {
+  .authorizations-table-container {
+    overflow-x: auto;
+  }
+
+  .authorizations-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .authorizations-table-container {
+    padding: 1rem;
+  }
+
+  .authorizations-table {
+    min-width: 500px;
+    font-size: 0.9rem;
+  }
+
+  .authorizations-table th,
+  .authorizations-table td {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .category-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .authorizations-table-container {
+    padding: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .authorizations-table {
+    min-width: 450px;
+    font-size: 0.85rem;
+  }
+
+  .authorizations-table th,
+  .authorizations-table td {
+    padding: 0.5rem 0.5rem;
+  }
+}
 </style>

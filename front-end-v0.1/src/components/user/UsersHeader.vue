@@ -148,4 +148,45 @@ watch(searchQuery, (newValue) => {
 :deep(.v-chip .v-chip__close) {
   color: white !important;
 }
+
+@media (max-width: 768px) {
+  .users-header-container {
+    padding: 0.75rem;
+  }
+
+  .header-top-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-user-button {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .filter-section {
+    justify-content: stretch;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .users-header-container {
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .search-input {
+    padding: 0.6rem 0.75rem 0.6rem 36px;
+    font-size: 0.9rem;
+  }
+
+  .add-user-button {
+    font-size: 0.9rem;
+    padding: 0.65rem;
+  }
+}
 </style>

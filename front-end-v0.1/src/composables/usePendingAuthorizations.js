@@ -46,9 +46,6 @@ export function usePendingAuthorizations() {
       const users = await getUsers({ situacao: SituacaoUsuario.PENDENTE })
       pendingCount.value = users.length || 0
     } catch (error) {
-      if (error.response?.status !== 403 && error.response?.status !== 401) {
-        console.error('Erro ao buscar autorizações pendentes:', error)
-      }
       pendingCount.value = 0
     } finally {
       loading.value = false

@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
+    <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2>{{ user?.name || 'Usuário' }}</h2>
         <button class="close-button" @click="$emit('close')">✕</button>
@@ -196,11 +196,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { getPermissions } from '@/api/permissions'
 import { addPermissions, removePermissions } from '@/api/users'
 import { canManageRoleAndPermissions, hasPermission } from '@/utils/permissions'
 import { useToast } from '@/composables/useToast'
+
+const alertModal = inject('alertModal', null)
 
 const props = defineProps({
   user: {
@@ -240,7 +242,6 @@ const hasVisualizarUsuarios = computed(() => {
   })
 })
 
-// Mapeamento de módulos para nomes amigáveis
 const moduleNames = {
   'propostas': 'Propostas',
   'contratos': 'Contratos',
@@ -260,10 +261,7 @@ const loadPermissions = async () => {
     const permissions = await getPermissions()
     allPermissions.value = permissions
     
-    // Carregar permissões do cargo (se o usuário tiver cargo)
     const cargoPerms = props.user.rawUser?.cargo?.permissoes || []
-    
-    // Carregar permissões extras do usuário
     const userExtrasPerms = props.user.rawUser?.permissoesExtras || []
     
     // Combinar permissões do cargo e extras (sem duplicatas)
@@ -697,7 +695,13 @@ const handleSave = async () => {
         return mod === 'usuarios' && action === 'visualizar'
       })
       if (!hasVisualizarUsuarios) {
-        alert('Erro: Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.')
+        if (alertModal) {
+          alertModal.openAlert({
+            title: 'Erro',
+            message: 'Para editar permissões e cargos, é necessário ter permissão de visualizar usuários primeiro.',
+            type: 'error'
+          })
+        }
         loading.value = false
         return
       }
@@ -787,7 +791,8 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
@@ -1087,6 +1092,86 @@ onMounted(() => {
 .save-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 1200px) {
+  .permissions-container {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .permissions-column {
+    width: 100%;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+    margin: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .permissions-container {
+    gap: 1rem;
+  }
+
+  .permissions-column {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .column-header h3 {
+    font-size: 1rem;
+  }
+
+  .permission-item {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cancel-button,
+  .save-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .permissions-column {
+    max-height: 300px;
+  }
+
+  .permission-item {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .search-input {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem 0.5rem 32px;
+  }
 }
 </style>
 

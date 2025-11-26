@@ -65,4 +65,16 @@ const filteredProposals = computed(() => {
 .proposals-view {
   padding: 20px;
 }
+
+@media (max-width: 768px) {
+  .proposals-view {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .proposals-view {
+    padding: 0.75rem;
+  }
+}
 </style>

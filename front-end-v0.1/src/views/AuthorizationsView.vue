@@ -77,4 +77,16 @@ onMounted(() => {
 .authorizations-view {
   padding: 1rem;
 }
+
+@media (max-width: 768px) {
+  .authorizations-view {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .authorizations-view {
+    padding: 0.5rem;
+  }
+}
 </style>

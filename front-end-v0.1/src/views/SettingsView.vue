@@ -117,7 +117,6 @@ const handleChangePassword = async () => {
     confirmPassword.value = ''
     success('Senha alterada com sucesso!')
   } catch (err) {
-    console.error('Erro ao alterar senha:', err)
     if (err.response?.status === 401 || err.response?.status === 403) {
       error('Senha atual incorreta.')
     } else {

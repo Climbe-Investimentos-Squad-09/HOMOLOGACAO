@@ -359,6 +359,32 @@ export default {
   }
 }
 
+@media (max-width: 1200px) {
+  .overlay-content {
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+  }
+
+  .welcome-title {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 968px) {
+  .overlay-content {
+    max-width: 380px;
+    padding: 2rem 1.75rem;
+  }
+
+  .welcome-title {
+    font-size: 1.9rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.95rem;
+  }
+}
+
 @media (max-width: 768px) {
   .overlay {
     padding: 1rem;
@@ -366,6 +392,7 @@ export default {
   }
   
   .overlay-content {
+    max-width: 100%;
     padding: 2rem 1.5rem;
     gap: 20px;
   }
@@ -376,6 +403,34 @@ export default {
   
   .welcome-subtitle {
     font-size: 0.9rem;
+  }
+
+  .signup-form {
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: 0.75rem;
+    gap: 1.25rem;
+  }
+
+  .overlay-content {
+    padding: 1.75rem 1.25rem;
+    gap: 18px;
+  }
+
+  .welcome-title {
+    font-size: 1.7rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .signup-form {
+    gap: 1.1rem;
   }
 }
 

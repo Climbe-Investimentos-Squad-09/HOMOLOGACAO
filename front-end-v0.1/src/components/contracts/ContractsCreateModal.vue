@@ -1,6 +1,6 @@
 <template>
-    <div class="modal-overlay">
-        <div class="modal-content">
+    <div class="modal-overlay" @click.self="$emit('close')">
+        <div class="modal-content" @click.stop>
             <div class="modal-header">
                 <h2>Criar contrato:</h2>
                 <button class="close-button" @click="$emit('close')">✕</button>
@@ -74,8 +74,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, inject } from 'vue';
 
+const alertModal = inject('alertModal', null)
 const fileInput = ref(null);
 const selectedFile = ref(null);
 
@@ -88,7 +89,13 @@ const handleFileChange = (event) => {
     if (file && file.type === 'application/pdf') {
         selectedFile.value = file;
     } else {
-        alert('Por favor, selecione um arquivo PDF.');
+        if (alertModal) {
+          alertModal.openAlert({
+            title: 'Formato inválido',
+            message: 'Por favor, selecione um arquivo PDF.',
+            type: 'warning'
+          })
+        }
         selectedFile.value = null;
         if (fileInput.value) {
             fileInput.value.value = '';
@@ -112,6 +119,8 @@ const removeSelectedFile = () => {
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {

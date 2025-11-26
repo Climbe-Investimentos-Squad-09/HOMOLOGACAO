@@ -25,6 +25,24 @@ import DeadlineList from '../components/dashboard/DeadlineList.vue';
 @media (max-width: 1024px) {
   .content-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-view {
+    padding: 0;
+  }
+
+  .content-grid {
+    gap: 0.75rem;
   }
 }
 </style>

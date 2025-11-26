@@ -1,6 +1,6 @@
 <template>
     <div class="modal-overlay" @click.self="$emit('close')">
-        <div class="modal-content">
+        <div class="modal-content" @click.stop>
             <div class="modal-header">
                 <h2>Adicionar usuário:</h2>
                 <button class="close-button" @click="$emit('close')">✕</button>
@@ -177,8 +177,6 @@ const handleSubmit = async () => {
       idCargo: formData.value.idCargo || undefined
     }
     
-    // O backend já aprova automaticamente quando tem cargo
-    // Garantimos que sempre tenha cargo ao criar pela tela de usuários
     const createdUser = await createUser(payload)
     
     successMessage.value = 'Usuário criado com sucesso!'
@@ -215,7 +213,8 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {
@@ -224,6 +223,8 @@ onMounted(() => {
     border-radius: 8px;
     width: 520px;
     max-width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -327,5 +328,42 @@ onMounted(() => {
 .add-user-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+    margin: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cancel-button,
+  .add-user-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
 }
 </style>

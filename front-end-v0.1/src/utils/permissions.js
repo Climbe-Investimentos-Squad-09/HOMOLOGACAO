@@ -81,7 +81,6 @@ export async function hasRoleName(roleNames) {
     const role = await getRoleById(authStore.user.profile)
     return roleNames.includes(role.nomeCargo)
   } catch (error) {
-    console.error('Erro ao verificar cargo:', error)
     return false
   }
 }

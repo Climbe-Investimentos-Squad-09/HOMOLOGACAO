@@ -165,21 +165,19 @@ export default {
       try {
         const response = await getAudits(this.filters)
         
-        // Se a API retornar com paginação
         if (response.data && Array.isArray(response.data)) {
           this.allAudits = response.data
         } else if (Array.isArray(response)) {
-          // Se retornar array direto
           this.allAudits = response
         } else {
           this.allAudits = []
         }
         
-        // Buscar nomes dos usuários
         await this.loadUserNames()
       } catch (e) {
-        console.error('Erro ao carregar auditorias', e)
-        alert('Erro ao carregar registros de auditoria')
+        if (this.$alert) {
+          this.$alert('Erro ao carregar registros de auditoria', { type: 'error' })
+        }
       } finally {
         this.loading = false
       }
@@ -194,28 +192,24 @@ export default {
 
       for (const userId of userIds) {
         if (this.userCache[userId]) {
-          // Se já está em cache, usar
           this.allAudits.forEach(a => {
             if (a.userId === userId) {
               a.userName = this.userCache[userId]
             }
           })
         } else {
-          // Buscar na API
           this.loadingUsers[userId] = true
           try {
             const user = await getUserById(userId)
             const userName = user.name || user.nome || `Usuário ${userId}`
             this.userCache[userId] = userName
             
-            // Atualizar todos os audits deste usuário
             this.allAudits.forEach(a => {
               if (a.userId === userId) {
                 a.userName = userName
               }
             })
           } catch (e) {
-            console.error(`Erro ao buscar usuário ${userId}`, e)
             this.userCache[userId] = `Usuário ${userId}`
             this.allAudits.forEach(a => {
               if (a.userId === userId) {

@@ -153,4 +153,16 @@ const filteredContracts = computed(() => {
 .contracts-view {
   padding: 1rem;
 }
+
+@media (max-width: 768px) {
+  .contracts-view {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .contracts-view {
+    padding: 0.5rem;
+  }
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click="closeModal">
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-container" @click.stop>
       <!-- Header do Modal -->
       <div class="modal-header">
@@ -208,14 +208,14 @@ export default {
     },
     
     async handleSubmit() {
-      // Validação básica
       if (!this.formData.legalName || !this.formData.fantasyName || !this.formData.cnpj || !this.formData.email) {
-        alert('Por favor, preencha todos os campos obrigatórios (marcados com *).')
+        if (this.$alert) {
+          this.$alert('Por favor, preencha todos os campos obrigatórios (marcados com *).', { type: 'warning' })
+        }
         return
       }
 
       try {
-        // Montar endereço completo se houver dados de endereço
         let endereco = ''
         if (this.formData.street) {
           endereco = this.formData.street
@@ -225,7 +225,6 @@ export default {
           if (this.formData.cep) endereco += ' - CEP: ' + this.formData.cep
         }
 
-        // Mapear os dados para o formato do backend
         const companyData = {
           razaoSocial: this.formData.legalName,
           nomeFantasia: this.formData.fantasyName,
@@ -236,23 +235,21 @@ export default {
           representanteLegal: undefined
         }
 
-        // Chamar API para criar empresa
         await createCompanyFull(companyData)
         
-        // Emitir evento de sucesso
         this.$emit('add-company', companyData)
         
-        alert('Empresa cadastrada com sucesso!')
+        if (this.$alert) {
+          this.$alert('Empresa cadastrada com sucesso!', { type: 'success' })
+        }
         
-        // Limpar formulário
         this.resetForm()
-        
-        // Fechar modal
         this.closeModal()
       } catch (error) {
-        console.error('Erro ao criar empresa:', error)
         const errorMessage = error.response?.data?.message || 'Erro ao criar empresa. Verifique os dados e tente novamente.'
-        alert(errorMessage)
+        if (this.$alert) {
+          this.$alert(errorMessage, { type: 'error' })
+        }
       }
     },
     
@@ -310,7 +307,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
   padding: 1rem;
 }
 

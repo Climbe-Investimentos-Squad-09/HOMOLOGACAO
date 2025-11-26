@@ -120,20 +120,15 @@ const userRole = computed(() => {
   return 'Carregando...'
 })
 
-// Verificações de permissões para o sidebar
-// Se não tiver cargo, só pode ver dashboard e calendário
 const hasRole = computed(() => userHasRole())
 const permissions = computed(() => authStore.permissions || [])
 
-// Recarregar permissões quando a rota mudar (para pegar mudanças feitas em outras abas)
 watch(() => route.path, async () => {
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()
   }
 })
 
-// Funções computed que dependem das permissões (usando diretamente o store para reatividade)
-// Calendário visível se tiver permissão de visualizar reuniões
 const canViewCalendar = computed(() => {
   return hasRole.value && permissions.value.includes('reunioes:visualizar')
 })
@@ -157,7 +152,6 @@ const canViewAuthorizations = computed(() => {
 })
 const canViewAudits = ref(false)
 
-// Verificar acesso a auditoria baseado no cargo
 const checkAuditAccess = async () => {
   canViewAudits.value = await canAccessAudit()
 }
@@ -176,19 +170,16 @@ const loadRoleName = async () => {
 onMounted(async () => {
   loadRoleName()
   checkAuditAccess()
-  // Sempre recarregar permissões para garantir que estão atualizadas
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()
   }
 
-  // Recarregar permissões periodicamente (a cada 2 minutos) para pegar mudanças
   const intervalId = setInterval(async () => {
     if (authStore.isAuthenticated) {
       await authStore.loadUserPermissions()
     }
-  }, 120000) // 2 minutos
+  }, 120000)
 
-  // Limpar intervalo quando componente for desmontado
   onUnmounted(() => {
     clearInterval(intervalId)
   })
@@ -207,10 +198,15 @@ const goToProfile = () => {
 <style scoped>
 .sidebar {
   width: 250px;
+  min-width: 250px;
   background-color: #FFFFFF;
   border-right: 1px solid #E9ECEF;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 5;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .logo {
@@ -321,5 +317,136 @@ const goToProfile = () => {
 
 .logout-button svg {
   vertical-align: middle;
+}
+
+@media (max-width: 1400px) {
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+  }
+
+  .nav-item {
+    padding: 14px 18px;
+    font-size: 0.9rem;
+  }
+
+  .logo {
+    padding: 14px 20px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .nav-item {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    gap: 10px;
+  }
+
+  .nav-item span {
+    font-size: 0.85rem;
+  }
+
+  .logo {
+    padding: 12px 16px;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
+  }
+
+  .user-role {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 180px;
+    min-width: 180px;
+  }
+
+  .nav-item {
+    padding: 12px 14px;
+    font-size: 0.8rem;
+  }
+
+  .nav-item span {
+    font-size: 0.8rem;
+  }
+
+  .logo {
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    min-width: 70px;
+  }
+
+  .logo {
+    padding: 8px;
+    max-width: 50px;
+  }
+
+  .nav-item {
+    padding: 16px;
+    justify-content: center;
+  }
+
+  .nav-item span {
+    display: none;
+  }
+
+  .sidebar-footer {
+    padding: 0.5rem;
+  }
+
+  .profile-and-logout {
+    padding: 8px;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .avatar {
+    margin-right: 0;
+  }
+
+  .user-profile {
+    justify-content: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .logout-button {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .logout-button span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    position: fixed;
+    left: -70px;
+    z-index: 1000;
+    height: 100vh;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
 }
 </style>

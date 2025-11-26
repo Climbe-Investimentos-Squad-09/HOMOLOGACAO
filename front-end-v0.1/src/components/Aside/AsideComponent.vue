@@ -68,6 +68,10 @@
         <i class="bi bi-shield-lock-fill"></i>
         <span>Autorizações</span>
       </router-link>
+      <router-link v-if="canViewAudits" to="/auditoria" class="nav-item">
+        <i class="bi bi-clipboard-data-fill"></i>
+        <span>Auditoria</span>
+      </router-link>
     </nav>
     <div class="sidebar-footer">
       <hr>
@@ -97,7 +101,7 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getRoleById } from '@/api/roles'
-import { hasPermission, userHasRole } from '@/utils/permissions'
+import { hasPermission, userHasRole, canAccessAudit } from '@/utils/permissions'
 
 const router = useRouter()
 const route = useRoute()
@@ -152,6 +156,12 @@ const canViewCompanies = computed(() => {
 const canViewAuthorizations = computed(() => {
   return permissions.value.includes('usuarios:visualizar') // Assumindo mesma permissão
 })
+const canViewAudits = ref(false)
+
+// Verificar acesso a auditoria baseado no cargo
+const checkAuditAccess = async () => {
+  canViewAudits.value = await canAccessAudit()
+}
 
 const loadRoleName = async () => {
   if (user.value?.profile) {
@@ -166,6 +176,7 @@ const loadRoleName = async () => {
 
 onMounted(async () => {
   loadRoleName()
+  checkAuditAccess()
   // Sempre recarregar permissões para garantir que estão atualizadas
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()

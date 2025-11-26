@@ -44,6 +44,8 @@ const pageTitle = computed(() => {
       return 'Usuários';
     case 'empresas':
       return 'Empresas';
+    case 'auditoria':
+      return 'Auditoria';
     case 'perfil':
       return 'Perfil';
     case 'configuracoes':

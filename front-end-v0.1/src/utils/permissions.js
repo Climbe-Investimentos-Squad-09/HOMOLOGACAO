@@ -67,6 +67,34 @@ export function userHasRole() {
 }
 
 /**
+ * Verifica se o usuário tem um dos cargos especificados (por nome do cargo)
+ * @param {string[]} roleNames - Array de nomes de cargos (ex: ['SysAdmin', 'CEO', 'Compliance'])
+ * @returns {Promise<boolean>}
+ */
+export async function hasRoleName(roleNames) {
+  const authStore = useAuthStore()
+  if (!authStore.user?.profile) return false
+  
+  try {
+    // Importar dinamicamente para evitar dependência circular
+    const { getRoleById } = await import('@/api/roles')
+    const role = await getRoleById(authStore.user.profile)
+    return roleNames.includes(role.nomeCargo)
+  } catch (error) {
+    console.error('Erro ao verificar cargo:', error)
+    return false
+  }
+}
+
+/**
+ * Verifica se o usuário pode acessar auditoria (SysAdmin, CEO ou Compliance)
+ * @returns {Promise<boolean>}
+ */
+export async function canAccessAudit() {
+  return await hasRoleName(['SysAdmin', 'CEO', 'Compliance'])
+}
+
+/**
  * Mapeamento de rotas para permissões necessárias
  */
 export const routePermissions = {

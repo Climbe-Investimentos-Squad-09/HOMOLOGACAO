@@ -84,6 +84,12 @@ const router = createRouter({
       beforeEnter: authGuard,
     },
     {
+      path: '/auditoria',
+      name: 'auditoria',
+      component: () => import('../views/AuditsView.vue'),
+      beforeEnter: authGuard,
+    },
+    {
       path: '/perfil',
       name: 'perfil',
       component: () => import('../views/ProfileView.vue'),

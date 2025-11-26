@@ -1,0 +1,50 @@
+import { useAuthStore } from '@/stores/auth'
+import { hasPermission, userHasRole } from '@/utils/permissions'
+
+export function authGuard(to, from, next) {
+  const authStore = useAuthStore()
+  
+  if (authStore.isAuthenticated) {
+    // Verificar permissões para rotas específicas
+    const routePermissions = {
+      'propostas': 'propostas:visualizar',
+      'contratos': 'contratos:visualizar',
+      'documentos': 'documentos_juridicos:visualizar',
+      'calendario': 'reunioes:visualizar',
+      'usuarios': 'usuarios:visualizar',
+      'autorizacoes': 'usuarios:visualizar',
+      'empresas': 'empresas:visualizar'
+    }
+    
+    const requiredPermission = routePermissions[to.name]
+    
+    if (!userHasRole()) {
+      if (to.name === 'dashboard' || to.name === 'perfil') {
+        next()
+      } else {
+        next('/dashboard')
+      }
+      return
+    }
+    
+    // Se tem cargo, verificar permissão
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      next('/dashboard')
+      return
+    }
+    
+    next()
+  } else {
+    next('/login')
+  }
+}
+
+export function guestGuard(to, from, next) {
+  const authStore = useAuthStore()
+  
+  if (!authStore.isAuthenticated) {
+    next()
+  } else {
+    next('/dashboard')
+  }
+}

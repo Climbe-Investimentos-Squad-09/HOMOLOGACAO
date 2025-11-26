@@ -20,6 +20,7 @@ import { Proposals } from '../proposals/entities/proposals.entity';
 @Injectable()
 export class driveService{
     private Drive: drive_v3.Drive;
+    private oAuth2Client; //Tentativa para obter email do usuário para registrar na entitty 'file'
     //Construtor
     constructor(
             @InjectRepository(Companies)
@@ -33,12 +34,12 @@ export class driveService{
 
             private GmailService: gmailService,
         ) {
-        const oAuth2Client = new OAuth2Client(
+        this.oAuth2Client = new OAuth2Client(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
         process.env.GOOGLE_REDIRECT_URI
         );
-        oAuth2Client.setCredentials({
+        this.oAuth2Client.setCredentials({
             access_token: 'SEU_ACCESS_TOKEN_AQUI',
             refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
             scope: 'https://www.googleapis.com/auth/drive',
@@ -75,6 +76,17 @@ export class driveService{
         }
     }
 
+    //Retornar email do usuário
+    async getEmailFromIdToken(idToken: string): Promise<string> {
+        const ticket = await this.oAuth2Client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        return payload?.email ?? "";
+    }
+
     //Enviar Documentos. Query: arquivo, tipo_documento, empresa_id
      async sendDocument(
         data: SendDriveDTO,
@@ -104,27 +116,28 @@ export class driveService{
                 fields: "id"
             });
 
-            /*
             if(
                 (response.data.id !== "" && response.data.id !== undefined  && response.data.id !== null) &&
                 (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
                 (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
                 ){
-                this.registerFile({
-                    idArquivo: response.data.id,
+                
+                if(this.oAuth2Client.credentials.id_token !== "" && this.oAuth2Client.credentials.id_token !== undefined  && this.oAuth2Client.credentials.id_token !== null){
+                    this.registerFile({
+                        idArquivo: response.data.id,
+                        
+                        nomeArquivo: response.data.name,
                     
-                    nomeArquivo: response.data.name,
-                
-                    nomeEmpresa: data.name,
-                
-                    urlArquivo: response.data.driveId,
-                
-                    emailUsuario: "", //Adicionar Escopo de email no projeto cloud (Requisitar email do usuário) ou usar o nome do usuário
-                
-                    dataEnvio: new Date,
-                })
+                        nomeEmpresa: data.name,
+                    
+                        urlArquivo: response.data.driveId,
+                    
+                        emailUsuario: await this.getEmailFromIdToken(await this.oAuth2Client.credentials.id_token), //Inserir o id do token gerado pelo Oauth
+                    
+                        dataEnvio: new Date,
+                    })
+                }
             }
-            */
 
             return response;
         }catch (err) {
@@ -215,7 +228,7 @@ export class driveService{
         id: any,
         empr: boolean
     ){
-        const emailProprietario = ""; //Definir email fixo para envio da planilha
+        const emailProprietario = ""; //Definir email fixo (Dono da Planilha) para cópia do arquivo
 
         // Metadados da Pasta
         let fileMetadata = {}

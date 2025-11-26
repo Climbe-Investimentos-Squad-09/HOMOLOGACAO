@@ -1,5 +1,6 @@
 <template>
   <div class="dashboard-view">
+    <WelcomeCard />
     <QuickActions />
     <div class="content-grid">
       <ActivityList title="Atividades recentes" />
@@ -9,12 +10,17 @@
 </template>
 
 <script setup>
-import QuickActions from '../components/dashboard/QuickActions.vue';
-import ActivityList from '../components/dashboard/ActivityList.vue';
-import DeadlineList from '../components/dashboard/DeadlineList.vue';
+import WelcomeCard from '../components/dashboard/WelcomeCard.vue'
+import QuickActions from '../components/dashboard/QuickActions.vue'
+import ActivityList from '../components/dashboard/ActivityList.vue'
+import DeadlineList from '../components/dashboard/DeadlineList.vue'
 </script>
 
 <style scoped>
+.dashboard-view {
+  padding: 1.5rem;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -30,19 +36,24 @@ import DeadlineList from '../components/dashboard/DeadlineList.vue';
 }
 
 @media (max-width: 768px) {
+  .dashboard-view {
+    padding: 1rem;
+  }
+
   .content-grid {
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-view {
-    padding: 0;
+    padding: 0.75rem;
   }
 
   .content-grid {
     gap: 0.75rem;
+    margin-top: 1rem;
   }
 }
 </style>

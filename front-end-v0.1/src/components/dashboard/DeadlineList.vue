@@ -2,48 +2,91 @@
   <section class="card">
     <h2 class="card-title">{{ title }}</h2>
     <hr>
-    <ul class="item-list">
-      <li class="list-item">
+    <div v-if="loading" class="loading-state">
+      <p>Carregando deadlines...</p>
+    </div>
+    <ul v-else-if="deadlines.length > 0" class="item-list">
+      <li v-for="(deadline, index) in deadlines" :key="index" class="list-item">
         <div>
-          <p>Renovação de contrato - TechCorp</p>
-          <small>Data final: 14/09/2025</small>
+          <p>{{ deadline.title }}</p>
+          <small>Data final: {{ deadline.date }}</small>
         </div>
-        <span class="status-badge high-priority">Alta</span>
-      </li>
-      <li class="list-item">
-        <div>
-          <p>Renovação de contrato - TechCorp</p>
-          <small>Data final: 14/09/2025</small>
-        </div>
-        <span class="status-badge high-priority">Alta</span>
-      </li>
-      <li class="list-item">
-        <div>
-          <p>Renovação de contrato - TechCorp</p>
-          <small>Data final: 14/09/2025</small>
-        </div>
-        <span class="status-badge high-priority">Alta</span>
-      </li>
-      <li class="list-item">
-        <div>
-          <p>Renovação de contrato - TechCorp</p>
-          <small>Data final: 14/09/2025</small>
-        </div>
-        <span class="status-badge high-priority">Alta</span>
-      </li>
-      <li class="list-item">
-        <div>
-          <p>Renovação de contrato - TechCorp</p>
-          <small>Data final: 14/09/2025</small>
-        </div>
-        <span class="status-badge high-priority">Alta</span>
+        <span class="status-badge" :class="deadline.priorityClass">
+          {{ deadline.priority }}
+        </span>
       </li>
     </ul>
+    <div v-else class="empty-state">
+      <p>Nenhum deadline próximo</p>
+    </div>
   </section>
 </template>
 
 <script setup>
-defineProps({ title: String });
+import { ref, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { hasPermission, userHasRole } from '@/utils/permissions'
+
+const props = defineProps({ title: String })
+
+const authStore = useAuthStore()
+const loading = ref(false)
+const deadlines = ref([])
+
+const hasRole = computed(() => userHasRole())
+const permissions = computed(() => authStore.permissions || [])
+
+const loadDeadlines = () => {
+  loading.value = true
+  
+  const mockDeadlines = []
+  
+  if (hasRole.value && permissions.value.includes('contratos:visualizar')) {
+    const today = new Date()
+    const nextWeek = new Date(today)
+    nextWeek.setDate(today.getDate() + 7)
+    
+    mockDeadlines.push({
+      title: 'Renovação de contrato - TechCorp',
+      date: nextWeek.toLocaleDateString('pt-BR'),
+      priority: 'Alta',
+      priorityClass: 'high-priority'
+    })
+  }
+  
+  if (hasRole.value && permissions.value.includes('propostas:visualizar')) {
+    const today = new Date()
+    const nextMonth = new Date(today)
+    nextMonth.setMonth(today.getMonth() + 1)
+    
+    mockDeadlines.push({
+      title: 'Validade de proposta - DesignStudio',
+      date: nextMonth.toLocaleDateString('pt-BR'),
+      priority: 'Média',
+      priorityClass: 'medium-priority'
+    })
+  }
+  
+  if (hasRole.value && permissions.value.includes('reunioes:visualizar')) {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+    
+    mockDeadlines.push({
+      title: 'Reunião de alinhamento',
+      date: tomorrow.toLocaleDateString('pt-BR'),
+      priority: 'Alta',
+      priorityClass: 'high-priority'
+    })
+  }
+  
+  deadlines.value = mockDeadlines.slice(0, 5)
+  loading.value = false
+}
+
+onMounted(() => {
+  loadDeadlines()
+})
 </script>
 
 <style scoped>
@@ -113,5 +156,24 @@ defineProps({ title: String });
   background-color: #FFCFCF;
   border: #FFB9B9 solid 1px;
   color: #AE3B3B;
+}
+
+.status-badge.medium-priority {
+  background-color: #FFEBCC;
+  border: #FFD699 solid 1px;
+  color: #CE8209;
+}
+
+.status-badge.low-priority {
+  background-color: #CFF8D2;
+  border: #B5EDB9 solid 1px;
+  color: #018D0B;
+}
+
+.loading-state,
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #6C757D;
 }
 </style>

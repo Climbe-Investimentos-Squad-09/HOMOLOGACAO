@@ -207,6 +207,8 @@ const goToProfile = () => {
   z-index: 5;
   overflow-y: auto;
   overflow-x: hidden;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 .logo {

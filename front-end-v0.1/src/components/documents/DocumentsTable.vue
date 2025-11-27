@@ -2,7 +2,11 @@
   <div class="documents-table-container card">
     <h2 class="card-title">Documentos ({{ documents.length }})</h2>
 
-    <div v-if="documents.length === 0" class="no-documents-message">
+    <div v-if="loading" class="loading-message">
+      <p>Carregando documentos...</p>
+    </div>
+
+    <div v-else-if="documents.length === 0" class="no-documents-message">
       <p>Nenhum documento encontrado.</p>
     </div>
 
@@ -85,6 +89,10 @@ const props = defineProps({
   documents: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -118,7 +126,8 @@ const getStatusClass = (status) => {
   margin-bottom: 1.5rem;
 }
 
-.no-documents-message {
+.no-documents-message,
+.loading-message {
   text-align: center;
   padding: 2rem;
   color: #6C757D;

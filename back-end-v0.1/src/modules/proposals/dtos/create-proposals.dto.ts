@@ -17,8 +17,5 @@ export class CreateProposalsDto {
 
     @IsEnum(StatusProposta)
     statusProposta!: StatusProposta;
-
-    @IsISO8601()
-    dataCriacao?: Date;
 }
 

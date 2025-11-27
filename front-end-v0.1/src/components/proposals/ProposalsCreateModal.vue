@@ -7,41 +7,32 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="proposal-title">Título da proposta:</label>
-                    <input type="text" id="proposal-title" placeholder="Título da proposta..." />
-                </div>
-
-                <div class="form-group">
                     <label for="company-name">Nome da empresa:</label>
-                    <select id="company-name">
-                        <option selected disabled>Selecione uma empresa</option>
-                        <option>Empresa A</option>
-                        <option>Empresa B</option>
+                    <select id="company-name" v-model="formData.idEmpresa" :disabled="loading">
+                        <option :value="null" disabled>Selecione uma empresa</option>
+                        <option v-for="company in companies" :key="company.idEmpresa" :value="company.idEmpresa">
+                            {{ company.nomeFantasia }}
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="proposal-value">Valor (R$):</label>
-                    <input type="number" id="proposal-value" value="0" />
+                    <input type="number" id="proposal-value" v-model.number="formData.valorProposta" step="0.01" min="0" :disabled="loading" />
                 </div>
 
                 <div class="form-group">
                     <label for="valid-until">Válido até:</label>
-                    <input type="date" id="valid-until" placeholder="dd/mm/yyyy" />
-                </div>
-
-                <div class="form-group">
-                    <label for="services">Serviços (separar por vírgula):</label>
-                    <input type="text" id="services" placeholder="Insira serviços a serem prestados" />
+                    <input type="date" id="valid-until" v-model="formData.prazoValidade" :disabled="loading" />
                 </div>
 
                 <div class="form-group">
                     <label for="responsible">Responsável:</label>
-                    <select id="responsible">
-                        <option selected disabled>Selecione um responsável pela tarefa</option>
-                        <option>Responsável A</option>
-                        <option>Responsável B</option>
-                        <option>Responsável C</option>
+                    <select id="responsible" v-model="formData.idEmissor" :disabled="loading">
+                        <option :value="null" disabled>Selecione um responsável pela tarefa</option>
+                        <option v-for="user in users" :key="user.idUsuario" :value="user.idUsuario">
+                            {{ user.nomeCompleto }}
+                        </option>
                     </select>
                 </div>
 
@@ -65,19 +56,66 @@
             </div>
 
             <div class="modal-footer">
-                <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button">Criar proposta</button>
+                <button class="cancel-button" @click="$emit('close')" :disabled="loading">Cancelar</button>
+                <button class="create-button" @click="handleCreate" :disabled="loading || !isFormValid">
+                    {{ loading ? 'Criando...' : 'Criar proposta' }}
+                </button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
+import { ref, inject, onMounted, computed } from 'vue';
+import { getCompanies } from '@/api/companies';
+import { getUsers } from '@/api/users';
+import { createProposal } from '@/api/proposals';
+import { StatusProposta } from '@/api/types';
+import { useToast } from '@/composables/useToast';
 
-const alertModal = inject('alertModal', null)
+const emit = defineEmits(['close', 'created']);
+
+const alertModal = inject('alertModal', null);
+const toast = useToast();
 const fileInput = ref(null);
 const selectedFile = ref(null);
+const loading = ref(false);
+const companies = ref([]);
+const users = ref([]);
+
+const formData = ref({
+    idEmpresa: null,
+    idEmissor: null,
+    valorProposta: 0,
+    prazoValidade: '',
+});
+
+const isFormValid = computed(() => {
+    return formData.value.idEmpresa && 
+           formData.value.idEmissor && 
+           formData.value.valorProposta > 0 && 
+           formData.value.prazoValidade;
+});
+
+onMounted(async () => {
+    try {
+        const [companiesData, usersData] = await Promise.all([
+            getCompanies(),
+            getUsers()
+        ]);
+        companies.value = companiesData;
+        users.value = usersData;
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: 'Não foi possível carregar empresas ou usuários.',
+                type: 'error'
+            });
+        }
+    }
+});
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -106,6 +144,47 @@ const removeSelectedFile = () => {
     selectedFile.value = null;
     if (fileInput.value) {
         fileInput.value.value = '';
+    }
+};
+
+const handleCreate = async () => {
+    if (!isFormValid.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Campos obrigatórios',
+                message: 'Por favor, preencha todos os campos obrigatórios.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
+    loading.value = true;
+    try {
+        const proposalData = {
+            idEmpresa: formData.value.idEmpresa,
+            idEmissor: formData.value.idEmissor,
+            valorProposta: formData.value.valorProposta,
+            prazoValidade: formData.value.prazoValidade,
+            statusProposta: StatusProposta.EM_ANALISE
+        };
+
+        await createProposal(proposalData);
+        
+        toast.showToast('Proposta criada com sucesso!', 'success');
+        emit('created');
+        emit('close');
+    } catch (error) {
+        console.error('Erro ao criar proposta:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: error.response?.data?.message || 'Não foi possível criar a proposta.',
+                type: 'error'
+            });
+        }
+    } finally {
+        loading.value = false;
     }
 };
 </script>

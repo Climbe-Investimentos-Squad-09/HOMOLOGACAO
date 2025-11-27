@@ -5,7 +5,7 @@ import FileType from 'file-type';
 import { driveService } from "./drive.service";
 import {SendDriveDTO} from "./dtos/drive.dto";
 
-@Controller('documents')
+@Controller('drive')
 export class DriveController{
   constructor(
       private readonly DriveService: driveService,

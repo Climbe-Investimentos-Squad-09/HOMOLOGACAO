@@ -8,43 +8,46 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="document-name">Nome do documento:</label>
-                    <input type="text" id="document-name" placeholder="ex: NomedaEmpresa_Balanco2025.pdf" />
+                    <input type="text" id="document-name" v-model="formData.name" placeholder="ex: NomedaEmpresa_Balanco2025.pdf" :disabled="loading" />
                 </div>
 
                 <div class="form-group">
                     <label for="document-type">Tipo de documento:</label>
-                    <select id="document-type">
-                        <option selected>Balanço da Empresa</option>
-                        <option>Demonstração de Resultados</option>
-                        <option>Fluxo de Caixa</option>
-                        <option>Outro</option>
+                    <select id="document-type" v-model="formData.tipo_documento" :disabled="loading">
+                        <option value="Balanço da Empresa">Balanço da Empresa</option>
+                        <option value="Demonstração de Resultados">Demonstração de Resultados</option>
+                        <option value="Fluxo de Caixa">Fluxo de Caixa</option>
+                        <option value="Outro">Outro</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="company-name">Nome da empresa:</label>
-                    <select id="company-name">
-                        <option selected disabled>Selecione uma empresa</option>
-                        <option>TechCorp Inc.</option>
-                        <option>DesignStudio Ltd.</option>
+                    <select id="company-name" v-model="formData.idEmpresa" :disabled="loading">
+                        <option :value="null" disabled>Selecione uma empresa</option>
+                        <option v-for="company in companies" :key="company.idEmpresa" :value="company.idEmpresa">
+                            {{ company.nomeFantasia }}
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="contract">Contrato:</label>
-                    <select id="contract">
-                        <option selected disabled>Selecione um contrato ativo</option>
-                        <option>CTR-001</option>
-                        <option>CTR-002</option>
+                    <select id="contract" v-model="formData.idContrato" :disabled="loading">
+                        <option :value="null">Selecione um contrato ativo</option>
+                        <option v-for="contract in contracts" :key="contract.idContrato" :value="contract.idContrato">
+                            Contrato #{{ contract.idContrato }}
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="responsible">Responsável:</label>
-                    <select id="responsible">
-                        <option selected disabled>Selecione um responsável pela tarefa</option>
-                        <option>Ana Ribeiro</option>
-                        <option>João Silva</option>
+                    <select id="responsible" v-model="formData.idResponsavel" :disabled="loading">
+                        <option :value="null" disabled>Selecione um responsável pela tarefa</option>
+                        <option v-for="user in users" :key="user.idUsuario" :value="user.idUsuario">
+                            {{ user.nomeCompleto }}
+                        </option>
                     </select>
                 </div>
 
@@ -69,20 +72,70 @@
             </div>
 
             <div class="modal-footer">
-                <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button">Adicionar documento</button>
+                <button class="cancel-button" @click="$emit('close')" :disabled="loading">Cancelar</button>
+                <button class="create-button" @click="handleCreate" :disabled="loading || !isFormValid">
+                    {{ loading ? 'Adicionando...' : 'Adicionar documento' }}
+                </button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
+import { ref, inject, onMounted, computed } from 'vue';
+import { getCompanies } from '@/api/companies';
+import { getUsers } from '@/api/users';
+import { getContracts } from '@/api/contracts';
+import { createDocument } from '@/api/documents';
+import { useToast } from '@/composables/useToast';
 
-const alertModal = inject('alertModal', null)
+const emit = defineEmits(['close', 'created']);
 
+const alertModal = inject('alertModal', null);
+const toast = useToast();
 const fileInput = ref(null);
 const selectedFile = ref(null);
+const loading = ref(false);
+const companies = ref([]);
+const users = ref([]);
+const contracts = ref([]);
+
+const formData = ref({
+    name: '',
+    tipo_documento: 'Balanço da Empresa',
+    idEmpresa: null,
+    idContrato: null,
+    idResponsavel: null
+});
+
+const isFormValid = computed(() => {
+    return formData.value.name && 
+           formData.value.tipo_documento && 
+           formData.value.idEmpresa && 
+           formData.value.idResponsavel;
+});
+
+onMounted(async () => {
+    try {
+        const [companiesData, usersData, contractsData] = await Promise.all([
+            getCompanies(),
+            getUsers(),
+            getContracts({ statusContrato: 'Ativo' })
+        ]);
+        companies.value = companiesData;
+        users.value = usersData;
+        contracts.value = contractsData;
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: 'Não foi possível carregar empresas, usuários ou contratos.',
+                type: 'error'
+            });
+        }
+    }
+});
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -111,6 +164,47 @@ const removeSelectedFile = () => {
     selectedFile.value = null;
     if (fileInput.value) {
         fileInput.value.value = '';
+    }
+};
+
+const handleCreate = async () => {
+    if (!isFormValid.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Campos obrigatórios',
+                message: 'Por favor, preencha todos os campos obrigatórios.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
+    loading.value = true;
+    try {
+        const documentData = {
+            name: formData.value.name,
+            tipo_documento: formData.value.tipo_documento,
+            idEmpresa: formData.value.idEmpresa,
+            idContrato: formData.value.idContrato || undefined,
+            idResponsavel: formData.value.idResponsavel
+        };
+
+        await createDocument(documentData);
+        
+        toast.showToast('Documento adicionado com sucesso!', 'success');
+        emit('created');
+        emit('close');
+    } catch (error) {
+        console.error('Erro ao criar documento:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: error.response?.data?.message || 'Não foi possível adicionar o documento.',
+                type: 'error'
+            });
+        }
+    } finally {
+        loading.value = false;
     }
 };
 </script>

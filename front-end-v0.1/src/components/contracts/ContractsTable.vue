@@ -2,7 +2,11 @@
   <div class="contracts-table-container card">
     <h2 class="card-title">Contratos ({{ contracts.length }})</h2>
 
-    <div v-if="contracts.length === 0" class="no-contracts-message">
+    <div v-if="loading" class="loading-message">
+      <p>Carregando contratos...</p>
+    </div>
+
+    <div v-else-if="contracts.length === 0" class="no-contracts-message">
       <p>Nenhum contrato encontrado.</p>
     </div>
 
@@ -82,6 +86,10 @@ const props = defineProps({
   contracts: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -116,7 +124,8 @@ const getStatusClass = (status) => {
   margin-bottom: 1.5rem;
 }
 
-.no-contracts-message {
+.no-contracts-message,
+.loading-message {
   text-align: center;
   padding: 2rem;
   color: #6C757D;

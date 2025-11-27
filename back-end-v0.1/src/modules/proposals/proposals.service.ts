@@ -42,7 +42,6 @@ export class ProposalsService {
       valorProposta: dto.valorProposta,
       prazoValidade: dto.prazoValidade,
       statusProposta: dto.statusProposta ?? StatusProposta.EM_ANALISE,
-      dataCriacao: dto.dataCriacao ? new Date(dto.dataCriacao) : undefined,
     });
 
     return this.proposalsRepo.save(proposal);

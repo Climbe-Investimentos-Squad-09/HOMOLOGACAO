@@ -19,6 +19,7 @@ import { User } from './modules/user/entities/user.entity';
 import { AuthzMiddleware } from './modules/auth/middlewares/authz.middleware';
 import { AuditModule } from './audit/audit.module';
 import { ReunioesModule } from './modules/meetings/meeting.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports:
@@ -44,6 +45,7 @@ import { ReunioesModule } from './modules/meetings/meeting.module';
       UserModule,
       AuditModule,
       ReunioesModule,
+      DocumentsModule,
     ],
 
     providers: [{ provide: APP_GUARD, useClass: RolesGuard },

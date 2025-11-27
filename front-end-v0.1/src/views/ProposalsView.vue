@@ -1,56 +1,56 @@
 <template>
   <div class="proposals-view">
     <ProposalsHeader @open-create-modal="isCreateModalOpen = true" @filters-changed="handleFiltersChange" />
-    <ProposalsTable :proposals="filteredProposals" />
-    <ProposalsCreateModal v-if="isCreateModalOpen" @close="isCreateModalOpen = false" />
+    <ProposalsTable :proposals="filteredProposals" :loading="loading" />
+    <ProposalsCreateModal v-if="isCreateModalOpen" @close="isCreateModalOpen = false" @created="loadProposals" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import ProposalsHeader from '../components/proposals/ProposalsHeader.vue';
 import ProposalsTable from '../components/proposals/ProposalsTable.vue';
 import ProposalsCreateModal from '../components/proposals/ProposalsCreateModal.vue';
+import { getProposals } from '@/api/proposals';
+import { StatusProposta } from '@/api/types';
 
 const isCreateModalOpen = ref(false);
 const selectedFilters = ref([]);
+const allProposals = ref([]);
+const loading = ref(false);
 
-const allProposals = ref([
-  {
-    id: 'PRP-001',
-    title: 'Software Development Services',
-    company: 'TechCorp Inc.',
-    status: 'Aceito',
-    value: '25.000,00',
-    validUntil: '04/02/2024',
-    responsible: 'Ana Ribeiro'
-  },
-  {
-    id: 'PRP-002',
-    title: 'Web Design Project',
-    company: 'DesignStudio Ltd.',
-    status: 'Revisão',
-    value: '15.000,00',
-    validUntil: '04/02/2024',
-    responsible: 'João Silva'
-  },
-  {
-    id: 'PRP-003',
-    title: 'Mobile App Development',
-    company: 'AppCorp Solutions',
-    status: 'Rascunho',
-    value: '35.000,00',
-    validUntil: '04/02/2024',
-    responsible: 'Maria Oliveira'
-  },
-]);
+const statusMap = {
+  'Aprovada': 'Aceito',
+  'Em_analise': 'Revisão',
+  'Recusada': 'Rascunho'
+};
+
+const loadProposals = async () => {
+  loading.value = true;
+  try {
+    const proposals = await getProposals();
+    allProposals.value = proposals.map(proposal => ({
+      id: proposal.idProposta,
+      title: `Proposta #${proposal.idProposta}`,
+      company: proposal.empresa?.nomeFantasia || 'N/A',
+      status: statusMap[proposal.statusProposta] || proposal.statusProposta,
+      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(proposal.valorProposta),
+      validUntil: new Date(proposal.prazoValidade).toLocaleDateString('pt-BR'),
+      responsible: proposal.atribuicoes?.[0]?.usuario?.nomeCompleto || 'N/A',
+      originalStatus: proposal.statusProposta
+    }));
+  } catch (error) {
+    console.error('Erro ao carregar propostas:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 const handleFiltersChange = (filters) => {
   selectedFilters.value = filters;
 };
 
 const filteredProposals = computed(() => {
-  
   if (selectedFilters.value.length === 0) {
     return allProposals.value;
   } else {
@@ -58,6 +58,10 @@ const filteredProposals = computed(() => {
       selectedFilters.value.includes(proposal.status)
     );
   }
+});
+
+onMounted(() => {
+  loadProposals();
 });
 </script>
 

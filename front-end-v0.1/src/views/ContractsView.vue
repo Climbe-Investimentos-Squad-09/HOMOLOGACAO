@@ -5,8 +5,8 @@
       @filters-changed="handleFiltersChange"
       @open-create-modal="openCreateModal"
     />
-    <ContractsCreateModal v-if="showCreateModal" @close="closeCreateModal" />
-    <ContractsTable :contracts="filteredContracts" />
+    <ContractsCreateModal v-if="showCreateModal" @close="closeCreateModal" @created="loadContracts" />
+    <ContractsTable :contracts="filteredContracts" :loading="loading" />
   </div>
 </template>
 
@@ -16,11 +16,14 @@ import { useRoute, useRouter } from 'vue-router';
 import ContractsHeader from '../components/contracts/ContractsHeader.vue';
 import ContractsTable from '../components/contracts/ContractsTable.vue';
 import ContractsCreateModal from '../components/contracts/ContractsCreateModal.vue';
+import { getContracts } from '@/api/contracts';
 
 const route = useRoute();
 const router = useRouter();
 
 const showCreateModal = ref(false);
+const allContracts = ref([]);
+const loading = ref(false);
 
 const props = defineProps({
   openModal: {
@@ -46,77 +49,36 @@ watch(() => route.name, (newRouteName) => {
   }
 }, { immediate: true });
 
+const loadContracts = async () => {
+  loading.value = true;
+  try {
+    const contracts = await getContracts();
+    allContracts.value = contracts.map(contract => ({
+      id: `CTR-${contract.idContrato}`,
+      title: `Contrato #${contract.idContrato}`,
+      company: contract.proposta?.empresa?.nomeFantasia || 'N/A',
+      status: contract.statusContrato,
+      value: contract.proposta ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.proposta.valorProposta) : 'N/A',
+      inicialDate: new Date(contract.dataCriacao).toLocaleDateString('pt-BR'),
+      finalDate: contract.dataEncerramento ? new Date(contract.dataEncerramento).toLocaleDateString('pt-BR') : 'N/A',
+      responsible: contract.compliance?.nomeCompleto || 'N/A'
+    }));
+  } catch (error) {
+    console.error('Erro ao carregar contratos:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
   if (props.openModal || route.name === 'criar-contrato') {
     showCreateModal.value = true;
   }
+  loadContracts();
 });
 
 const searchQuery = ref('');
 const selectedFilters = ref([]);
-
-const allContracts = ref([
-  {
-    id: 'CTR-001',
-    title: 'Software Development Services',
-    company: 'TechCorp Inc.',
-    status: 'Ativo',
-    value: '25.000,00',
-    inicialDate: '31/12/2023',
-    finalDate: '30/12/2024',
-    responsible: 'Ana Ribeiro'
-  },
-  {
-    id: 'CTR-002',
-    title: 'Web Design Project',
-    company: 'DesignStudio Ltd.',
-    status: 'Inativo',
-    value: '15.000,00',
-    inicialDate: '01/01/2024',
-    finalDate: '31/06/2024',
-    responsible: 'João Silva'
-  },
-  {
-    id: 'CTR-003',
-    title: 'Mobile App Development',
-    company: 'AppCorp Solutions',
-    status: 'Rascunho',
-    value: '35.000,00',
-    inicialDate: '15/02/2024',
-    finalDate: '15/08/2024',
-    responsible: 'Maria Oliveira'
-  },
-  {
-    id: 'CTR-004',
-    title: 'Database Migration',
-    company: 'DataTech Systems',
-    status: 'Revisão',
-    value: '20.000,00',
-    inicialDate: '01/03/2024',
-    finalDate: '30/04/2024',
-    responsible: 'Pedro Souza'
-  },
-  {
-    id: 'CTR-005',
-    title: 'Cloud Infrastructure Setup',
-    company: 'CloudFirst Inc.',
-    status: 'Ativo',
-    value: '40.000,00',
-    inicialDate: '10/01/2024',
-    finalDate: '10/12/2024',
-    responsible: 'Ana Ribeiro'
-  },
-  {
-    id: 'CTR-006',
-    title: 'Security Audit Services',
-    company: 'SecureNet Corp.',
-    status: 'Inativo',
-    value: '12.000,00',
-    inicialDate: '05/11/2023',
-    finalDate: '05/01/2024',
-    responsible: 'João Silva'
-  }
-]);
 
 const handleSearchChange = (query) => {
   searchQuery.value = query;

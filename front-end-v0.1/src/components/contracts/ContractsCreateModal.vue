@@ -7,41 +7,22 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="contract-title">Título do contrato:</label>
-                    <input type="text" id="contract-title" placeholder="Título do contrato..." />
-                </div>
-
-                <div class="form-group">
-                    <label for="company-name">Nome da empresa:</label>
-                    <select id="company-name">
-                        <option selected disabled>Selecione uma empresa</option>
-                        <option>Empresa A</option>
-                        <option>Empresa B</option>
+                    <label for="proposal-select">Proposta:</label>
+                    <select id="proposal-select" v-model="formData.idProposta" :disabled="loading">
+                        <option :value="null" disabled>Selecione uma proposta</option>
+                        <option v-for="proposal in proposals" :key="proposal.idProposta" :value="proposal.idProposta">
+                            Proposta #{{ proposal.idProposta }} - {{ proposal.empresa?.nomeFantasia || 'N/A' }} - R$ {{ formatCurrency(proposal.valorProposta) }}
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="contract-value">Valor (R$):</label>
-                    <input type="number" id="contract-value" value="0" />
-                </div>
-
-                <div class="form-group date-group">
-                    <div class="date-input">
-                        <label for="start-date">Data de início:</label>
-                        <input type="date" id="start-date" placeholder="dd/mm/yyyy" />
-                    </div>
-                    <div class="date-input">
-                        <label for="end-date">Data de fim:</label>
-                        <input type="date" id="end-date" placeholder="dd/mm/yyyy" />
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="company-name">Responsável:</label>
-                    <select id="company-name">
-                        <option selected disabled>Selecione um responsável pela tarefa</option>
-                        <option>Responsável A</option>
-                        <option>Responsável B</option>
+                    <label for="compliance-select">Compliance (Responsável):</label>
+                    <select id="compliance-select" v-model="formData.idCompliance" :disabled="loading">
+                        <option :value="null">Selecione um responsável (opcional)</option>
+                        <option v-for="user in users" :key="user.idUsuario" :value="user.idUsuario">
+                            {{ user.nomeCompleto }}
+                        </option>
                     </select>
                 </div>
 
@@ -66,19 +47,64 @@
             </div>
 
             <div class="modal-footer">
-                <button class="cancel-button" @click="$emit('close')">Cancelar</button>
-                <button class="create-button">Criar contrato</button>
+                <button class="cancel-button" @click="$emit('close')" :disabled="loading">Cancelar</button>
+                <button class="create-button" @click="handleCreate" :disabled="loading || !isFormValid">
+                    {{ loading ? 'Criando...' : 'Criar contrato' }}
+                </button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
+import { ref, inject, onMounted, computed } from 'vue';
+import { getProposals } from '@/api/proposals';
+import { getUsers } from '@/api/users';
+import { createContract } from '@/api/contracts';
+import { useToast } from '@/composables/useToast';
 
-const alertModal = inject('alertModal', null)
+const emit = defineEmits(['close', 'created']);
+
+const alertModal = inject('alertModal', null);
+const toast = useToast();
 const fileInput = ref(null);
 const selectedFile = ref(null);
+const loading = ref(false);
+const proposals = ref([]);
+const users = ref([]);
+
+const formData = ref({
+    idProposta: null,
+    idCompliance: null
+});
+
+const isFormValid = computed(() => {
+    return formData.value.idProposta !== null;
+});
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+onMounted(async () => {
+    try {
+        const [proposalsData, usersData] = await Promise.all([
+            getProposals(),
+            getUsers()
+        ]);
+        proposals.value = proposalsData;
+        users.value = usersData;
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: 'Não foi possível carregar propostas ou usuários.',
+                type: 'error'
+            });
+        }
+    }
+});
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -107,6 +133,45 @@ const removeSelectedFile = () => {
     selectedFile.value = null;
     if (fileInput.value) {
         fileInput.value.value = '';
+    }
+};
+
+const handleCreate = async () => {
+    if (!isFormValid.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Campos obrigatórios',
+                message: 'Por favor, selecione uma proposta.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
+    loading.value = true;
+    try {
+        const contractData = {
+            idProposta: formData.value.idProposta,
+            idCompliance: formData.value.idCompliance || undefined,
+            statusContrato: 'Ativo'
+        };
+
+        await createContract(contractData);
+        
+        toast.showToast('Contrato criado com sucesso!', 'success');
+        emit('created');
+        emit('close');
+    } catch (error) {
+        console.error('Erro ao criar contrato:', error);
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Erro',
+                message: error.response?.data?.message || 'Não foi possível criar o contrato.',
+                type: 'error'
+            });
+        }
+    } finally {
+        loading.value = false;
     }
 };
 </script>

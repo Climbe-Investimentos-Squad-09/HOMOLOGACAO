@@ -14,6 +14,8 @@ import { ProposalAssignee } from '../modules/proposals/entities/proposal-assigne
 import { Contract } from '../modules/contracts/entities/contracts.entity';
 import { ContractAssignee } from '../modules/contracts/entities/contract-assignee.entity';
 
+import { Document } from '../modules/documents/entities/documents.entity';
+
 import { Audit } from '../audit/entities/audit.entity';
 
 // Meetings
@@ -53,6 +55,7 @@ export const AppDataSource = new DataSource({
     ProposalAssignee,
     Contract,
     ContractAssignee,
+    Document,
     Audit,
     Reuniao,
     ReuniaoParticipante,

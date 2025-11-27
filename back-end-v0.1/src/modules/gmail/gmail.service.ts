@@ -85,12 +85,12 @@ export class gmailService{
 
   //Execução do fluxo após um período de tempo
   @Interval(300000) // 30 minutos
-  executarAutomatico() {
-    const emailList = this.listEmails();
+  async executarAutomatico() {
+    const emailList = await this.listEmails();
     let avlEmail = []
 
-    for (let i = 0; i < emailList.finally.length; i++){
-      avlEmail[i] = this.extractDataFromMessage(emailList[i]);
+    for (let i = 0; i < emailList.length; i++){
+      avlEmail[i] = this.extractDataFromMessage(emailList[i].data);
     }
 
   }
@@ -115,40 +115,42 @@ export class gmailService{
   }
 
   //Verificação de Condições
-  async extractDataFromMessage(
-    message: GmailMessage
-  ) {
-    // Extrair o snippet do Gmail
-    const snippet = message.snippet ?? "";
+  //import { gmail_v1 } from "googleapis";
+
+  async  extractDataFromMessage(
+    message: gmail_v1.Schema$Message
+  ): Promise<{ id: string | null; folderID: string | null }> {
+
+    // Extrair o snippet
+    const snippet: string = message.snippet ?? "";
 
     // Extrair tudo após "pasta:"
-    const match = snippet.match(/pasta:(.*)/); //Texto de email fixo, definido no drive.service
+    const match = snippet.match(/pasta:(.*)/);
 
-    // Pegar o Subject dos headers
+    // Buscar o header Subject
     const subjectHeader = message.payload?.headers?.find(
-      (h) => h.name.toLowerCase() === "subject"
+      (h) => h?.name?.toLowerCase() === "subject"
     );
 
-    const subject = subjectHeader?.value ?? "";
+    const subject: string = subjectHeader?.value ?? "";
 
-    // Verificar labels
-    const labels = message.labelIds ?? [];
+    // Labels
+    const labels: string[] = message.labelIds ?? [];
 
     const isUnread = labels.includes("UNREAD");
 
     if (subject === "Copiar Planilha" && isUnread) {
       return {
-        id: message.id,
+        id: message.id ?? null,
         folderID: match ? match[1].trim() : null,
       };
-    } else {
-      return {
-        id: null,
-        folderID: null,
-      };
     }
-  }
 
+    return {
+      id: null,
+      folderID: null,
+    };
+  }
 
   //Marcagem de Leitura
   async emailMarc(

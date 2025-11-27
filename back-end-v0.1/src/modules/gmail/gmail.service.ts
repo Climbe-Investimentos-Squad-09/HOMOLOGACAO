@@ -1,4 +1,5 @@
-import {SendEmailDTO} from "./dtos/gmail.dto";
+import {SendEmailDTO} from "./dtos/sendGmail.dto";
+import { GmailMessage } from "./dtos/interfaceGmail";
 
 import { google, gmail_v1 } from "googleapis";
 import { Base64 } from "js-base64";
@@ -6,10 +7,15 @@ import { OAuth2Client } from 'google-auth-library';
 import { Injectable, Inject } from '@nestjs/common';
 import { AuthModule } from "../auth/auth.module";
 
+import { Interval } from "@nestjs/schedule";
+import { driveService } from "../drive/drive.service";
+
 export class gmailService{
   private gmail: gmail_v1.Gmail;
 
-  constructor() {
+  constructor(
+    private DriveService: driveService,
+  ) {
     const oAuth2Client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -72,4 +78,89 @@ export class gmailService{
       return null;
     }
   }
+
+  //-------------------------------------------------------
+  //Cópia da Planilha - Fluxo Local do N8N
+  //-------------------------------------------------------
+
+  //Execução do fluxo após um período de tempo
+  @Interval(300000) // 30 minutos
+  executarAutomatico() {
+    const emailList = this.listEmails();
+    let avlEmail = []
+
+    for (let i = 0; i < emailList.finally.length; i++){
+      avlEmail[i] = this.extractDataFromMessage(emailList[i]);
+    }
+
+  }
+
+  //Listagem de E-mails recebidos - Máx 10
+  async listEmails(){
+    let emailList = [];
+    const res = await this.gmail.users.messages.list({
+      userId: "me",
+      maxResults: 10
+    });
+
+    const ids = res.data.messages?.map(m => m.id);
+
+    for(let i = 0; i < 10; i++){
+      if (ids?.[i]?.toString() !== null || ids?.[i]?.toString() !== undefined || ids?.[i]?.toString() !== ""){
+        emailList[i] = await this.gmail.users.messages.get({ userId: "me", id: ids?.[i]?.toString()})
+      }
+    }
+
+    return emailList
+  }
+
+  //Verificação de Condições
+  async extractDataFromMessage(
+    message: GmailMessage
+  ) {
+    // Extrair o snippet do Gmail
+    const snippet = message.snippet ?? "";
+
+    // Extrair tudo após "pasta:"
+    const match = snippet.match(/pasta:(.*)/); //Texto de email fixo, definido no drive.service
+
+    // Pegar o Subject dos headers
+    const subjectHeader = message.payload?.headers?.find(
+      (h) => h.name.toLowerCase() === "subject"
+    );
+
+    const subject = subjectHeader?.value ?? "";
+
+    // Verificar labels
+    const labels = message.labelIds ?? [];
+
+    const isUnread = labels.includes("UNREAD");
+
+    if (subject === "Copiar Planilha" && isUnread) {
+      return {
+        id: message.id,
+        folderID: match ? match[1].trim() : null,
+      };
+    } else {
+      return {
+        id: null,
+        folderID: null,
+      };
+    }
+  }
+
+
+  //Marcagem de Leitura
+  async emailMarc(
+    id: string
+  ){
+    this.gmail.users.messages.modify({
+      userId: "me",
+      id: id,
+      requestBody: {
+        removeLabelIds: ["UNREAD"]
+      }
+    });
+  }
+
 }

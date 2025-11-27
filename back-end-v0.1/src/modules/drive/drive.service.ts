@@ -3,23 +3,43 @@ import { google, drive_v3 } from "googleapis";
 import { AuthModule } from '../auth/auth.module';
 import { OAuth2Client } from 'google-auth-library';
 import { Injectable, Inject } from '@nestjs/common';
+import { File } from './entities/files.entity';
+
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as FS from 'fs/promises';
 import FileType from 'file-type';
 
 import { gmailService } from '../gmail/gmail.service';
 import  {SendDriveDTO}  from './dtos/drive.dto';
+import { CreateFileDto } from './dtos/create-file.dto';
+
+import { Companies } from '../companies/entities/companies.entity';
+import { Proposals } from '../proposals/entities/proposals.entity';
 
 @Injectable()
 export class driveService{
     private Drive: drive_v3.Drive;
+    private oAuth2Client; //Tentativa para obter email do usuário para registrar na entitty 'file'
     //Construtor
-    constructor(private GmailService: gmailService,) {
-        const oAuth2Client = new OAuth2Client(
+    constructor(
+            @InjectRepository(Companies)
+            private readonly companiesRepo: Repository<Companies>,
+
+            @InjectRepository(Proposals)
+            private readonly proposalsRepo: Repository<Proposals>,
+
+            @InjectRepository(File)
+            private readonly filesRepo: Repository<File>,
+
+            private GmailService: gmailService,
+        ) {
+        this.oAuth2Client = new OAuth2Client(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
         process.env.GOOGLE_REDIRECT_URI
         );
-        oAuth2Client.setCredentials({
+        this.oAuth2Client.setCredentials({
             access_token: 'SEU_ACCESS_TOKEN_AQUI',
             refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
             scope: 'https://www.googleapis.com/auth/drive',
@@ -56,6 +76,17 @@ export class driveService{
         }
     }
 
+    //Retornar email do usuário
+    async getEmailFromIdToken(idToken: string): Promise<string> {
+        const ticket = await this.oAuth2Client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        return payload?.email ?? "";
+    }
+
     //Enviar Documentos. Query: arquivo, tipo_documento, empresa_id
      async sendDocument(
         data: SendDriveDTO,
@@ -63,14 +94,6 @@ export class driveService{
     ){
         const nome = data.name;
         let id = await this.searchFolder(nome);
-
-        if(id !== "" && id !== undefined){
-            
-        }else{
-            let valor = await this.createFolder(nome);
-       
-            if (valor !== undefined) id = valor ?? "";
-        }
 
         try{
             //Metadados
@@ -92,6 +115,30 @@ export class driveService{
                 media: media, 
                 fields: "id"
             });
+
+            if(
+                (response.data.id !== "" && response.data.id !== undefined  && response.data.id !== null) &&
+                (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
+                (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
+                ){
+                
+                if(this.oAuth2Client.credentials.id_token !== "" && this.oAuth2Client.credentials.id_token !== undefined  && this.oAuth2Client.credentials.id_token !== null){
+                    this.registerFile({
+                        idArquivo: response.data.id,
+                        
+                        nomeArquivo: response.data.name,
+                    
+                        nomeEmpresa: data.name,
+                    
+                        urlArquivo: response.data.driveId,
+                    
+                        emailUsuario: await this.getEmailFromIdToken(await this.oAuth2Client.credentials.id_token), //Inserir o id do token gerado pelo Oauth
+                    
+                        dataEnvio: new Date,
+                    })
+                }
+            }
+
             return response;
         }catch (err) {
             throw err;
@@ -177,15 +224,52 @@ export class driveService{
     }
 
     async createFolder(
-        nome: string
+        nome: string,
+        id: any,
+        empr: boolean
     ){
+        const emailProprietario = ""; //Definir email fixo (Dono da Planilha) para cópia do arquivo
+
+        // Metadados da Pasta
+        let fileMetadata = {}
+
+        //Nome da pastaProposta, se não for definida
+        let nomeProposta = nome;
         
-        const emailProprietario = "caio.chagas@souunit.com.br";
-        // The metadata for the new folder.
-        const fileMetadata = {
-            name: nome,
-            mimeType: 'application/vnd.google-apps.folder',
-        };
+        //Criação com, ou sem, Pasta Mãe
+        //Para pastas de propostas e pastas de empresas
+        if((id == undefined && empr!)|| (id == null && empr!)){
+            if(nome == "" || nome == undefined || nome == null){
+                let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
+                .where('u.idEmpresa = :id', { idEmpresa: id })
+                .getCount();
+
+                nomeProposta = "Proposta", (await qntPropostas) + 1
+            }
+            
+            
+            const el = await this.companiesRepo.createQueryBuilder('u')
+            .select(['u.nomeFantasia'])
+            .where('u.idEmpresa = :id', { idEmpresa: id })
+            .getOne();
+            
+            let val;
+
+            if(el !== null){
+                val = await this.searchFolder(el.nomeFantasia);
+            }
+
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [`${val}`]
+            };
+        }else{
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
+        }
 
         // Create the new folder.
         const file = await this.Drive.files.create({
@@ -200,17 +284,46 @@ export class driveService{
             this.inviteUsertoFolder(emailProprietario, file.data.id)
         }
 
-        this.GmailService.sendEmail(
-            {
-                "toEmailAddress": emailProprietario,
-                    
-                "messageSubject": "Copiar Planilha",
-                    
-                "bodyText": "Insira a planilha para a pasta: " + file.data.id
-            }
-        );
+        if(empr!){
+            this.GmailService.sendEmail(
+                {
+                    "toEmailAddress": emailProprietario,
+                        
+                    "messageSubject": "Copiar Planilha",
+                        
+                    "bodyText": "Insira a planilha para a pasta: " + file.data.id
+                }
+            );
+        }
 
         return file.data.id?.toString();
     }
 
+    async registerFile(dto: CreateFileDto): Promise<File> {
+        const file = this.filesRepo.create({
+              idArquivo: { idArquivo: dto.idArquivo } as any,
+              nomeArquivo: { nomeArquivo: dto.nomeArquivo } as any,
+              nomeEmpresa: { nomeEmpresa: dto.nomeEmpresa } as any,
+              urlArquivo: { urlArquivo: dto.urlArquivo } as any,
+              emailUsuario: { emailUsuario: dto.emailUsuario } as any,
+              dataEnvio: { dataEnvio: dto.dataEnvio } as any,
+            });
+        
+            return this.filesRepo.save(file);
+    }
+
+    //-------------------------------------------------------
+    //Cópia da Planilha - Fluxo Local do N8N
+    //-------------------------------------------------------
+    async copyFile(
+        id:string
+    ){
+        const copy = await this.Drive.files.copy({
+            fileId: "10UZHgd8KE-3Joo1zx7zwN6gnsfiYlFzB", //Id Fixo
+            requestBody: {
+                parents: [id]   // nova pasta
+            }
+        });
+        
+    }
 }

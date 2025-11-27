@@ -6,15 +6,18 @@
   "scripts": {
     "start": "ts-node src/main.ts",
     "start:dev": "ts-node-dev --respawn src/main.ts",
-    "build": "tsc",
+    "build": "nest build",
     "start:prod": "node dist/main.js",
     "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts",
     "update-permissions": "ts-node -r tsconfig-paths/register src/scripts/update-admin-permissions.ts"
   },
   "dependencies": {
+    "@nestjs-modules/mailer": "^2.0.2",
+    "@nestjs/cli": "^11.0.10",
     "@nestjs/common": "^11.1.6",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.6",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.1.6",
     "@nestjs/swagger": "^11.2.1",

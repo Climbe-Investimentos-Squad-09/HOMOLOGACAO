@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Param, Put, Delete, Body, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { gmailService } from "./gmail.service";
-import {SendEmailDTO} from "./dtos/gmail.dto";
+import {SendEmailDTO} from "./dtos/sendGmail.dto";
 
 @Controller('gmail')
 export class gmailController{

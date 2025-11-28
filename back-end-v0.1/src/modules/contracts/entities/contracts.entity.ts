@@ -34,7 +34,7 @@ export class Contract {
 
   @Column({
     type: 'enum',
-    enum: ['Ativo', 'Encerrado', 'Rescindido'],
+    enum: ['Ativo', 'Encerrado', 'Rescindido', 'Em_revisao'],
     default: 'Ativo'
   })
   statusContrato!: string;
@@ -44,6 +44,12 @@ export class Contract {
 
   @Column({ type: 'date', nullable: true })
   dataEncerramento?: Date;
+
+  @Column({ type: 'date', nullable: true })
+  dataInicio?: Date;
+
+  @Column({ type: 'date', nullable: true })
+  dataFim?: Date;
 
   @OneToMany(() => ContractAssignee, (a: ContractAssignee) => a.contrato, { cascade: true })
 atribuicoes!: ContractAssignee[];

@@ -42,10 +42,24 @@
             <span class="contract-badge">{{ document.contract }}</span>
           </td>
           <td>
-            <span :class="[
-              'status-badge',
-              getStatusClass(document.status)
-            ]">
+            <select 
+              v-if="canChangeStatus"
+              :value="document.status"
+              @change="handleStatusChange(document, $event)"
+              :class="['status-select', getStatusSelectClass(document.status)]"
+            >
+              <option value="Revisão" class="option-review">Revisão</option>
+              <option value="Aceito" class="option-accepted">Aceito</option>
+              <option value="Rejeitado" class="option-rejected">Rejeitado</option>
+              <option value="Validado" class="option-validated">Validado</option>
+            </select>
+            <span 
+              v-else
+              :class="[
+                'status-badge',
+                getStatusClass(document.status)
+              ]"
+            >
               {{ document.status }}
             </span>
           </td>
@@ -85,6 +99,11 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
+import { isComplianceOrAdmin } from '@/utils/roleCheck'
+import api from '@/api/http'
+
 const props = defineProps({
   documents: {
     type: Array,
@@ -95,6 +114,32 @@ const props = defineProps({
     default: false
   }
 });
+
+const emit = defineEmits(['refresh'])
+const { success, error } = useToast()
+const canChangeStatus = ref(false)
+
+const checkPermission = async () => {
+  canChangeStatus.value = await isComplianceOrAdmin()
+}
+
+const handleStatusChange = async (document, event) => {
+  try {
+    const newStatus = event.target.value
+    const docId = document.rawDocument?.idDocumento || document.id
+    
+    await api.patch(`/documents/${docId}/status`, { status: newStatus })
+    document.status = newStatus
+    if (document.rawDocument) {
+      document.rawDocument.status = newStatus
+    }
+    
+    success('Status do documento atualizado com sucesso!')
+    emit('refresh')
+  } catch (err) {
+    error(err.response?.data?.message || 'Erro ao atualizar status do documento')
+  }
+}
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -109,6 +154,24 @@ const getStatusClass = (status) => {
       return '';
   }
 };
+
+const getStatusSelectClass = (status) => {
+  switch (status) {
+    case 'Aceito':
+    case 'Validado':
+      return 'status-select-accepted';
+    case 'Rejeitado':
+      return 'status-select-rejected';
+    case 'Revisão':
+      return 'status-select-review';
+    default:
+      return '';
+  }
+};
+
+onMounted(() => {
+  checkPermission()
+})
 </script>
 
 <style scoped>
@@ -238,5 +301,99 @@ const getStatusClass = (status) => {
   font-size: 0.90rem;
   font-weight: 400;
   display: inline-block;
+}
+
+.status-select {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-select:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(60, 110, 108, 0.15);
+}
+
+.status-select-accepted {
+  background-color: #B6F8BB;
+  color: #018D0B;
+  border-color: #B5EDB9;
+}
+
+.status-select-accepted:hover {
+  background-color: #A0F5A7;
+  border-color: #8FE896;
+}
+
+.status-select-validated {
+  background-color: #B6F8BB;
+  color: #018D0B;
+  border-color: #B5EDB9;
+}
+
+.status-select-validated:hover {
+  background-color: #A0F5A7;
+  border-color: #8FE896;
+}
+
+.status-select-rejected {
+  background-color: #FFCFCF;
+  color: #AE3B3B;
+  border-color: #FFB9B9;
+}
+
+.status-select-rejected:hover {
+  background-color: #FFB9B9;
+  border-color: #FF9F9F;
+}
+
+.status-select-review {
+  background-color: #FDFFCE;
+  color: #B1A951;
+  border-color: #E5E6B2;
+}
+
+.status-select-review:hover {
+  background-color: #F9FB9E;
+  border-color: #D5D78A;
+}
+
+.status-select option {
+  padding: 0.75rem;
+  font-weight: 500;
+}
+
+.status-select option.option-accepted,
+.status-select option.option-validated {
+  background-color: #B6F8BB;
+  color: #018D0B;
+}
+
+.status-select option.option-rejected {
+  background-color: #FFCFCF;
+  color: #AE3B3B;
+}
+
+.status-select option.option-review {
+  background-color: #FDFFCE;
+  color: #B1A951;
 }
 </style>

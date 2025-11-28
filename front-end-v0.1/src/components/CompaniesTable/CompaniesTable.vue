@@ -44,7 +44,7 @@
             <td class="contracts-cell">
               <div class="contracts-info">
                 <i class="bi bi-file-earmark-text"></i>
-                <span>{{ (company.contratos && company.contratos.length) || 0 }}</span>
+                <span>{{ getActiveContractsCount(company) }} ativo(s)</span>
               </div>
             </td>
             <td class="actions-cell">
@@ -142,6 +142,51 @@ export default {
 
     getStatusText(company) {
       return this.isCompanyComplete(company) ? 'Completo' : 'Pré-cadastro'
+    },
+
+    getActiveContractsCount(company) {
+      if (!company.contratos || !Array.isArray(company.contratos)) {
+        if (company.propostas && Array.isArray(company.propostas)) {
+          const contracts = company.propostas
+            .filter(p => p.contrato)
+            .map(p => p.contrato)
+          if (contracts.length === 0) return 0
+          company.contratos = contracts
+        } else {
+          return 0
+        }
+      }
+      
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      return company.contratos.filter(contract => {
+        if (!contract) return false
+        
+        if (contract.statusContrato === 'Ativo' || contract.statusContrato === 'Em_revisao') {
+          if (contract.dataFim) {
+            const dataFim = new Date(contract.dataFim)
+            dataFim.setHours(0, 0, 0, 0)
+            if (today > dataFim) return false
+          }
+          if (contract.dataInicio) {
+            const dataInicio = new Date(contract.dataInicio)
+            dataInicio.setHours(0, 0, 0, 0)
+            if (today < dataInicio) return false
+          }
+          return true
+        }
+        
+        if (contract.dataInicio && contract.dataFim) {
+          const dataInicio = new Date(contract.dataInicio)
+          const dataFim = new Date(contract.dataFim)
+          dataInicio.setHours(0, 0, 0, 0)
+          dataFim.setHours(0, 0, 0, 0)
+          return today >= dataInicio && today <= dataFim && contract.statusContrato !== 'Encerrado' && contract.statusContrato !== 'Rescindido'
+        }
+        
+        return contract.statusContrato === 'Ativo'
+      }).length
     },
 
     async addCompany() {

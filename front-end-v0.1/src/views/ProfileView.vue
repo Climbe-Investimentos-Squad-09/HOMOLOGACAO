@@ -23,9 +23,14 @@
               <input 
                 type="text" 
                 v-model="formData.cpf"
-                :disabled="true"
-                placeholder="CPF não pode ser alterado"
+                :disabled="loading || (userData?.cpf && userData.cpf.trim() !== '')"
+                placeholder="000.000.000-00"
+                @input="handleCPFInput"
+                maxlength="14"
               />
+              <small v-if="!userData?.cpf || userData.cpf.trim() === ''" class="field-hint">
+                Preencha seu CPF se ainda não foi cadastrado
+              </small>
             </div>
             <div class="form-group">
               <label>Email:</label>
@@ -42,6 +47,8 @@
                 v-model="formData.contato"
                 :disabled="loading"
                 placeholder="(00) 00000-0000"
+                @input="handlePhoneInput"
+                maxlength="15"
               />
             </div>
           </div>
@@ -96,6 +103,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getUserById, updateUser } from '@/api/users'
 import { getRoleById } from '@/api/roles'
 import { useToast } from '@/composables/useToast'
+import { maskCPF, maskPhone, unmask } from '@/utils/masks'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -124,12 +132,28 @@ const formattedDate = computed(() => {
 
 const hasChanges = computed(() => {
   if (!userData.value) return false
+  const currentCPF = userData.value.cpf || ''
+  const currentContato = userData.value.contato || ''
+  const formCPF = unmask(formData.value.cpf || '')
+  const formContato = unmask(formData.value.contato || '')
+  
   return (
     formData.value.nomeCompleto !== userData.value.nomeCompleto ||
     formData.value.email !== userData.value.email ||
-    formData.value.contato !== (userData.value.contato || '')
+    formContato !== currentContato ||
+    (formCPF !== currentCPF && (!currentCPF || currentCPF.trim() === ''))
   )
 })
+
+const handleCPFInput = (event) => {
+  const unmasked = unmask(event.target.value)
+  formData.value.cpf = maskCPF(unmasked)
+}
+
+const handlePhoneInput = (event) => {
+  const unmasked = unmask(event.target.value)
+  formData.value.contato = maskPhone(unmasked)
+}
 
 const loadUserData = async () => {
   try {
@@ -145,8 +169,8 @@ const loadUserData = async () => {
     formData.value = {
       nomeCompleto: data.nomeCompleto || '',
       email: data.email || '',
-      cpf: data.cpf || '',
-      contato: data.contato || ''
+      cpf: data.cpf ? maskCPF(data.cpf) : '',
+      contato: data.contato ? maskPhone(data.contato) : ''
     }
 
     if (data.cargo) {
@@ -206,7 +230,14 @@ const handleSave = async () => {
     const updateDto = {
       nomeCompleto: formData.value.nomeCompleto,
       email: formData.value.email,
-      contato: formData.value.contato || undefined
+      contato: formData.value.contato ? unmask(formData.value.contato) : undefined
+    }
+    
+    if (!userData.value.cpf || userData.value.cpf.trim() === '') {
+      const cpfUnmasked = unmask(formData.value.cpf || '')
+      if (cpfUnmasked.length === 11) {
+        updateDto.cpf = cpfUnmasked
+      }
     }
 
     await updateUser(userIdToUpdate, updateDto)

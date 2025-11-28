@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UsePipes, ValidationPipe, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CreateDocumentDto } from './dtos/create-document.dto';
+import { UpdateDocumentStatusDto } from './dtos/update-document-status.dto';
 import { Auditable } from '../../audit/auditable.decorator';
 import { AuditAction } from '../../audit/entities/audit.entity';
 
@@ -47,6 +48,16 @@ export class DocumentsController {
   @ApiParam({ name: 'id', type: String })
   remove(@Param('id') id: string) {
     return this.documentsService.delete(+id);
+  }
+
+  @Permissions('documentos_juridicos:editar')
+  @Auditable({ entity: 'documents', action: AuditAction.STATUS_CHANGE, entityIdParam: 'id', loadBefore: true })
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Altera status do documento' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateDocumentStatusDto })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateDocumentStatusDto, @Req() req: any) {
+    return this.documentsService.updateStatus(+id, dto, req.user);
   }
 }
 

@@ -36,6 +36,8 @@
             id="phone" 
             placeholder="(11) 99999-9999"
             v-model="formData.contato"
+            @input="handlePhoneInput"
+            maxlength="15"
           />
         </div>
 
@@ -67,6 +69,7 @@ import { ref, onMounted } from 'vue'
 import { updateUser, deleteUser } from '@/api/users'
 import { useToast } from '@/composables/useToast'
 import { useConfirmModal } from '@/composables/useConfirmModal'
+import { maskPhone, unmask } from '@/utils/masks'
 
 const props = defineProps({
   user: {
@@ -95,6 +98,14 @@ const loadUserData = () => {
     email: props.user.rawUser?.email || props.user.email || '',
     contato: props.user.rawUser?.contato || props.user.contactPhone || ''
   }
+  if (formData.value.contato) {
+    formData.value.contato = maskPhone(formData.value.contato)
+  }
+}
+
+const handlePhoneInput = (event) => {
+  const unmasked = unmask(event.target.value)
+  formData.value.contato = maskPhone(unmasked)
 }
 
 const handleSave = async () => {
@@ -112,7 +123,7 @@ const handleSave = async () => {
     await updateUser(props.user.id, {
       nomeCompleto: formData.value.nomeCompleto,
       email: formData.value.email,
-      contato: formData.value.contato || undefined
+      contato: formData.value.contato ? unmask(formData.value.contato) : undefined
     })
     
     success('Usuário atualizado com sucesso!')
@@ -134,7 +145,17 @@ const handleSave = async () => {
   }
 }
 
-const handleDelete = () => {
+const handleDelete = async () => {
+  const { checkCanDeleteUser } = await import('@/utils/hierarchy')
+  
+  const targetUser = props.user.rawUser || props.user
+  const canDeleteResult = await checkCanDeleteUser(targetUser)
+  
+  if (!canDeleteResult.canDelete) {
+    error(canDeleteResult.reason || 'Você não pode deletar este usuário devido à hierarquia')
+    return
+  }
+  
   confirmModal.openModal({
     title: 'Excluir usuário',
     message: 'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',

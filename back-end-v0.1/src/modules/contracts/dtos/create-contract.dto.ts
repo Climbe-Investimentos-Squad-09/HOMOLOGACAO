@@ -19,4 +19,12 @@ export class CreateContractDto {
   @ValidateIf((o) => o.statusContrato === StatusContrato.Encerrado || o.statusContrato === StatusContrato.Rescindido)
   @IsISO8601()
   dataEncerramento?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  dataInicio?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  dataFim?: string;
 }

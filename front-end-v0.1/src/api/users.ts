@@ -44,6 +44,7 @@ export interface UpdateUserDto {
   nomeCompleto?: string
   email?: string
   contato?: string
+  cpf?: string
   senha?: string
 }
 

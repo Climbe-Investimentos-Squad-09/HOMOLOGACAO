@@ -151,10 +151,11 @@ const canViewAuthorizations = computed(() => {
   return hasRole.value && permissions.value.includes('usuarios:visualizar')
 })
 
-const canViewAudits = computed(() => {
-  if (!user.value?.profile) return false
-  return hasRole.value
-})
+const canViewAudits = ref(false)
+
+const checkAuditAccess = async () => {
+  canViewAudits.value = await canAccessAudit()
+}
 
 const loadRoleName = async () => {
   if (user.value?.profile) {
@@ -169,6 +170,7 @@ const loadRoleName = async () => {
 
 onMounted(async () => {
   loadRoleName()
+  checkAuditAccess()
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()
   }

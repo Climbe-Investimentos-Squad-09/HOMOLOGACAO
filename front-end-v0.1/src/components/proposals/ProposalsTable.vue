@@ -20,6 +20,7 @@
           <th>Valor</th>
           <th>Válido até</th>
           <th>Responsável</th>
+          <th>Criador</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -29,10 +30,23 @@
           <td>{{ proposal.title }}</td>
           <td>{{ proposal.company }}</td>
           <td>
-            <span :class="[
-              'status-badge',
-              getStatusClass(proposal.status)
-            ]">
+            <select 
+              v-if="canChangeStatus"
+              :value="getStatusValue(proposal)"
+              @change="handleStatusChange(proposal, $event)"
+              :class="['status-select', getStatusSelectClass(getStatusValue(proposal))]"
+            >
+              <option value="Revisão" class="option-review">Revisão</option>
+              <option value="Aceito" class="option-accepted">Aceito</option>
+              <option value="Rascunho" class="option-draft">Rascunho</option>
+            </select>
+            <span 
+              v-else
+              :class="[
+                'status-badge',
+                getStatusClass(proposal.status)
+              ]"
+            >
               {{ proposal.status }}
             </span>
           </td>
@@ -41,6 +55,11 @@
           <td>
             <span class="responsible-badge">
               {{ proposal.responsible }}
+            </span>
+          </td>
+          <td>
+            <span class="responsible-badge">
+              {{ proposal.creator || 'Não informado' }}
             </span>
           </td>
           <td class="actions-cell">
@@ -83,6 +102,11 @@
 </template>
 
 <script setup>
+import { ref, onMounted, computed } from 'vue'
+import { updateProposalStatus } from '@/api/proposals'
+import { useToast } from '@/composables/useToast'
+import { isComplianceOrAdmin } from '@/utils/roleCheck'
+
 const props = defineProps({
   proposals: {
     type: Array,
@@ -93,6 +117,49 @@ const props = defineProps({
     default: false
   }
 });
+
+const emit = defineEmits(['refresh'])
+const { success, error } = useToast()
+const canChangeStatus = ref(false)
+
+const statusMap = {
+  'Aceito': 'Aprovada',
+  'Revisão': 'Em_analise',
+  'Rascunho': 'Recusada'
+}
+
+const reverseStatusMap = {
+  'Aprovada': 'Aceito',
+  'Em_analise': 'Revisão',
+  'Recusada': 'Rascunho'
+}
+
+const checkPermission = async () => {
+  canChangeStatus.value = await isComplianceOrAdmin()
+}
+
+const getStatusValue = (proposal) => {
+  if (proposal.originalStatus) {
+    return reverseStatusMap[proposal.originalStatus] || proposal.status
+  }
+  return proposal.status
+}
+
+const handleStatusChange = async (proposal, event) => {
+  try {
+    const newStatus = event.target.value
+    const apiStatus = statusMap[newStatus]
+    
+    await updateProposalStatus(proposal.id, apiStatus)
+    proposal.status = newStatus
+    proposal.originalStatus = apiStatus
+    
+    success('Status da proposta atualizado com sucesso!')
+    emit('refresh')
+  } catch (err) {
+    error(err.response?.data?.message || 'Erro ao atualizar status da proposta')
+  }
+}
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -106,6 +173,23 @@ const getStatusClass = (status) => {
       return '';
   }
 };
+
+const getStatusSelectClass = (status) => {
+  switch (status) {
+    case 'Aceito':
+      return 'status-select-accepted';
+    case 'Revisão':
+      return 'status-select-review';
+    case 'Rascunho':
+      return 'status-select-draft';
+    default:
+      return '';
+  }
+};
+
+onMounted(() => {
+  checkPermission()
+})
 </script>
 
 <style scoped>
@@ -210,5 +294,87 @@ const getStatusClass = (status) => {
   font-size: 0.90rem;
   font-weight: 400;
   display: inline-block;
+}
+
+.status-select {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-select:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(60, 110, 108, 0.15);
+}
+
+.status-select-accepted {
+  background-color: #B6F8BB;
+  color: #018D0B;
+  border-color: #B5EDB9;
+}
+
+.status-select-accepted:hover {
+  background-color: #A0F5A7;
+  border-color: #8FE896;
+}
+
+.status-select-review {
+  background-color: #FDFFCE;
+  color: #B1A951;
+  border-color: #E5E6B2;
+}
+
+.status-select-review:hover {
+  background-color: #F9FB9E;
+  border-color: #D5D78A;
+}
+
+.status-select-draft {
+  background-color: #F6F6F6;
+  color: #6B6B6B;
+  border-color: #E9E9E9;
+}
+
+.status-select-draft:hover {
+  background-color: #EBEBEB;
+  border-color: #D9D9D9;
+}
+
+.status-select option {
+  padding: 0.75rem;
+  font-weight: 500;
+}
+
+.status-select option.option-accepted {
+  background-color: #B6F8BB;
+  color: #018D0B;
+}
+
+.status-select option.option-review {
+  background-color: #FDFFCE;
+  color: #B1A951;
+}
+
+.status-select option.option-draft {
+  background-color: #F6F6F6;
+  color: #6B6B6B;
 }
 </style>

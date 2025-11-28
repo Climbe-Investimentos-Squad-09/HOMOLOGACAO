@@ -97,7 +97,11 @@ const getStatusClass = (status) => {
   switch (status) {
     case 'Ativo':
       return 'status-active';
+    case 'Em revisão':
+    case 'Em_revisao':
+      return 'status-review';
     case 'Inativo':
+    case 'Encerrado':
       return 'status-inactive';
     case 'Rascunho':
       return 'status-draft';

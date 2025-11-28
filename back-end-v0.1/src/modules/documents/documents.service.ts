@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Document } from './entities/documents.entity';
+import { Document, StatusDocumento } from './entities/documents.entity';
 import { CreateDocumentDto } from './dtos/create-document.dto';
 import { Companies } from '../companies/entities/companies.entity';
 import { Contract } from '../contracts/entities/contracts.entity';
@@ -101,6 +101,24 @@ export class DocumentsService {
     }
 
     await this.documentsRepo.remove(document);
+  }
+
+  async updateStatus(id: number, dto: { status: StatusDocumento }, user?: any): Promise<Document> {
+    if (!id) throw new BadRequestException('ID do documento inválido');
+    if (!dto?.status) throw new BadRequestException('status é obrigatório');
+
+    if (user) {
+      const roleName = user.cargo?.nome || user.cargo?.nomeCargo
+      if (!roleName || !['SysAdmin', 'Compliance'].includes(roleName)) {
+        throw new BadRequestException('Apenas Compliance e Admin podem alterar o status de documentos');
+      }
+    }
+
+    const document = await this.documentsRepo.findOne({ where: { idDocumento: id } });
+    if (!document) throw new NotFoundException('Documento não encontrado');
+
+    document.status = dto.status;
+    return this.documentsRepo.save(document);
   }
 }
 

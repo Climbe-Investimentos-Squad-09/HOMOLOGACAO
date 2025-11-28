@@ -18,6 +18,8 @@ export interface Contract {
   statusContrato: string
   dataCriacao: string
   dataEncerramento?: string
+  dataInicio?: string
+  dataFim?: string
 }
 
 export interface ContractFilters {
@@ -52,6 +54,8 @@ export interface CreateContractDto {
   idCompliance?: number
   statusContrato?: string
   dataEncerramento?: string
+  dataInicio?: string
+  dataFim?: string
 }
 
 export async function createContract(dto: CreateContractDto): Promise<Contract> {

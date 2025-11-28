@@ -150,11 +150,11 @@ const canViewCompanies = computed(() => {
 const canViewAuthorizations = computed(() => {
   return hasRole.value && permissions.value.includes('usuarios:visualizar')
 })
-const canViewAudits = ref(false)
 
-const checkAuditAccess = async () => {
-  canViewAudits.value = await canAccessAudit()
-}
+const canViewAudits = computed(() => {
+  if (!user.value?.profile) return false
+  return hasRole.value
+})
 
 const loadRoleName = async () => {
   if (user.value?.profile) {
@@ -169,7 +169,6 @@ const loadRoleName = async () => {
 
 onMounted(async () => {
   loadRoleName()
-  checkAuditAccess()
   if (authStore.isAuthenticated) {
     await authStore.loadUserPermissions()
   }
@@ -211,6 +210,23 @@ const goToProfile = () => {
   max-height: 100vh;
 }
 
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .logo {
   max-width: 100%;
   padding: 16px 48px 16px 16px;
@@ -219,6 +235,26 @@ const goToProfile = () => {
 
 .sidebar-nav {
   flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .nav-item {
@@ -390,6 +426,21 @@ const goToProfile = () => {
   .sidebar {
     width: 70px;
     min-width: 70px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
   }
 
   .logo {
@@ -400,6 +451,12 @@ const goToProfile = () => {
   .nav-item {
     padding: 16px;
     justify-content: center;
+    min-height: 60px;
+  }
+
+  .nav-item svg,
+  .nav-item i {
+    font-size: 1.2rem;
   }
 
   .nav-item span {
@@ -439,16 +496,18 @@ const goToProfile = () => {
 
 @media (max-width: 480px) {
   .sidebar {
-    position: fixed;
-    left: -70px;
-    z-index: 1000;
-    height: 100vh;
-    transition: left 0.3s ease;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    width: 60px;
+    min-width: 60px;
   }
 
-  .sidebar.mobile-open {
-    left: 0;
+  .nav-item {
+    padding: 14px 8px;
+    min-height: 55px;
+  }
+
+  .nav-item svg,
+  .nav-item i {
+    font-size: 1.1rem;
   }
 }
 </style>

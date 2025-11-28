@@ -201,7 +201,7 @@ export default {
           this.loadingUsers[userId] = true
           try {
             const user = await getUserById(userId)
-            const userName = user.name || user.nome || `Usuário ${userId}`
+            const userName = user.nomeCompleto || user.name || user.nome || `Usuário ${userId}`
             this.userCache[userId] = userName
             
             this.allAudits.forEach(a => {

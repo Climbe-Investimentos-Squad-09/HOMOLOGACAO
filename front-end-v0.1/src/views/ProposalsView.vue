@@ -29,16 +29,40 @@ const loadProposals = async () => {
   loading.value = true;
   try {
     const proposals = await getProposals();
-    allProposals.value = proposals.map(proposal => ({
-      id: proposal.idProposta,
-      title: `Proposta #${proposal.idProposta}`,
-      company: proposal.empresa?.nomeFantasia || 'N/A',
-      status: statusMap[proposal.statusProposta] || proposal.statusProposta,
-      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(proposal.valorProposta),
-      validUntil: new Date(proposal.prazoValidade).toLocaleDateString('pt-BR'),
-      responsible: proposal.atribuicoes?.[0]?.usuario?.nomeCompleto || 'N/A',
-      originalStatus: proposal.statusProposta
-    }));
+    console.log('Propostas recebidas:', proposals);
+    
+    allProposals.value = proposals.map(proposal => {
+      console.log('Processando proposta:', proposal);
+      console.log('Atribuições:', proposal.atribuicoes);
+      
+      // Buscar o responsável nas atribuições
+      let responsible = 'Não atribuído';
+      if (proposal.atribuicoes && Array.isArray(proposal.atribuicoes) && proposal.atribuicoes.length > 0) {
+        // Percorrer todas as atribuições para encontrar um usuário
+        for (const atribuicao of proposal.atribuicoes) {
+          console.log('Atribuição completa:', JSON.stringify(atribuicao, null, 2));
+          console.log('Usuario dentro da atribuição:', atribuicao.usuario);
+          if (atribuicao.usuario) {
+            console.log('Nome completo do usuario:', atribuicao.usuario.nomeCompleto);
+            if (atribuicao.usuario.nomeCompleto) {
+              responsible = atribuicao.usuario.nomeCompleto;
+              break;
+            }
+          }
+        }
+      }
+      
+      return {
+        id: proposal.idProposta,
+        title: `Proposta #${proposal.idProposta}`,
+        company: proposal.empresa?.nomeFantasia || proposal.empresa?.razaoSocial || 'Empresa não informada',
+        status: statusMap[proposal.statusProposta] || proposal.statusProposta,
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(proposal.valorProposta),
+        validUntil: new Date(proposal.prazoValidade).toLocaleDateString('pt-BR'),
+        responsible: responsible,
+        originalStatus: proposal.statusProposta
+      };
+    });
   } catch (error) {
     console.error('Erro ao carregar propostas:', error);
   } finally {

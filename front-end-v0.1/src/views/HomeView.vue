@@ -4,6 +4,9 @@
 
     
     <div class="background-video-container" v-else>
+      <video autoplay muted loop playsinline class="background-video">
+        <source src="/video/climbeVideo.mp4" type="video/mp4" />
+      </video>
       <div class="overlay">
         <div class="logo-container">
           <image-component src="/img/climbe-logo.png" />
@@ -170,9 +173,11 @@ export default {
 .input-label {
   display: block;
   color: #000000;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-align: left;
+  margin-bottom: 0.4rem;
+  margin-top: 0.5rem;
 }
 
 .input-label:first-child {
@@ -220,19 +225,19 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  gap: 2rem;
+  padding: 1.5rem;
+  gap: 1rem;
 }
 
 .logo-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .logo-container img {
-  max-width: 140px;
+  max-width: 110px;
   height: auto;
   filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.1));
   transition: transform 0.3s ease;
@@ -246,8 +251,8 @@ export default {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 3rem 2.5rem;
+  border-radius: 16px;
+  padding: 2rem 2rem;
   box-shadow: 
     0 25px 50px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -255,13 +260,13 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 25px;
+  gap: 1.25rem;
   color: #333;
   text-align: center;
   animation: fadeInUp 0.8s ease-out;
   position: relative;
   overflow: hidden;
-  max-width: 500px;
+  max-width: 420px;
   width: 100%;
 }
 .overlay-content::before {
@@ -297,32 +302,34 @@ export default {
   transform: scale(1.05);
 }
 .welcome-title {
-  font-size: 2.5rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: var(--secondary-color);
   margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
 }
 
 .welcome-subtitle {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #666;
   margin: 0;
   font-weight: 400;
+  line-height: 1.4;
 }
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 100%;
 }
 .login-form input {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: rgba(136, 136, 136, 0.9);
   border: 1px solid rgba(57, 198, 187, 0.3);
   border-radius: 10px;
   color: #000000;
-  font-size: 16px;
+  font-size: 15px;
   outline: none;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -338,12 +345,12 @@ export default {
   transform: translateY(-2px);
 }
 .login-form button {
-  padding: 16px 32px;
+  padding: 12px 24px;
   background: var(--theme-color);
   border: 1px solid var(--theme-color);
   border-radius: 10px;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -389,12 +396,13 @@ export default {
 
 @media (max-width: 768px) {
   .overlay {
-    padding: 1rem;
+    padding: 1.5rem;
     gap: 1.5rem;
   }
 
   .overlay-content {
     max-width: 100%;
+    width: 95%;
     padding: 2rem 1.5rem;
     gap: 20px;
   }
@@ -410,32 +418,45 @@ export default {
   .login-form {
     gap: 1.25rem;
   }
+
+  .login-form input {
+    font-size: 15px;
+  }
+
+  .login-form button {
+    font-size: 15px;
+  }
 }
 
 @media (max-width: 480px) {
   .overlay { 
-    gap: 1.5rem; 
-    padding: 0.75rem;
+    gap: 1rem; 
+    padding: 1rem;
   }
   .overlay-content { 
-    padding: 1.75rem 1.25rem; 
-    gap: 18px; 
+    padding: 1.5rem 1rem; 
+    gap: 16px;
+    width: 100%;
   }
   .logo-container img {
-    max-width: 120px;
+    max-width: 100px;
   }
   .welcome-title { 
-    font-size: 1.75rem; 
+    font-size: 1.6rem; 
   }
   .welcome-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
   .login-form { 
-    gap: 1.25rem; 
+    gap: 1rem; 
   }
   .login-form input {
-    padding: 14px 18px;
-    font-size: 15px;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  .login-form button {
+    padding: 12px 24px;
+    font-size: 14px;
   }
 }
 

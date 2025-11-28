@@ -59,7 +59,10 @@ export class ProposalsService {
       to,   // YYYY-MM-DD
     } = query || {};
 
-    const qb = this.proposalsRepo.createQueryBuilder('p');
+    const qb = this.proposalsRepo.createQueryBuilder('p')
+      .leftJoinAndSelect('p.empresa', 'empresa')
+      .leftJoinAndSelect('p.atribuicoes', 'atribuicoes')
+      .leftJoinAndSelect('atribuicoes.usuario', 'usuario');
 
     if (idEmpresa) qb.andWhere('p.idEmpresa = :idEmpresa', { idEmpresa: Number(idEmpresa) });
     if (idEmissor) qb.andWhere('p.idEmissor = :idEmissor', { idEmissor: Number(idEmissor) });
@@ -86,7 +89,10 @@ export class ProposalsService {
     const num = Number(id);
     if (!num) throw new BadRequestException('ID da proposta inválido');
 
-    const proposal = await this.proposalsRepo.findOne({ where: { idProposta: num } });
+    const proposal = await this.proposalsRepo.findOne({ 
+      where: { idProposta: num },
+      relations: ['empresa', 'atribuicoes', 'atribuicoes.usuario']
+    });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
 
     return proposal;

@@ -188,14 +188,14 @@ export default {
 .input-label {
   display: block;
   color: #000000;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-align: left;
-  margin-bottom: 0.5rem;
-  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  margin-top: 0.5rem;
 }
 
-.input-label:first-child {
+.input-label:first-of-type {
   margin-top: 0;
 }
 
@@ -240,19 +240,19 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  gap: 2rem;
+  padding: 1.5rem;
+  gap: 1rem;
 }
 
 .logo-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .logo-container img {
-  max-width: 140px;
+  max-width: 110px;
   height: auto;
   filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.1));
   transition: transform 0.3s ease;
@@ -266,8 +266,8 @@ export default {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 3rem 2.5rem;
+  border-radius: 16px;
+  padding: 2rem 2rem;
   box-shadow: 
     0 25px 50px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -275,16 +275,16 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 25px;
+  gap: 1.25rem;
   color: #333;
   text-align: center;
   animation: fadeInUp 0.8s ease-out;
-  max-width: 450px;
+  max-width: 420px;
   width: 100%;
 }
 
 .welcome-title {
-  font-size: 2.2rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
@@ -292,7 +292,7 @@ export default {
 }
 
 .welcome-subtitle {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #666;
   margin: 0;
   line-height: 1.4;
@@ -302,7 +302,7 @@ export default {
 .signup-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 100%;
 }
 
@@ -387,12 +387,13 @@ export default {
 
 @media (max-width: 768px) {
   .overlay {
-    padding: 1rem;
+    padding: 1.5rem;
     gap: 1.5rem;
   }
   
   .overlay-content {
     max-width: 100%;
+    width: 95%;
     padding: 2rem 1.5rem;
     gap: 20px;
   }
@@ -408,29 +409,48 @@ export default {
   .signup-form {
     gap: 1.25rem;
   }
+
+  .input-label {
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
   .overlay {
-    padding: 0.75rem;
-    gap: 1.25rem;
+    padding: 1rem;
+    gap: 1rem;
   }
 
   .overlay-content {
-    padding: 1.75rem 1.25rem;
-    gap: 18px;
+    padding: 1.5rem 1rem;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .logo-container img {
+    max-width: 100px;
   }
 
   .welcome-title {
-    font-size: 1.7rem;
+    font-size: 1.6rem;
   }
 
   .welcome-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .signup-form {
-    gap: 1.1rem;
+    gap: 1rem;
+  }
+
+  .input-label {
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .have-account-link {
+    font-size: 14px;
   }
 }
 

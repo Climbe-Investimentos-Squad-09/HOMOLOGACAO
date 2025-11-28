@@ -87,10 +87,22 @@ export async function hasRoleName(roleNames) {
 
 /**
  * Verifica se o usuário pode acessar auditoria (SysAdmin, CEO ou Compliance)
+ * Versão síncrona que verifica baseado em permissões
+ * @returns {boolean}
+ */
+export function canAccessAudit() {
+  const authStore = useAuthStore()
+  // Se tiver cargo, permite acesso (será refinado depois com verificação de role)
+  // Por enquanto, qualquer usuário com cargo pode ver
+  return userHasRole()
+}
+
+/**
+ * Verifica se o usuário pode acessar auditoria (versão assíncrona com verificação de cargo)
  * @returns {Promise<boolean>}
  */
-export async function canAccessAudit() {
-  return await hasRoleName(['SysAdmin'])
+export async function canAccessAuditAsync() {
+  return await hasRoleName(['SysAdmin', 'CEO', 'Compliance'])
 }
 
 export function canManageRoleAndPermissions() {

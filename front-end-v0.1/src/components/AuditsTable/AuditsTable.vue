@@ -62,7 +62,19 @@
       </table>
     </div>
 
-    <div v-if="!loading && totalPages > 1" class="pagination">
+    <div v-if="!loading && total > 0" class="pagination-container">
+      <div class="pagination-limit">
+        <label>Itens por página:</label>
+        <select v-model.number="limit" @change="handleLimitChange" class="limit-select">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span class="total-info">Total: {{ total }} registros</span>
+      </div>
+
+      <div v-if="totalPages > 1" class="pagination">
       <button 
         class="pagination-btn" 
         :disabled="currentPage === 1"
@@ -96,6 +108,7 @@
       >
         <i class="bi bi-chevron-double-right"></i>
       </button>
+      </div>
     </div>
 
     <AuditDetailsModal 
@@ -130,21 +143,15 @@ export default {
       isModalOpen: false,
       selectedAudit: null,
       currentPage: 1,
-      limit: 15,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
       userCache: {}
     }
   },
   computed: {
-    total() {
-      return this.allAudits.length
-    },
-    totalPages() {
-      return Math.ceil(this.total / this.limit)
-    },
     audits() {
-      const start = (this.currentPage - 1) * this.limit
-      const end = start + this.limit
-      return this.allAudits.slice(start, end)
+      return this.allAudits
     }
   },
   watch: {
@@ -163,14 +170,31 @@ export default {
     async fetchAudits() {
       this.loading = true
       try {
-        const response = await getAudits(this.filters)
+        const params = {
+          ...this.filters,
+          page: this.currentPage,
+          limit: this.limit
+        }
         
-        if (response.data && Array.isArray(response.data)) {
+        const response = await getAudits(params)
+        
+        // Backend agora retorna { data: [], meta: { total, page, limit, totalPages } }
+        if (response.data && response.meta) {
           this.allAudits = response.data
+          this.total = response.meta.total
+          this.totalPages = response.meta.totalPages
+        } else if (response.data && Array.isArray(response.data)) {
+          this.allAudits = response.data
+          this.total = response.data.length
+          this.totalPages = 1
         } else if (Array.isArray(response)) {
           this.allAudits = response
+          this.total = response.length
+          this.totalPages = 1
         } else {
           this.allAudits = []
+          this.total = 0
+          this.totalPages = 0
         }
         
         await this.loadUserNames()
@@ -226,9 +250,15 @@ export default {
     goToPage(page) {
       if (page >= 1 && page <= this.totalPages) {
         this.currentPage = page
+        this.fetchAudits()
         // Scroll para o topo da tabela
         this.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
+    },
+
+    handleLimitChange() {
+      this.currentPage = 1
+      this.fetchAudits()
     },
 
     formatDate(dateString) {
@@ -531,14 +561,60 @@ export default {
   white-space: nowrap;
 }
 
+/* Pagination Container */
+.pagination-container {
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination-limit {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.pagination-limit label {
+  font-weight: 500;
+}
+
+.limit-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.limit-select:hover {
+  border-color: #00695c;
+}
+
+.limit-select:focus {
+  outline: none;
+  border-color: #00695c;
+  box-shadow: 0 0 0 3px rgba(0, 105, 92, 0.1);
+}
+
+.total-info {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
 /* Pagination */
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1.5rem;
-  border-top: 1px solid #dee2e6;
 }
 
 .pagination-btn {
@@ -620,6 +696,23 @@ export default {
   .audits-table td {
     padding: 0.5rem 0.5rem;
     font-size: 0.7rem;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination {
+    width: 100%;
+  }
+
+  .pagination-limit {
+    flex-wrap: wrap;
+  }
+
+  .total-info {
+    width: 100%;
   }
 }
 </style>

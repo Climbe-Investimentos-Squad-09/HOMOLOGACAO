@@ -16,30 +16,21 @@ export class AuthzMiddleware implements NestMiddleware {
     try {
       const auth = req.headers['authorization'] || '';
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-      if (!token) return next(); // sem token -> req.user fica undefined (deixe os guards cuidarem)
+      if (!token) return next();
 
       const payload = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any;
+      const userId = payload.id;
 
-      // Carrega o usuário com cargo e permissões para os guards
       const user = await this.userRepo.findOne({
-        where: { idUsuario: payload.id },
+        where: { idUsuario: userId },
         relations: ['cargo', 'cargo.permissoes', 'permissoesExtras'],
       });
 
       if (!user) throw new UnauthorizedException('Usuário não encontrado');
 
-      req.user = {
-        id: user.idUsuario,
-        email: user.email,
-        nome: user.nomeCompleto,
-        cargo: user.cargo ? { nome: (user.cargo as any).nomeCargo, permissoes: (user.cargo as any).permissoes } : null,
-        permissoesExtras: user.permissoesExtras ?? [],
-      };
-
+      req.user = user;
       next();
     } catch (e) {
-      // Se preferir bloquear sem token, lance UnauthorizedException aqui.
-      // Para MVP, vamos só continuar e deixar guards decidirem.
       next();
     }
   }

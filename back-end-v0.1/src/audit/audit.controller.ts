@@ -23,6 +23,8 @@ export class AuditController {
   @ApiQuery({ name: 'from', required: false, type: String, description: 'Data inicial (YYYY-MM-DD)' })
   @ApiQuery({ name: 'to', required: false, type: String, description: 'Data final (YYYY-MM-DD)' })
   @ApiQuery({ name: 'q', required: false, type: String, description: 'Busca textual (entity / path / method / userAgent)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Número da página (padrão: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Itens por página (padrão: 20, máx: 100)' })
   async find(
     @Query('entity') entity?: string,
     @Query('action') action?: string,
@@ -31,6 +33,8 @@ export class AuditController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     const where: FindOptionsWhere<Audit> = {};
 
@@ -45,10 +49,17 @@ export class AuditController {
       where.userId = Number(userId);
     }
 
+    // Paginação
+    const pageNumber = page ? Math.max(1, parseInt(page)) : 1;
+    const pageSize = limit ? Math.min(100, Math.max(1, parseInt(limit))) : 20;
+    const skip = (pageNumber - 1) * pageSize;
+
     // filtro por data
     const findOptions: any = {
       where,
       order: { createdAt: 'DESC' },
+      take: pageSize,
+      skip: skip,
     };
 
     if (from || to) {
@@ -70,6 +81,17 @@ export class AuditController {
       ];
     }
 
-    return this.auditRepo.find(findOptions);
+    // Buscar com contagem total
+    const [data, total] = await this.auditRepo.findAndCount(findOptions);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 }

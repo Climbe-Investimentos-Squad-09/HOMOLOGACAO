@@ -50,7 +50,7 @@
               {{ proposal.status }}
             </span>
           </td>
-          <td>R$ {{ proposal.value }}</td>
+          <td>{{ proposal.value }}</td>
           <td>{{ proposal.validUntil }}</td>
           <td>
             <span class="responsible-badge">

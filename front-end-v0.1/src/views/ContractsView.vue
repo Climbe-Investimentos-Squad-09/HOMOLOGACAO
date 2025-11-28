@@ -53,16 +53,39 @@ const loadContracts = async () => {
   loading.value = true;
   try {
     const contracts = await getContracts();
-    allContracts.value = contracts.map(contract => ({
-      id: `CTR-${contract.idContrato}`,
-      title: `Contrato #${contract.idContrato}`,
-      company: contract.proposta?.empresa?.nomeFantasia || 'N/A',
-      status: contract.statusContrato,
-      value: contract.proposta ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.proposta.valorProposta) : 'N/A',
-      inicialDate: new Date(contract.dataCriacao).toLocaleDateString('pt-BR'),
-      finalDate: contract.dataEncerramento ? new Date(contract.dataEncerramento).toLocaleDateString('pt-BR') : 'N/A',
-      responsible: contract.compliance?.nomeCompleto || 'N/A'
-    }));
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    allContracts.value = contracts.map(contract => {
+      let calculatedStatus = contract.statusContrato
+      
+      if (contract.dataInicio && contract.dataFim) {
+        const dataInicio = new Date(contract.dataInicio)
+        const dataFim = new Date(contract.dataFim)
+        dataInicio.setHours(0, 0, 0, 0)
+        dataFim.setHours(0, 0, 0, 0)
+        
+        if (today < dataInicio) {
+          calculatedStatus = 'Em revisão'
+        } else if (today > dataFim) {
+          calculatedStatus = 'Inativo'
+        } else {
+          calculatedStatus = 'Ativo'
+        }
+      }
+      
+      return {
+        id: `CTR-${contract.idContrato}`,
+        title: `Contrato #${contract.idContrato}`,
+        company: contract.proposta?.empresa?.nomeFantasia || 'N/A',
+        status: calculatedStatus,
+        value: contract.proposta ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.proposta.valorProposta) : 'N/A',
+        inicialDate: contract.dataInicio ? new Date(contract.dataInicio).toLocaleDateString('pt-BR') : new Date(contract.dataCriacao).toLocaleDateString('pt-BR'),
+        finalDate: contract.dataFim ? new Date(contract.dataFim).toLocaleDateString('pt-BR') : (contract.dataEncerramento ? new Date(contract.dataEncerramento).toLocaleDateString('pt-BR') : 'N/A'),
+        responsible: contract.compliance?.nomeCompleto || 'N/A',
+        rawContract: contract
+      }
+    });
   } catch (error) {
     console.error('Erro ao carregar contratos:', error);
   } finally {

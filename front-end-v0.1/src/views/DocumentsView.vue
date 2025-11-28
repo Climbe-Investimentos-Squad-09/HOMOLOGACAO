@@ -6,7 +6,7 @@
       @open-create-modal="openCreateModal"
     />
     <DocumentsCreateModal v-if="showCreateModal" @close="closeCreateModal" @created="loadDocuments" />
-    <DocumentsTable :documents="filteredDocuments" :loading="loading" />
+    <DocumentsTable :documents="filteredDocuments" :loading="loading" @refresh="loadDocuments" />
   </div>
 </template>
 
@@ -43,7 +43,8 @@ const loadDocuments = async () => {
       contract: doc.idContrato ? `CTR-${doc.idContrato}` : 'N/A',
       status: doc.status || 'Revisão',
       date: doc.dataCriacao ? new Date(doc.dataCriacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'),
-      responsible: doc.responsavel?.nomeCompleto || 'N/A'
+      responsible: doc.responsavel?.nomeCompleto || 'N/A',
+      rawDocument: doc
     }));
   } catch (error) {
     console.error('Erro ao carregar documentos:', error);

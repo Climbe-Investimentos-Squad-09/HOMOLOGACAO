@@ -62,7 +62,9 @@ export class ProposalsService {
     const qb = this.proposalsRepo.createQueryBuilder('p')
       .leftJoinAndSelect('p.empresa', 'empresa')
       .leftJoinAndSelect('p.atribuicoes', 'atribuicoes')
-      .leftJoinAndSelect('atribuicoes.usuario', 'usuario');
+      .leftJoinAndSelect('atribuicoes.usuario', 'usuario')
+      .leftJoin('p.idEmissor', 'emissor')
+      .addSelect(['emissor.idUsuario', 'emissor.nomeCompleto']);
 
     if (idEmpresa) qb.andWhere('p.idEmpresa = :idEmpresa', { idEmpresa: Number(idEmpresa) });
     if (idEmissor) qb.andWhere('p.idEmissor = :idEmissor', { idEmissor: Number(idEmissor) });
@@ -91,7 +93,7 @@ export class ProposalsService {
 
     const proposal = await this.proposalsRepo.findOne({ 
       where: { idProposta: num },
-      relations: ['empresa', 'atribuicoes', 'atribuicoes.usuario']
+      relations: ['empresa', 'atribuicoes', 'atribuicoes.usuario', 'idEmissor']
     });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
 
@@ -193,9 +195,16 @@ export class ProposalsService {
   // -------------------------------------------------------------------
   // UPDATE STATUS — endpoint dedicado
   // -------------------------------------------------------------------
-  async updateStatus(idProposta: number, dto: { statusProposta: StatusProposta }, _user?: any) {
+  async updateStatus(idProposta: number, dto: { statusProposta: StatusProposta }, user?: any) {
     if (!idProposta) throw new BadRequestException('ID da proposta inválido');
     if (!dto?.statusProposta) throw new BadRequestException('statusProposta é obrigatório');
+
+    if (user) {
+      const roleName = user.cargo?.nome || user.cargo?.nomeCargo
+      if (!roleName || !['SysAdmin', 'Compliance'].includes(roleName)) {
+        throw new BadRequestException('Apenas Compliance e Admin podem alterar o status de propostas');
+      }
+    }
 
     const proposta = await this.proposalsRepo.findOne({ where: { idProposta } });
     if (!proposta) throw new NotFoundException('Proposta não encontrada');

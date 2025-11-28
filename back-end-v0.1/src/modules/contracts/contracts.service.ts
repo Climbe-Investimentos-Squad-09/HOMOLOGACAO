@@ -58,11 +58,35 @@ export class ContractsService {
     }
 
     // cria contrato
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    let calculatedStatus = dto.statusContrato
+    
+    if (dto.dataInicio && dto.dataFim) {
+      const dataInicio = new Date(dto.dataInicio)
+      const dataFim = new Date(dto.dataFim)
+      dataInicio.setHours(0, 0, 0, 0)
+      dataFim.setHours(0, 0, 0, 0)
+      
+      if (today < dataInicio) {
+        calculatedStatus = 'Em_revisao' as any
+      } else if (today > dataFim) {
+        calculatedStatus = StatusContrato.Encerrado
+      } else {
+        calculatedStatus = StatusContrato.Ativo
+      }
+    } else if (!dto.statusContrato) {
+      calculatedStatus = StatusContrato.Ativo
+    }
+
     const contract = this.contractsRepo.create({
       proposta: { idProposta: dto.idProposta } as any,
       compliance: dto.idCompliance ? ({ idUsuario: dto.idCompliance } as any) : undefined,
-      statusContrato: dto.statusContrato ?? StatusContrato.Ativo,
+      statusContrato: calculatedStatus,
       dataEncerramento: dto.dataEncerramento ? new Date(dto.dataEncerramento) : undefined,
+      dataInicio: dto.dataInicio ? new Date(dto.dataInicio) : undefined,
+      dataFim: dto.dataFim ? new Date(dto.dataFim) : undefined,
     });
 
     return this.contractsRepo.save(contract);
@@ -104,7 +128,36 @@ export class ContractsService {
     }
 
     qb.orderBy('c.dataCriacao', 'DESC');
-    return qb.getMany();
+    const contracts = await qb.getMany();
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    for (const contract of contracts) {
+      if (contract.dataInicio && contract.dataFim) {
+        const dataInicio = new Date(contract.dataInicio)
+        const dataFim = new Date(contract.dataFim)
+        dataInicio.setHours(0, 0, 0, 0)
+        dataFim.setHours(0, 0, 0, 0)
+        
+        let newStatus = contract.statusContrato
+        
+        if (today < dataInicio) {
+          newStatus = 'Em_revisao' as any
+        } else if (today > dataFim) {
+          newStatus = StatusContrato.Encerrado
+        } else {
+          newStatus = StatusContrato.Ativo
+        }
+        
+        if (newStatus !== contract.statusContrato) {
+          contract.statusContrato = newStatus
+          await this.contractsRepo.save(contract)
+        }
+      }
+    }
+    
+    return contracts
   }
 
   // -------------------------------------------------------------------

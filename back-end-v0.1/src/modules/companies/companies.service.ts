@@ -5,6 +5,7 @@ import { Companies } from './entities/companies.entity';
 import { CreateCompanyMinimalDto } from './dtos/create-minimal-company.dto';
 import { CompleteCompanyDto } from './dtos/complete-company.dto';
 import { isValidCNPJ, formatCNPJ } from '../../utils/cnpj.util';
+import { Contract } from '../contracts/entities/contracts.entity';
 
 @Injectable()
 export class CompaniesService {
@@ -88,8 +89,19 @@ export class CompaniesService {
 
   // ---------------------------- GET -------------------------------
   async findById(id: number): Promise<Companies> {
-    const company = await this.repo.findOne({ where: { idEmpresa: id } });
+    const company = await this.repo.findOne({ 
+      where: { idEmpresa: id },
+      relations: ['propostas', 'propostas.contrato']
+    });
     if (!company) throw new NotFoundException('Empresa não encontrada');
+    
+    if (company.propostas) {
+      const contracts = company.propostas
+        .map(p => p.contrato)
+        .filter((c): c is Contract => c !== undefined && c !== null)
+      company.contratos = contracts
+    }
+    
     return company;
   }
 
@@ -105,7 +117,22 @@ export class CompaniesService {
       where.cnpj = isValidCNPJ(cnpj) ? formatCNPJ(cnpj) : cnpj;
     }
 
-    return this.repo.find({ where, order: { idEmpresa: 'DESC' } });
+    const companies = await this.repo.find({ 
+      where, 
+      order: { idEmpresa: 'DESC' },
+      relations: ['propostas', 'propostas.contrato']
+    });
+    
+    for (const company of companies) {
+      if (company.propostas) {
+        const contracts = company.propostas
+          .map(p => p.contrato)
+          .filter((c): c is Contract => c !== undefined && c !== null)
+        company.contratos = contracts
+      }
+    }
+    
+    return companies;
   }
 
   // --------------------------- DELETE -----------------------------

@@ -12,6 +12,9 @@ export class UpdateUserDto {
   @ApiProperty({ example: 'novoemail@exemplo.com', required: false })
   @IsOptional() @IsEmail() email?: string;
 
+  @ApiProperty({ example: '12345678900', required: false })
+  @IsOptional() @IsString() cpf?: string;
+
   @ApiProperty({ example: 'novasenha123', required: false })
   @IsOptional() @IsString() @MinLength(6) senha?: string;
 }

@@ -26,6 +26,26 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label for="data-inicio">Data de Início:</label>
+                    <input 
+                        type="date" 
+                        id="data-inicio" 
+                        v-model="formData.dataInicio"
+                        :disabled="loading"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="data-fim">Data Final:</label>
+                    <input 
+                        type="date" 
+                        id="data-fim" 
+                        v-model="formData.dataFim"
+                        :disabled="loading"
+                    />
+                </div>
+
                 <div class="form-group file-upload">
                     <div class="upload-icon"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
@@ -75,7 +95,9 @@ const users = ref([]);
 
 const formData = ref({
     idProposta: null,
-    idCompliance: null
+    idCompliance: null,
+    dataInicio: '',
+    dataFim: ''
 });
 
 const isFormValid = computed(() => {
@@ -153,7 +175,8 @@ const handleCreate = async () => {
         const contractData = {
             idProposta: formData.value.idProposta,
             idCompliance: formData.value.idCompliance || undefined,
-            statusContrato: 'Ativo'
+            dataInicio: formData.value.dataInicio || undefined,
+            dataFim: formData.value.dataFim || undefined
         };
 
         await createContract(contractData);

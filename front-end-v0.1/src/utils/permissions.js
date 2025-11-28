@@ -90,11 +90,8 @@ export async function hasRoleName(roleNames) {
  * Versão síncrona que verifica baseado em permissões
  * @returns {boolean}
  */
-export function canAccessAudit() {
-  const authStore = useAuthStore()
-  // Se tiver cargo, permite acesso (será refinado depois com verificação de role)
-  // Por enquanto, qualquer usuário com cargo pode ver
-  return userHasRole()
+export async function canAccessAudit() {
+  return await hasRoleName(['SysAdmin'])
 }
 
 /**

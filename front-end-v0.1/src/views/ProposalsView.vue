@@ -1,7 +1,7 @@
 <template>
   <div class="proposals-view">
     <ProposalsHeader @open-create-modal="isCreateModalOpen = true" @filters-changed="handleFiltersChange" />
-    <ProposalsTable :proposals="filteredProposals" :loading="loading" />
+    <ProposalsTable :proposals="filteredProposals" :loading="loading" @refresh="loadProposals" />
     <ProposalsCreateModal v-if="isCreateModalOpen" @close="isCreateModalOpen = false" @created="loadProposals" />
   </div>
 </template>
@@ -38,17 +38,22 @@ const loadProposals = async () => {
       // Buscar o responsável nas atribuições
       let responsible = 'Não atribuído';
       if (proposal.atribuicoes && Array.isArray(proposal.atribuicoes) && proposal.atribuicoes.length > 0) {
-        // Percorrer todas as atribuições para encontrar um usuário
         for (const atribuicao of proposal.atribuicoes) {
-          console.log('Atribuição completa:', JSON.stringify(atribuicao, null, 2));
-          console.log('Usuario dentro da atribuição:', atribuicao.usuario);
           if (atribuicao.usuario) {
-            console.log('Nome completo do usuario:', atribuicao.usuario.nomeCompleto);
             if (atribuicao.usuario.nomeCompleto) {
               responsible = atribuicao.usuario.nomeCompleto;
               break;
             }
           }
+        }
+      }
+      
+      let creator = 'Não informado'
+      if (proposal.idEmissor) {
+        if (typeof proposal.idEmissor === 'object') {
+          creator = proposal.idEmissor.nomeCompleto || proposal.idEmissor.name || 'Não informado'
+        } else if (typeof proposal.idEmissor === 'number') {
+          creator = 'Usuário ID: ' + proposal.idEmissor
         }
       }
       
@@ -60,6 +65,7 @@ const loadProposals = async () => {
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(proposal.valorProposta),
         validUntil: new Date(proposal.prazoValidade).toLocaleDateString('pt-BR'),
         responsible: responsible,
+        creator: creator,
         originalStatus: proposal.statusProposta
       };
     });

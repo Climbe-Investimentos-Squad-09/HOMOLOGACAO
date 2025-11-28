@@ -36,7 +36,7 @@
               {{ contract.status }}
             </span>
           </td>
-          <td>R$ {{ contract.value }}</td>
+          <td>{{ contract.value }}</td>
           <td>{{ contract.inicialDate }} to {{ contract.finalDate }}</td>
           <td>
             <span class="responsible-badge">

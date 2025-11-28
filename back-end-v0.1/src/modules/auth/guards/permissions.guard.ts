@@ -25,7 +25,7 @@ export class PermissionsGuard implements CanActivate {
     // Permitir que usuário acesse seus próprios dados (GET /users/:id) sem precisar de usuarios:visualizar
     if (requiredPerms.includes('usuarios:visualizar') && params?.id) {
       const requestedUserId = Number(params.id);
-      const authenticatedUserId = user.id;
+      const authenticatedUserId = user.idUsuario;
       if (requestedUserId === authenticatedUserId) {
         return true; // Permite acesso aos próprios dados
       }

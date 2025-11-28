@@ -31,43 +31,46 @@ export interface AuditFilters {
 
 export interface AuditResponse {
   data: Audit[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export async function getAudits(filters?: AuditFilters): Promise<AuditResponse> {
   const response = await api.get('/audits', { params: filters })
   
-  // Se a resposta já tem paginação
-  if (response.data && response.data.data && Array.isArray(response.data.data)) {
+  // Se a resposta já tem paginação com meta
+  if (response.data && response.data.data && response.data.meta) {
     return {
       data: response.data.data,
-      total: response.data.total || response.data.data.length,
-      page: response.data.page || 1,
-      limit: response.data.limit || 30,
-      totalPages: response.data.totalPages || 1
+      meta: response.data.meta
     }
   }
   
-  // Se a resposta é um array direto
+  // Se a resposta é um array direto (retrocompatibilidade)
   if (Array.isArray(response.data)) {
     return {
       data: response.data,
-      total: response.data.length,
-      page: 1,
-      limit: response.data.length,
-      totalPages: 1
+      meta: {
+        total: response.data.length,
+        page: 1,
+        limit: response.data.length,
+        totalPages: 1
+      }
     }
   }
   
   return {
     data: [],
-    total: 0,
-    page: 1,
-    limit: 30,
-    totalPages: 0
+    meta: {
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0
+    }
   }
 }
 

@@ -75,7 +75,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { getMeetings } from '@/api/meetings'
+import { getUserMeetings } from '@/api/meetings'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   refreshTrigger: {
@@ -215,13 +216,14 @@ const selectDay = (day) => {
 const loadMeetings = async () => {
   loading.value = true
   try {
-    const year = currentDate.value.getFullYear()
-    const month = currentDate.value.getMonth()
-    const firstDay = new Date(year, month, 1).toISOString().split('T')[0]
-    const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0]
-    
-    const loadedMeetings = await getMeetings(firstDay, lastDay)
-    meetings.value = loadedMeetings
+    const auth = useAuthStore()
+    const userId = auth.user?.idUsuario
+    if (!userId) {
+      meetings.value = []
+    } else {
+      const loadedMeetings = await getUserMeetings(userId)
+      meetings.value = loadedMeetings
+    }
   } catch (error) {
     console.error('Erro ao carregar reuniões:', error)
     meetings.value = []

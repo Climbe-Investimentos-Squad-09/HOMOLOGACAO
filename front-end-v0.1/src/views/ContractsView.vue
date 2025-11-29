@@ -6,7 +6,12 @@
       @open-create-modal="openCreateModal"
     />
     <ContractsCreateModal v-if="showCreateModal" @close="closeCreateModal" @created="loadContracts" />
-    <ContractsTable :contracts="filteredContracts" :loading="loading" />
+    <ContractsTable :contracts="filteredContracts" :loading="loading" @view="viewContract" />
+    <ContractDetailsModal 
+      v-if="showDetailsModal" 
+      :is-open="showDetailsModal" 
+      :contract="selectedContract" 
+      @close="closeDetailsModal" />
   </div>
 </template>
 
@@ -16,7 +21,8 @@ import { useRoute, useRouter } from 'vue-router';
 import ContractsHeader from '../components/contracts/ContractsHeader.vue';
 import ContractsTable from '../components/contracts/ContractsTable.vue';
 import ContractsCreateModal from '../components/contracts/ContractsCreateModal.vue';
-import { getContracts } from '@/api/contracts';
+import ContractDetailsModal from '../components/contracts/ContractDetailsModal.vue';
+import { getContracts, getContractById } from '@/api/contracts';
 
 const route = useRoute();
 const router = useRouter();
@@ -24,6 +30,8 @@ const router = useRouter();
 const showCreateModal = ref(false);
 const allContracts = ref([]);
 const loading = ref(false);
+const showDetailsModal = ref(false);
+const selectedContract = ref(null);
 
 const props = defineProps({
   openModal: {
@@ -74,6 +82,12 @@ const loadContracts = async () => {
         }
       }
       
+      // Buscar responsáveis das atribuições
+      const responsaveis = contract.atribuicoes?.map(a => a.usuario?.nomeCompleto).filter(Boolean) || [];
+      const responsavel = responsaveis.length > 0 
+        ? responsaveis.join(', ') 
+        : (contract.compliance?.nomeCompleto || 'Não atribuído');
+      
       return {
         id: `CTR-${contract.idContrato}`,
         title: `Contrato #${contract.idContrato}`,
@@ -82,7 +96,7 @@ const loadContracts = async () => {
         value: contract.proposta ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.proposta.valorProposta) : 'N/A',
         inicialDate: contract.dataInicio ? new Date(contract.dataInicio).toLocaleDateString('pt-BR') : new Date(contract.dataCriacao).toLocaleDateString('pt-BR'),
         finalDate: contract.dataFim ? new Date(contract.dataFim).toLocaleDateString('pt-BR') : (contract.dataEncerramento ? new Date(contract.dataEncerramento).toLocaleDateString('pt-BR') : 'N/A'),
-        responsible: contract.compliance?.nomeCompleto || 'N/A',
+        responsible: responsavel,
         rawContract: contract
       }
     });
@@ -99,6 +113,31 @@ onMounted(() => {
   }
   loadContracts();
 });
+
+const viewContract = (contract) => {
+  const idContrato = contract?.rawContract?.idContrato || (contract.id || '').replace('CTR-', '');
+  if (!idContrato) return;
+  loadContractDetails(Number(idContrato));
+};
+
+const loadContractDetails = async (id) => {
+  try {
+    loading.value = true;
+    const data = await getContractById(id);
+    selectedContract.value = data;
+    showDetailsModal.value = true;
+  } catch (e) {
+    console.error('Erro ao carregar detalhes do contrato:', e);
+    alert('Não foi possível carregar detalhes do contrato.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false;
+  selectedContract.value = null;
+};
 
 const searchQuery = ref('');
 const selectedFilters = ref([]);

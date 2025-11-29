@@ -29,12 +29,8 @@ const loadProposals = async () => {
   loading.value = true;
   try {
     const proposals = await getProposals();
-    console.log('Propostas recebidas:', proposals);
     
     allProposals.value = proposals.map(proposal => {
-      console.log('Processando proposta:', proposal);
-      console.log('Atribuições:', proposal.atribuicoes);
-      
       // Buscar o responsável nas atribuições
       let responsible = 'Não atribuído';
       if (proposal.atribuicoes && Array.isArray(proposal.atribuicoes) && proposal.atribuicoes.length > 0) {

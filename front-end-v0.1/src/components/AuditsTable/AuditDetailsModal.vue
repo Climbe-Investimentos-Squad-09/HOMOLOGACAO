@@ -87,13 +87,7 @@
             <pre class="json-content">{{ formatJSON(audit.extra) }}</pre>
           </div>
         </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="close-footer-btn" @click="closeModal">
-          Fechar
-        </button>
-      </div>
+      </div>      
     </div>
   </div>
 </template>
@@ -208,24 +202,63 @@ export default {
 }
 
 .close-btn {
-  background: transparent;
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #6c757d;
-  padding: 0;
-  width: 32px;
-  height: 32px;
+  color: white;
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.close-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
 .close-btn:hover {
-  background: #f8f9fa;
-  color: #000;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4);
+}
+
+.close-btn:hover::before {
+  opacity: 1;
+}
+
+.close-btn:active {
+  transform: scale(0.95) rotate(90deg);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.close-btn i {
+  font-weight: 900;
+  line-height: 1;
+  font-size: 1.75rem;
+  transition: transform 0.2s;
+}
+
+.close-btn:hover i {
+  transform: scale(1.1);
 }
 
 .modal-body {

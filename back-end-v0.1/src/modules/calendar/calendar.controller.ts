@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Put, Delete, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Param, Put, Delete, Body } from '@nestjs/common';
 
 import { calendarService } from "./calendar.service";
 import {sendCalendarDTO} from "./dtos/calendar.dto";
@@ -20,6 +20,12 @@ export class CalendarController{
         }
     };
 
+    // GET - Auth check to diagnose Google OAuth configuration
+    @Get('auth-check')
+    async authCheck(){
+        return this.CalendarService.checkAuth();
+    }
+
     //Get - Listar detalhes da reunião
     @Get(':id')
     async getonly(@Param('id') id: string){    
@@ -40,12 +46,12 @@ export class CalendarController{
     //Query: titulo, empresa_id, data, hora, presencial, local, pauta
     @Post('')
     async postMeeting(@Body() body: sendCalendarDTO){
-        const data: Date = new Date(body.data);
-    
         try{
-            this.CalendarService.createReunion(body);          
+            const created = await this.CalendarService.createReunion(body);
+            return created;         
         }catch(error: any){
-            console.log("Erro ao agendar reunião")
+            console.log("Erro ao agendar reunião", error)
+            throw error
         }
     };
     

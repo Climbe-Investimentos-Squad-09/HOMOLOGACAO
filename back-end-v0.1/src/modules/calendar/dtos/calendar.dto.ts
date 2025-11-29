@@ -1,4 +1,4 @@
-import {IsString, IsDate, IsBoolean } from 'class-validator';
+import {IsString, IsDate, IsBoolean, IsArray, IsOptional } from 'class-validator';
 import {Type} from 'class-transformer';
 
 export  class sendCalendarDTO{
@@ -23,4 +23,9 @@ export  class sendCalendarDTO{
     
     @IsString()
     pauta!: string;
+
+    // Lista de e-mails dos participantes (opcional)
+    @IsOptional()
+    @IsArray()
+    participantesEmails?: string[];
 }

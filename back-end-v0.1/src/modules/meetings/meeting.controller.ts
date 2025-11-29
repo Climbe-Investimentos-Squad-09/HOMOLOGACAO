@@ -36,6 +36,14 @@ export class ReunioesController {
   }
 
   @Permissions('reunioes:visualizar')
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Lista reuniões onde o usuário é criador ou participante' })
+  @ApiParam({ name: 'userId', type: Number })
+  listForUser(@Param('userId') userId: string) {
+    return this.service.findForUser(+userId);
+  }
+
+  @Permissions('reunioes:visualizar')
   @Get(':id')
   @ApiOperation({ summary: 'Detalhe da reunião' })
   @ApiParam({ name: 'id', type: Number })

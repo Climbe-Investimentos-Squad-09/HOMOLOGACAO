@@ -47,6 +47,10 @@ export class Reuniao {
   @Column({ type: 'text', nullable: true })
   linkRemoto?: string;   // recomendado quando REMOTO
 
+  // ID do evento correspondente no Google Calendar (para sincronização)
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  googleEventId?: string;
+
   @Column({ type: 'enum', enum: StatusReuniao, default: StatusReuniao.AGENDADA })
   status!: StatusReuniao;
 

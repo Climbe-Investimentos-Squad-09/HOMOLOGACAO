@@ -24,13 +24,15 @@ export interface Meeting {
 
 export interface CreateMeetingDto {
   titulo: string
-  descricao?: string
+  pauta?: string
   idEmpresa?: number
   idContrato?: number
   dataHoraInicio: string
   dataHoraFim: string
-  tipoReuniao?: string
-  linkReuniao?: string
+  modalidade?: 'PRESENCIAL' | 'REMOTO' | 'OUTRO'
+  local?: string
+  linkRemoto?: string
+  participantesEmails?: string[]
 }
 
 export const getMeetings = async (from?: string, to?: string): Promise<Meeting[]> => {
@@ -39,6 +41,11 @@ export const getMeetings = async (from?: string, to?: string): Promise<Meeting[]
   if (to) params.to = to
   
   const response = await api.get('/reunioes', { params })
+  return response.data
+}
+
+export const getUserMeetings = async (userId: number): Promise<Meeting[]> => {
+  const response = await api.get(`/reunioes/user/${userId}`)
   return response.data
 }
 

@@ -100,10 +100,30 @@ export class ContractsService {
 
     const contract = await this.contractsRepo.findOne({
       where: { idContrato: id as any },
-      relations: ['proposta', 'compliance', 'atribuicoes', 'atribuicoes.usuario'],
+      relations: ['proposta', 'proposta.empresa', 'compliance', 'atribuicoes', 'atribuicoes.usuario'],
     });
     if (!contract) throw new NotFoundException('Contrato não encontrado');
-
+    // Recalcula status dinamicamente com base em datas (mesma lógica de findByFilters)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (contract.dataInicio && contract.dataFim) {
+      const dataInicio = new Date(contract.dataInicio);
+      const dataFim = new Date(contract.dataFim);
+      dataInicio.setHours(0, 0, 0, 0);
+      dataFim.setHours(0, 0, 0, 0);
+      let newStatus = contract.statusContrato;
+      if (today < dataInicio) {
+        newStatus = 'Em_revisao' as any;
+      } else if (today > dataFim) {
+        newStatus = StatusContrato.Encerrado;
+      } else {
+        newStatus = StatusContrato.Ativo;
+      }
+      if (newStatus !== contract.statusContrato) {
+        contract.statusContrato = newStatus;
+        await this.contractsRepo.save(contract);
+      }
+    }
     return contract;
   }
 
@@ -111,7 +131,10 @@ export class ContractsService {
     const { idProposta, idCompliance, statusContrato, from, to } = query || {};
     const qb = this.contractsRepo.createQueryBuilder('c')
       .leftJoinAndSelect('c.proposta', 'p')
-      .leftJoinAndSelect('c.compliance', 'u');
+      .leftJoinAndSelect('p.empresa', 'empresa')
+      .leftJoinAndSelect('c.compliance', 'u')
+      .leftJoinAndSelect('c.atribuicoes', 'atribuicoes')
+      .leftJoinAndSelect('atribuicoes.usuario', 'atribuicoes_usuario');
 
     if (idProposta) qb.andWhere('p.idProposta = :idProposta', { idProposta: Number(idProposta) });
     if (idCompliance) qb.andWhere('u.idUsuario = :idCompliance', { idCompliance: Number(idCompliance) });

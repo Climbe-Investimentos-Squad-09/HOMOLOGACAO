@@ -10,7 +10,8 @@
     "build": "nest build",
     "start:prod": "node dist/main.js",
     "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts",
-    "update-permissions": "ts-node -r tsconfig-paths/register src/scripts/update-admin-permissions.ts"
+    "update-permissions": "ts-node -r tsconfig-paths/register src/scripts/update-admin-permissions.ts",
+    "migrate:add-google-event-id": "ts-node -r tsconfig-paths/register src/scripts/migrate-add-google-event-id.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

@@ -18,10 +18,10 @@
         </div>
 
         <div class="form-group">
-          <label for="meeting-description">Descrição:</label>
+          <label for="meeting-description">Pauta:</label>
           <textarea 
             id="meeting-description" 
-            v-model="formData.descricao"
+            v-model="formData.pauta"
             placeholder="Insira o que será discutido na reunião..."
             :disabled="loading"
             rows="3"
@@ -97,29 +97,50 @@
         </div>
 
         <div class="form-group">
-          <label for="meeting-type">Tipo de reunião</label>
+          <label for="meeting-type">Modalidade</label>
           <select 
             id="meeting-type" 
-            v-model="formData.tipoReuniao" 
+            v-model="formData.modalidade" 
             :disabled="loading"
           >
             <option :value="null" disabled>Selecione uma opção</option>
-            <option value="presencial">Presencial</option>
-            <option value="online">Online</option>
-            <option value="hibrido">Híbrido</option>
+            <option value="PRESENCIAL">Presencial</option>
+            <option value="REMOTO">Online</option>
+            <option value="OUTRO">Outro</option>
           </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" v-if="formData.modalidade === 'REMOTO'">
           <label for="meeting-link">Link da reunião (opcional):</label>
           <input 
             type="text" 
             id="meeting-link" 
-            v-model="formData.linkReuniao"
+            v-model="formData.linkRemoto"
             placeholder="https://..."
             :disabled="loading"
           />
-          <p class="hint">Se não for inserido, ele será automaticamente criado</p>
+          <p class="hint">Se não for inserido, será usado o link do Google</p>
+        </div>
+        <div class="form-group" v-if="formData.modalidade === 'PRESENCIAL'">
+          <label for="meeting-local">Local (obrigatório para presencial):</label>
+          <input 
+            type="text" 
+            id="meeting-local" 
+            v-model="formData.local"
+            placeholder="Endereço..."
+            :disabled="loading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="participants">Participantes (e-mails, separados por vírgula):</label>
+          <input 
+            type="text" 
+            id="participants" 
+            v-model="participantsInput"
+            placeholder="email1@dominio.com, email2@dominio.com"
+            :disabled="loading"
+          />
         </div>
       </div>
 
@@ -156,15 +177,17 @@ const contracts = ref([])
 
 const formData = ref({
   titulo: '',
-  descricao: '',
+  pauta: '',
   idEmpresa: null,
   idContrato: null,
   date: '',
   startTime: '',
   endTime: '',
-  tipoReuniao: null,
-  linkReuniao: ''
+  modalidade: null,
+  linkRemoto: '',
+  local: ''
 })
+const participantsInput = ref('')
 
 const activeContracts = computed(() => {
   return contracts.value.filter(contract => 
@@ -225,15 +248,22 @@ const handleCreate = async () => {
     const startDateTime = `${formData.value.date}T${formData.value.startTime}:00`
     const endDateTime = `${formData.value.date}T${formData.value.endTime}:00`
 
+    const participantes = participantsInput.value
+      .split(',')
+      .map(e => e.trim())
+      .filter(e => e.length)
+
     const meetingData = {
       titulo: formData.value.titulo,
-      descricao: formData.value.descricao || undefined,
+      pauta: formData.value.pauta || undefined,
       idEmpresa: formData.value.idEmpresa || undefined,
       idContrato: formData.value.idContrato || undefined,
       dataHoraInicio: startDateTime,
       dataHoraFim: endDateTime,
-      tipoReuniao: formData.value.tipoReuniao || undefined,
-      linkReuniao: formData.value.linkReuniao || undefined
+      modalidade: formData.value.modalidade || undefined,
+      linkRemoto: formData.value.linkRemoto || undefined,
+      local: formData.value.local || undefined,
+      participantesEmails: participantes
     }
 
     await createMeeting(meetingData)

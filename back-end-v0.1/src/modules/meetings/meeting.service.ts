@@ -6,6 +6,7 @@ import { ModalidadeReuniao, Reuniao, StatusReuniao } from './Entities/meeting.en
 import { ReuniaoParticipante, StatusConvite } from './Entities/meeting-member.entity';
 import { ReuniaoAtividade, StatusAtividade } from './Entities/meeting-activity.entity';
 import { CreateReuniaoDto } from './dtos/create-meeting.dto';
+import { calendarService } from '../calendar/calendar.service';
 import { UpdateReuniaoDto } from './dtos/update-meeting.dto';
 import { AddParticipanteDto } from './dtos/add-member.dto';
 import { UpdateParticipanteStatusDto } from './dtos/update-member-status.dto';
@@ -19,6 +20,7 @@ export class ReunioesService {
     @InjectRepository(ReuniaoParticipante) private readonly partRepo: Repository<ReuniaoParticipante>,
     @InjectRepository(ReuniaoAtividade) private readonly atividadeRepo: Repository<ReuniaoAtividade>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly calendar: calendarService,
   ) {}
 
   // Hierarquia - Compara/identifica Cargos de alta hierarquia
@@ -37,9 +39,9 @@ export class ReunioesService {
     if (dto.modalidade === ModalidadeReuniao.PRESENCIAL && !dto.local) {
       throw new BadRequestException('Campo "local" é obrigatório quando a modalidade é PRESENCIAL');
     }
-    if (dto.modalidade === ModalidadeReuniao.REMOTO && !dto.linkRemoto) {
-      throw new BadRequestException('Campo "linkRemoto" é obrigatório quando a modalidade é REMOTO');
-    }
+    // Para REMOTO, permitimos ausência de linkRemoto na criação;
+    // o link será preenchido automaticamente com o gerado pelo Google Calendar
+    // em etapas seguintes do fluxo.
   }
 
   async create(dto: CreateReuniaoDto, currentUser: any) {
@@ -60,15 +62,63 @@ export class ReunioesService {
       status: StatusReuniao.AGENDADA,
     });
 
+    // cria evento no Google Calendar na conta central
+    const google = await this.calendar.createReunion({
+      titulo: dto.titulo,
+      empresa_id: String(currentUser?.empresa?.idEmpresa || ''),
+      data: inicio,
+      hora: '',
+      presencial: dto.modalidade === ModalidadeReuniao.PRESENCIAL,
+      local: dto.local || '',
+      pauta: dto.pauta || '',
+      participantesEmails: dto.participantesEmails || [],
+    } as any);
+
+    entity.googleEventId = google?.id;
+    entity.linkRemoto = dto.modalidade === ModalidadeReuniao.REMOTO ? (dto.linkRemoto || google?.htmlLink) : entity.linkRemoto;
+
     const saved = await this.reuniaoRepo.save(entity);
 
-    // criador como participante ACEITO
-    const part = this.partRepo.create({
-      reuniao: saved,
-      usuario: { idUsuario: currentUser.id } as User,
-      statusConvite: StatusConvite.ACEITO,
+    // criador como participante ACEITO (evita conflito unique com upsert manual)
+    const existingCreatorPart = await this.partRepo.findOne({
+      where: {
+        reuniao: { idReuniao: saved.idReuniao } as any,
+        usuario: { idUsuario: currentUser.id } as any,
+      },
+      relations: ['reuniao', 'usuario'],
     });
-    await this.partRepo.save(part);
+    if (existingCreatorPart) {
+      if (existingCreatorPart.statusConvite !== StatusConvite.ACEITO) {
+        existingCreatorPart.statusConvite = StatusConvite.ACEITO;
+        await this.partRepo.save(existingCreatorPart);
+      }
+    } else {
+      const part = this.partRepo.create({
+        reuniao: saved,
+        usuario: { idUsuario: currentUser.id } as User,
+        statusConvite: StatusConvite.ACEITO,
+      });
+      await this.partRepo.save(part);
+    }
+
+    // adiciona participantes enviados no DTO
+    if (dto.participantesEmails && dto.participantesEmails.length) {
+      for (const email of dto.participantesEmails) {
+        const user = await this.userRepo.findOne({ where: { email } as any });
+        if (user) {
+          const already = await this.partRepo.findOne({
+            where: {
+              reuniao: { idReuniao: saved.idReuniao } as any,
+              usuario: { idUsuario: user.idUsuario } as any,
+            },
+          });
+          if (!already) {
+            const p = this.partRepo.create({ reuniao: saved, usuario: user, statusConvite: StatusConvite.PENDENTE });
+            await this.partRepo.save(p);
+          }
+        }
+      }
+    }
 
     return saved;
   }
@@ -104,6 +154,18 @@ export class ReunioesService {
     return this.reuniaoRepo.find({ order: { dataHoraInicio: 'ASC' } });
   }
 
+  async findForUser(userId: number) {
+    const user = await this.userRepo.findOne({ where: { idUsuario: userId } });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    const qb = this.reuniaoRepo.createQueryBuilder('r')
+      .leftJoinAndSelect('r.criador', 'criador')
+      .leftJoinAndSelect('r.participantes', 'participantes')
+      .leftJoinAndSelect('participantes.usuario', 'pUsuario')
+      .where('criador.idUsuario = :userId OR pUsuario.idUsuario = :userId', { userId })
+      .orderBy('r.dataHoraInicio', 'ASC');
+    return qb.getMany();
+  }
+
   async update(id: number, dto: UpdateReuniaoDto, currentUser: any) {
     const existing = await this.findById(id);
 
@@ -133,7 +195,24 @@ export class ReunioesService {
       status: dto.status ?? existing.status,
     });
 
-    return this.reuniaoRepo.save(existing);
+    const saved = await this.reuniaoRepo.save(existing);
+    // sincroniza atualização no Google, se houver id
+    if (existing.googleEventId) {
+      const attendees = [] as { email: string }[];
+      const parts = await this.partRepo.find({ where: { reuniao: { idReuniao: id } as any }, relations: ['usuario'] });
+      for (const p of parts) {
+        if ((p as any).usuario?.email) attendees.push({ email: (p as any).usuario.email });
+      }
+      await this.calendar.updateEvent(existing.googleEventId, {
+        summary: saved.titulo,
+        description: saved.pauta,
+        location: saved.local,
+        start: { dateTime: saved.dataHoraInicio.toISOString(), timeZone: 'America/Sao_Paulo' },
+        end: { dateTime: saved.dataHoraFim.toISOString(), timeZone: 'America/Sao_Paulo' },
+        attendees,
+      });
+    }
+    return saved;
   }
 
   async remove(id: number, currentUser: any) {
@@ -144,6 +223,9 @@ export class ReunioesService {
       throw new ForbiddenException('Apenas o criador ou cargos superiores podem excluir');
     }
     await this.reuniaoRepo.remove(existing);
+    if (existing.googleEventId) {
+      await this.calendar.removeEvent(existing.googleEventId);
+    }
     return { message: 'Reunião removida' };
   }
 

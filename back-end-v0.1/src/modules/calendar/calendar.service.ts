@@ -7,29 +7,26 @@ import { indexAccountDTO } from "./dtos/indexAccounts.dto";
 
 @Injectable()
 export class calendarService {
-  private Calendar: calendar_v3.Calendar;
 
   constructor() {
-    const oAuth2Client = new OAuth2Client(
+  }
+
+  async listEvents(calendarId = 'primary', code: string | qs.ParsedQs) {  
+    let Calendar: calendar_v3.Calendar;
+
+    const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
 
-    oAuth2Client.setCredentials({
-      access_token: 'SEU_ACCESS_TOKEN_AQUI',
-      refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
-      scope: 'https://www.googleapis.com/auth/calendar',
-      token_type: 'Bearer',
-      expiry_date: Date.now() + 3600 * 1000,
-    });
+    const { tokens } = await oAuth2Client.getToken(String(code));
 
-    this.Calendar = google.calendar({ version: 'v3', auth: '' }); // Corrigir aqui com o oAuth2Client
-    console.log("Cliente Calendar criado");
-  }
+    oAuth2Client.setCredentials(tokens);
 
-  async listEvents(calendarId = 'primary') {
-    const res = await this.Calendar.events.list({
+    Calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+    const res = await Calendar.events.list({
       calendarId,
       maxResults: 10,
       singleEvents: true,
@@ -47,8 +44,22 @@ export class calendarService {
     }));
   }
 
-  async eventDetail(id: string) {
-    const res = await this.Calendar.events.get({
+  async eventDetail(id: string, code: string | qs.ParsedQs) {
+    let Calendar: calendar_v3.Calendar;
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    Calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+    const res = await Calendar.events.get({
       calendarId: 'primary',
       eventId: id,
     }, (err, res) => {
@@ -58,7 +69,21 @@ export class calendarService {
     });
   }
 
-  async createReunion(data: sendCalendarDTO) {
+  async createReunion(data: sendCalendarDTO, code: string | qs.ParsedQs) {
+    let Calendar: calendar_v3.Calendar;
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    Calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+    
     const startDate = new Date(data.data);
 
     const event = {
@@ -75,14 +100,28 @@ export class calendarService {
       },
     };
 
-    await this.Calendar.events.insert({
+    await Calendar.events.insert({
       calendarId: 'primary',
       requestBody: event,
     });
   }
 
-  async removeEvent(id: string) {
-    await this.Calendar.events.delete({
+  async removeEvent(id: string, code: string | qs.ParsedQs) {
+    let Calendar: calendar_v3.Calendar;
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    Calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+    await Calendar.events.delete({
       calendarId: 'primary',
       eventId: id,
       sendUpdates: "all"
@@ -92,8 +131,22 @@ export class calendarService {
     });
   }
 
-  async indexAccounts(data: indexAccountDTO) {
-    const eventoAtual = await this.Calendar.events.get({
+  async indexAccounts(data: indexAccountDTO, code: string | qs.ParsedQs) {
+    let Calendar: calendar_v3.Calendar;
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    Calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+    
+    const eventoAtual = await Calendar.events.get({
       calendarId: data.calendarId,
       eventId: data.eventId
     });
@@ -103,7 +156,7 @@ export class calendarService {
       ...data.novosParticipantes,
     ];
 
-    await this.Calendar.events.patch({
+    await Calendar.events.patch({
       calendarId: data.calendarId,
       eventId: data.eventId,
       requestBody: {

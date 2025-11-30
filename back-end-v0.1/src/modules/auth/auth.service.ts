@@ -169,7 +169,7 @@ export class AuthService {
     try {
       return this.oAuth2Client.generateAuthUrl({
         access_type: "offline",
-        scope: ["profile", "email"],
+        scope: ["profile", "email", 'https://mail.google.com/', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/calendar'],
         prompt: "consent",
       });
     } catch (error) {
@@ -243,7 +243,7 @@ export class AuthService {
     return jwt.sign(payload, process.env.JWT_SECRET || "default-secret", {
       algorithm: "HS256",
     });
-    }
+  }
 
   /** Gera Refresh Token (7 dias) */
   private generateRefreshToken(user: UserEntity): string {

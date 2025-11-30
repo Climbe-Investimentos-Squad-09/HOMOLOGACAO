@@ -11,30 +11,27 @@ import { Interval } from "@nestjs/schedule";
 import { driveService } from "../drive/drive.service";
 
 export class gmailService{
-  private gmail: gmail_v1.Gmail;
-
   constructor(
     private DriveService: driveService,
   ) {
-    const oAuth2Client = new OAuth2Client(
+  }
+  
+  async sendEmail(data: SendEmailDTO, code: string | qs.ParsedQs) {
+    let gmail: gmail_v1.Gmail;
+    
+    const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
 
-    oAuth2Client.setCredentials({
-      access_token: 'SEU_ACCESS_TOKEN_AQUI',
-      refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
-      scope: 'https://www.googleapis.com/auth/gmail',
-      token_type: 'Bearer',
-      expiry_date: Date.now() + 3600 * 1000,
-    });
 
-    this.gmail = google.gmail({ version: 'v1', auth: '' }); // Corrigir aqui com o oAuth2Client
-    console.log("Cliente gmail criado");
-  }
+    const { tokens } = await oAuth2Client.getToken(String(code));
 
-  async sendEmail(data: SendEmailDTO) {
+    oAuth2Client.setCredentials(tokens);
+
+    gmail = google.gmail({ version: 'v1', auth: oAuth2Client }); // Corrigir aqui com o oAuth2Client
+
     try {
       // Monta a mensagem em formato RFC 2822
       const rawMessage = [
@@ -57,7 +54,7 @@ export class gmailService{
       console.log("Email codificado");
 
       // Envia a mensagem
-      const res = await this.gmail.users.messages.send({
+      const res = await gmail.users.messages.send({
         userId: "me",
         requestBody: {
           raw: encodedMessage,
@@ -83,6 +80,7 @@ export class gmailService{
   //Cópia da Planilha - Fluxo Local do N8N
   //-------------------------------------------------------
 
+  /*
   //Execução do fluxo após um período de tempo
   @Interval(300000) // 30 minutos
   async executarAutomatico() {
@@ -90,15 +88,35 @@ export class gmailService{
     let avlEmail = []
 
     for (let i = 0; i < emailList.length; i++){
-      avlEmail[i] = this.extractDataFromMessage(emailList[i].data);
+      avlEmail[i] = await this.extractDataFromMessage(emailList[i].data);
     }
 
+    for (let i = 0; i < avlEmail.length; i++){
+      if(avlEmail[i].folderID !== null){
+        this.DriveService.copyFile(avlEmail[i].folderID)
+      }
+    }
   }
 
   //Listagem de E-mails recebidos - Máx 10
-  async listEmails(){
+  async listEmails( code: string | qs.ParsedQs){
+
+    let gmail: gmail_v1.Gmail;
+    
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    gmail = google.gmail({ version: 'v1', auth: oAuth2Client }); // Corrigir aqui com o oAuth2Client
     let emailList = [];
-    const res = await this.gmail.users.messages.list({
+    const res = await gmail.users.messages.list({
       userId: "me",
       maxResults: 10
     });
@@ -107,7 +125,7 @@ export class gmailService{
 
     for(let i = 0; i < 10; i++){
       if (ids?.[i]?.toString() !== null || ids?.[i]?.toString() !== undefined || ids?.[i]?.toString() !== ""){
-        emailList[i] = await this.gmail.users.messages.get({ userId: "me", id: ids?.[i]?.toString()})
+        emailList[i] = await gmail.users.messages.get({ userId: "me", id: ids?.[i]?.toString()})
       }
     }
 
@@ -119,8 +137,7 @@ export class gmailService{
 
   async  extractDataFromMessage(
     message: gmail_v1.Schema$Message
-  ): Promise<{ id: string | null; folderID: string | null }> {
-
+  ){
     // Extrair o snippet
     const snippet: string = message.snippet ?? "";
 
@@ -141,22 +158,36 @@ export class gmailService{
 
     if (subject === "Copiar Planilha" && isUnread) {
       return {
-        id: message.id ?? null,
         folderID: match ? match[1].trim() : null,
       };
     }
 
     return {
-      id: null,
       folderID: null,
     };
   }
 
   //Marcagem de Leitura
   async emailMarc(
-    id: string
+    id: string,
+    code: string | qs.ParsedQs
   ){
-    this.gmail.users.messages.modify({
+    let gmail: gmail_v1.Gmail;
+    
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+
+    oAuth2Client.setCredentials(tokens);
+
+    gmail = google.gmail({ version: 'v1', auth: oAuth2Client }); // Corrigir aqui com o oAuth2Client
+
+    gmail.users.messages.modify({
       userId: "me",
       id: id,
       requestBody: {
@@ -164,5 +195,6 @@ export class gmailService{
       }
     });
   }
+  */
 
 }

@@ -6,92 +6,61 @@ import { URLSearchParams } from 'url';
 
 import { sendCalendarDTO } from "./dtos/calendar.dto";
 import { indexAccountDTO } from "./dtos/indexAccounts.dto";
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @Injectable()
 export class calendarService {
-  private Calendar: calendar_v3.Calendar;
-  private oAuth2Client: OAuth2Client;
-  private refreshToken: string | undefined;
   private readonly apiBase = 'https://www.googleapis.com/calendar/v3';
 
   constructor() {
-    this.oAuth2Client = new OAuth2Client(
+    console.log("Calendar Service inicializado (user-level OAuth)");
+  }
+
+  /**
+   * Cria OAuth2Client configurado com tokens do usuário
+   */
+  private createAuthClient(tokens: GoogleTokens): OAuth2Client {
+    const client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.GOOGLE_REDIRECT_URI,
     );
 
-    // Sanitize and set only refresh_token; let library refresh access tokens automatically
-    const rt = (process.env.GOOGLE_REFRESH_TOKEN || '').replace(/^"|"$/g, '').trim();
-    this.refreshToken = rt || undefined;
-    this.oAuth2Client.setCredentials({ refresh_token: this.refreshToken });
-
-    this.Calendar = google.calendar({ version: 'v3', auth: this.oAuth2Client as any });
-    console.log("Cliente Calendar criado");
-  }
-
-  private async ensureAccessToken() {
-    // Try to get an access token; if missing, explicitly refresh
-    const tokenInfo = await this.oAuth2Client.getAccessToken();
-    if (!tokenInfo?.token) {
-      // Manual refresh via token endpoint as a reliable fallback
-      const token = await this.manualRefreshAccessToken();
-      if (token) {
-        this.oAuth2Client.setCredentials({ refresh_token: this.refreshToken, access_token: token });
-      }
-    } else {
-      this.oAuth2Client.setCredentials({ refresh_token: this.refreshToken, access_token: tokenInfo.token });
-    }
-  }
-
-  private manualRefreshAccessToken(): Promise<string | undefined> {
-    return new Promise((resolve, reject) => {
-      const params = new URLSearchParams({
-        client_id: (process.env.GOOGLE_CLIENT_ID || '').replace(/^"|"$/g, '').trim(),
-        client_secret: (process.env.GOOGLE_CLIENT_SECRET || '').replace(/^"|"$/g, '').trim(),
-        refresh_token: this.refreshToken || '',
-        grant_type: 'refresh_token',
-      });
-
-      const req = https.request(
-        'https://oauth2.googleapis.com/token',
-        { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
-        res => {
-          let data = '';
-          res.on('data', chunk => (data += chunk));
-          res.on('end', () => {
-            try {
-              const json = JSON.parse(data);
-              resolve(json.access_token as string | undefined);
-            } catch (e) {
-              resolve(undefined);
-            }
-          });
-        }
-      );
-      req.on('error', err => reject(err));
-      req.write(params.toString());
-      req.end();
+    client.setCredentials({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      scope: tokens.scope,
+      token_type: tokens.token_type,
+      expiry_date: tokens.expiry_date,
     });
+
+    return client;
+  }
+
+  /**
+   * Cria instância do Calendar API com autenticação do usuário
+   */
+  private createCalendarClient(tokens: GoogleTokens): calendar_v3.Calendar {
+    const authClient = this.createAuthClient(tokens);
+    return google.calendar({ version: 'v3', auth: authClient });
   }
 
 
-  async checkAuth() {
+  async checkAuth(tokens: GoogleTokens) {
     try {
-      // Ensure we have an access token and call API directly
-      const token = await this.getAccessTokenOrThrow();
+      const token = tokens.access_token;
       const me = await this.httpRequest('GET', '/users/me/calendarList', undefined, token);
       return {
         ok: true,
         hasAccessToken: Boolean(token),
-        hasRefreshToken: Boolean(this.refreshToken),
+        hasRefreshToken: Boolean(tokens.refresh_token),
         calendarCount: Array.isArray(me?.items) ? me.items.length : 0,
       };
     } catch (err: any) {
       const googleError = err?.response?.data?.error;
       return {
         ok: false,
-        hasRefreshToken: Boolean(this.oAuth2Client.credentials?.refresh_token),
+        hasRefreshToken: Boolean(tokens.refresh_token),
         status: err?.response?.status,
         error: googleError?.message || err?.message || 'Unknown error',
         googleError,
@@ -99,8 +68,9 @@ export class calendarService {
       };
     }
   }
-  async listEvents(calendarId = 'primary') {
-    const token = await this.getAccessTokenOrThrow();
+
+  async listEvents(tokens: GoogleTokens, calendarId = 'primary') {
+    const token = tokens.access_token;
     const params = new URLSearchParams({
       maxResults: '10',
       singleEvents: 'true',
@@ -118,13 +88,13 @@ export class calendarService {
     }));
   }
 
-  async eventDetail(id: string) {
-    const token = await this.getAccessTokenOrThrow();
+  async eventDetail(tokens: GoogleTokens, id: string) {
+    const token = tokens.access_token;
     const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined, token);
     return res;
   }
 
-  async createReunion(data: sendCalendarDTO) {
+  async createReunion(tokens: GoogleTokens, data: sendCalendarDTO) {
     const startDate = new Date(data.data);
 
     const event = {
@@ -141,38 +111,30 @@ export class calendarService {
       },
       attendees: (data.participantesEmails || []).map(email => ({ email })),
     };
-    const token = await this.getAccessTokenOrThrow();
+    const token = tokens.access_token;
     const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event, token);
     return { id: created.id, htmlLink: created.htmlLink };
   }
 
-  async removeEvent(id: string) {
-    const token = await this.getAccessTokenOrThrow();
+  async removeEvent(tokens: GoogleTokens, id: string) {
+    const token = tokens.access_token;
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined, token);
   }
 
-  async updateEvent(id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
-    const token = await this.getAccessTokenOrThrow();
+  async updateEvent(tokens: GoogleTokens, id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
+    const token = tokens.access_token;
     const params = new URLSearchParams({ sendUpdates: 'all' });
     const res = await this.httpRequest('PATCH', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, update as any, token);
     return { id: res.id, htmlLink: res.htmlLink };
   }
 
-  async indexAccounts(data: indexAccountDTO) {
-    const token = await this.getAccessTokenOrThrow();
+  async indexAccounts(tokens: GoogleTokens, data: indexAccountDTO) {
+    const token = tokens.access_token;
     const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined, token);
     const attendeesAtualizados = [ ...(current.attendees || []), ...data.novosParticipantes ];
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('PATCH', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}?${params.toString()}`, { attendees: attendeesAtualizados }, token);
-  }
-
-  private async getAccessTokenOrThrow(): Promise<string> {
-    await this.ensureAccessToken();
-    const tokenInfo = await this.oAuth2Client.getAccessToken();
-    const token = tokenInfo?.token;
-    if (!token) throw new Error('Failed to obtain access token');
-    return token;
   }
 
   private httpRequest(method: 'GET'|'POST'|'PATCH'|'DELETE', path: string, body: any | undefined, accessToken: string): Promise<any> {

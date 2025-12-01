@@ -9,6 +9,7 @@ import { User as UserEntity } from "../user/entities/user.entity";
 import { Role } from "../roles/entities/role.entity";
 import { LoginDto, RegisterDto } from "./dtos/login.dto";
 import { SituacaoUsuario } from "../user/enums/situacao-usuario-enum.dto";
+import { GoogleTokens } from './interfaces/google-tokens.interface';
 
 @Injectable()
 export class AuthService {
@@ -169,8 +170,14 @@ export class AuthService {
     try {
       return this.oAuth2Client.generateAuthUrl({
         access_type: "offline",
-        scope: ["profile", "email"],
-        prompt: "consent",
+        scope: [
+          "profile",
+          "email",
+          "https://www.googleapis.com/auth/calendar",
+          "https://www.googleapis.com/auth/drive",
+          "https://www.googleapis.com/auth/gmail.send",
+        ],
+        prompt: "consent", // garante refresh_token
       });
     } catch (error) {
       throw new HttpException("Erro ao gerar URL de autorização", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -178,7 +185,14 @@ export class AuthService {
   }
 
   /** Autentica usuário com Google OAuth2 (somente para usuários já registrados) */
-  async authenticateWithGoogle(code: string): Promise<any> {
+  async authenticateWithGoogle(code: string): Promise<{
+    success: boolean;
+    message: string;
+    accessToken: string;
+    refreshToken: string;
+    user: any;
+    googleTokens: GoogleTokens;
+  }> {
     try {
       const { tokens } = await this.oAuth2Client.getToken(code);
       this.oAuth2Client.setCredentials(tokens);
@@ -195,7 +209,10 @@ export class AuthService {
 
       const { email, name } = payload;
 
-      const user = await this.userRepository.findOne({ where: { email } });
+      const user = await this.userRepository.findOne({
+        where: { email },
+        relations: ['cargo']
+      });
       if (!user) {
         // Decisão de negócio: exigir registro prévio via e-mail/senha
         throw new HttpException(
@@ -212,6 +229,15 @@ export class AuthService {
       const accessToken = this.generateJWT(user);
       const refreshToken = this.generateRefreshToken(user);
 
+      // Preparar tokens OAuth2 para session
+      const googleTokens: GoogleTokens = {
+        access_token: tokens.access_token!,
+        refresh_token: tokens.refresh_token!, // CRÍTICO: só vem com prompt=consent
+        scope: tokens.scope || '',
+        token_type: tokens.token_type || 'Bearer',
+        expiry_date: tokens.expiry_date || Date.now() + 3600 * 1000,
+      };
+
       return {
         success: true,
         message: "Autenticação bem-sucedida",
@@ -223,6 +249,7 @@ export class AuthService {
           name: user.nomeCompleto,
           profile: user.cargo?.idCargo ?? null,
         },
+        googleTokens,
       };
     } catch (error: any) {
       throw new HttpException("Erro ao processar autenticação Google", HttpStatus.INTERNAL_SERVER_ERROR);

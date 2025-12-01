@@ -3,33 +3,48 @@ import {SendEmailDTO} from "./dtos/gmail.dto";
 import { google, gmail_v1 } from "googleapis";
 import { Base64 } from "js-base64";
 import { OAuth2Client } from 'google-auth-library';
-import { Injectable, Inject } from '@nestjs/common';
-import { AuthModule } from "../auth/auth.module";
+import { Injectable } from '@nestjs/common';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
+@Injectable()
 export class gmailService{
-  private gmail: gmail_v1.Gmail;
-
   constructor() {
-    const oAuth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-
-    oAuth2Client.setCredentials({
-      access_token: 'SEU_ACCESS_TOKEN_AQUI',
-      refresh_token: 'SEU_REFRESH_TOKEN_AQUI',
-      scope: 'https://www.googleapis.com/auth/gmail',
-      token_type: 'Bearer',
-      expiry_date: Date.now() + 3600 * 1000,
-    });
-
-    this.gmail = google.gmail({ version: 'v1', auth: '' }); // Corrigir aqui com o oAuth2Client
-    console.log("Cliente gmail criado");
+    console.log("Gmail Service inicializado (user-level OAuth)");
   }
 
-  async sendEmail(data: SendEmailDTO) {
+  /**
+   * Cria OAuth2Client configurado com tokens do usuário
+   */
+  private createAuthClient(tokens: GoogleTokens): OAuth2Client {
+    const client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI,
+    );
+
+    client.setCredentials({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      scope: tokens.scope,
+      token_type: tokens.token_type,
+      expiry_date: tokens.expiry_date,
+    });
+
+    return client;
+  }
+
+  /**
+   * Cria instância do Gmail API com autenticação do usuário
+   */
+  private createGmailClient(tokens: GoogleTokens): gmail_v1.Gmail {
+    const authClient = this.createAuthClient(tokens);
+    return google.gmail({ version: 'v1', auth: authClient });
+  }
+
+  async sendEmail(tokens: GoogleTokens, data: SendEmailDTO) {
     try {
+      const gmail = this.createGmailClient(tokens);
+
       // Monta a mensagem em formato RFC 2822
       const rawMessage = [
         `From: me`,
@@ -51,7 +66,7 @@ export class gmailService{
       console.log("Email codificado");
 
       // Envia a mensagem
-      const res = await this.gmail.users.messages.send({
+      const res = await gmail.users.messages.send({
         userId: "me",
         requestBody: {
           raw: encodedMessage,

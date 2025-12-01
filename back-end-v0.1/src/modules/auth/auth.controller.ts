@@ -9,7 +9,9 @@ import {
   HttpException,
   HttpStatus,
   Headers,
+  Session,
 } from "@nestjs/common";
+import { Session as ExpressSession } from 'express-session';
 import { AuthService } from "./auth.service";
 import {
   ApiOperation,
@@ -220,7 +222,10 @@ export class AuthController {
     status: 500,
     description: "Erro interno do servidor",
   })
-  async googleCallback(@Query("code") code: string) {
+  async googleCallback(
+    @Query("code") code: string,
+    @Session() session: ExpressSession,
+  ) {
     if (!code) {
       throw new HttpException(
         "Código de autorização não fornecido",
@@ -231,6 +236,23 @@ export class AuthController {
     try {
       const result = await this.authService.authenticateWithGoogle(code);
 
+      // Armazenar tokens OAuth2 na session
+      session.googleTokens = result.googleTokens;
+      session.userId = result.user.id;
+
+      // Salvar session explicitamente
+      await new Promise<void>((resolve, reject) => {
+        session.save((err) => {
+          if (err) {
+            console.error('Erro ao salvar session:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      // NÃO retornar googleTokens ao cliente (segurança)
       return {
         success: true,
         accessToken: result.accessToken,

@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import * as session from 'express-session';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -14,7 +15,23 @@ async function bootstrap() {
   // 1) Prefixo global (rotas da API começam com /api)
   app.setGlobalPrefix('api');
 
-  // 2) Pipes globais de validação (class-validator / class-transformer)
+  // 2) Configurar Session ANTES de outros middlewares
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'change-this-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // true em HTTPS
+        maxAge: 1000 * 60 * 60 * 24, // 24 horas
+        sameSite: 'lax',
+      },
+      name: 'climbe.sid', // Nome customizado do cookie
+    })
+  );
+
+  // 3) Pipes globais de validação (class-validator / class-transformer)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,             // remove campos não declarados nos DTOs
@@ -24,23 +41,23 @@ async function bootstrap() {
     }),
   );
 
-  // 3) Versionamento simples por URI: /api/v1/...
+  // 4) Versionamento simples por URI: /api/v1/...
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
   });
 
-  // 4) CORS (ajuste origins conforme seu frontend)
+  // 5) CORS - IMPORTANTE: credentials true para sessions
   app.enableCors({
-    origin: true, // ou ['http://localhost:5173', 'https://seu-front.com']
-    credentials: true,
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true, // ESSENCIAL para cookies de session
   });
 
-  // 5) Body parsers (útil para payloads “maiores”)
+  // 6) Body parsers (útil para payloads "maiores")
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
-  // 6) Swagger
+  // 7) Swagger
   const config = new DocumentBuilder()
     .setTitle('API Climbe')
     .setDescription('Documentação da API (MVP)')
@@ -80,7 +97,7 @@ async function bootstrap() {
   // import { writeFileSync } from 'fs';
   // writeFileSync('./openapi.json', JSON.stringify(document, null, 2));
 
-  // 7) Porta
+  // 8) Porta
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);
 

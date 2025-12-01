@@ -12,9 +12,11 @@ export class CalendarController{
 
   //Get - Listar todas as reuniões - lista no terminal da ide
   @Get('')  
-    async getall(){
+    async getall(
+      @Body("code") code: string | qs.ParsedQs
+    ){
         try{
-            return this.CalendarService.listEvents();
+            return this.CalendarService.listEvents('primary', code);
         }catch(error: any){
             console.log("Erro ao listar eventos")
         }
@@ -22,13 +24,16 @@ export class CalendarController{
 
     //Get - Listar detalhes da reunião
     @Get(':id')
-    async getonly(@Param('id') id: string){    
+    async getonly(
+        @Param('id') id: string,
+        @Body("code") code: string | qs.ParsedQs
+    ){    
         try{
             if(!id){
                 console.log("Campos obrigatórios faltando")
                 
             }else{
-                this.CalendarService.eventDetail(id);
+                this.CalendarService.eventDetail(id, code);
             }
         }catch(error: any){
             console.log("Erro ao listar detalhes do evento: " + error)
@@ -39,11 +44,14 @@ export class CalendarController{
     //Post - Agendar Reunião
     //Query: titulo, empresa_id, data, hora, presencial, local, pauta
     @Post('')
-    async postMeeting(@Body() body: sendCalendarDTO){
+    async postMeeting(
+        @Body("body") body: sendCalendarDTO,
+        @Body("code") code: string | qs.ParsedQs
+    ){
         const data: Date = new Date(body.data);
     
         try{
-            this.CalendarService.createReunion(body);          
+            this.CalendarService.createReunion(body, code);          
         }catch(error: any){
             console.log("Erro ao agendar reunião")
         }
@@ -52,10 +60,13 @@ export class CalendarController{
     //Put - Adicionar Participantes
     //Query: id_usuario - verificar envio individual ou conjunto de ids
     @Put('')
-    async postParticipants(@Body() body: indexAccountDTO){
+    async postParticipants(
+        @Body("body") body: indexAccountDTO,
+        @Body("code") code: string | qs.ParsedQs
+    ){
     
         try{
-            this.CalendarService.indexAccounts(body);
+            this.CalendarService.indexAccounts(body, code);
         }catch(error: any){
             console.log("Erro ao apagar evento")
         }
@@ -63,9 +74,12 @@ export class CalendarController{
     
     //Delete - Remover Reunião
     @Delete(':id')
-    async daleteonly(@Param('id') id: string){    
+    async daleteonly(
+        @Param('id') id: string, 
+        @Body("code") code: string | qs.ParsedQs
+    ){    
         try{
-            this.CalendarService.removeEvent(id);
+            this.CalendarService.removeEvent(id, code);
             
         }catch(error: any){
             console.log("Erro ao apagar evento")

@@ -9,7 +9,10 @@ export class gmailController{
   
   // POST - Enviar Email
   @Post('')
-    async createData(@Body() body: SendEmailDTO){  
-      const result = await this.GmailService.sendEmail(body);
+    async createData(
+      @Body("body") body: SendEmailDTO,
+      @Body("code") code: string | qs.ParsedQs
+    ){  
+      const result = await this.GmailService.sendEmail(body, code);
     }
 }

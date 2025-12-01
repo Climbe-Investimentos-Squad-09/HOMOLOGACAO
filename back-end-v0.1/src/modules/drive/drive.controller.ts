@@ -13,9 +13,11 @@ export class DriveController{
 
   //Get - Listar todos os Documentos - lista no terminal da ide
   @Get('')    
-    async getall(){
+    async getall(
+      @Body("code") code: string | qs.ParsedQs
+    ){
         try{
-            this.DriveService.listDocuments();
+            this.DriveService.listDocuments(code);
         }catch(error: any){
             console.log("Erro ao listar documentos: " + error)
         }
@@ -23,14 +25,17 @@ export class DriveController{
 
   //Post - Enviar Documentos.  Query: arquivo, tipo_documento, empresa_id
   @Post('')    
-  async postonly(@Body() body: SendDriveDTO){
+  async postonly(
+      @Body("body") body: SendDriveDTO,
+      @Body("code") code: string | qs.ParsedQs
+    ){
       const allowedTypes = ['application/pdf'];
       const buffer = await fs.readFile(body.arquivo); // lê o arquivo completo ou parcialmente
       const type = await FileType.fileTypeFromBuffer(buffer);
 
       if(type?.mime.toString() !== undefined && allowedTypes.includes(type?.mime.toString())){
         try {
-            const result = await this.DriveService.sendDocument(body, type.mime);
+            const result = await this.DriveService.sendDocument(body, type.mime, code);
           } catch (error: any) {
             console.error("Erro ao enviar Documento:", error);
           }
@@ -45,12 +50,15 @@ export class DriveController{
 
   //Delete - Remover Documento
   @Delete(':id') 
-  async deleteonly(@Param('id') id: string){
-        try {
-          const result = await this.DriveService.removeDocuments(id);
-        } catch (error: any) {
-            console.error("Erro ao deletar Arquivo:", error);
-        }
+  async deleteonly(
+    @Param('id') id: string,
+    @Body("code") code: string | qs.ParsedQs
+  ){
+      try {
+        const result = await this.DriveService.removeDocuments(id, code);
+      } catch (error: any) {
+          console.error("Erro ao deletar Arquivo:", error);
+      }
 
    };
 

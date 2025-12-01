@@ -3,21 +3,41 @@ import { google, drive_v3 } from "googleapis";
 import { OAuth2Client } from 'google-auth-library';
 import { Injectable } from '@nestjs/common';
 
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { File } from './entities/files.entity';
+
 import { gmailService } from '../gmail/gmail.service';
 import  {SendDriveDTO}  from './dtos/drive.dto';
 import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
+import { CreateFileDto } from './dtos/create-file.dto';
+
+import { Companies } from '../companies/entities/companies.entity';
+import { Proposals } from '../proposals/entities/proposals.entity';
+
 @Injectable()
 export class driveService{
-    constructor(private GmailService: gmailService) {
+    constructor(
+        private GmailService: gmailService,
+
+        @InjectRepository(Companies)
+            private readonly companiesRepo: Repository<Companies>,
+
+            @InjectRepository(Proposals)
+            private readonly proposalsRepo: Repository<Proposals>,
+
+        @InjectRepository(File)
+        private readonly filesRepo: Repository<File>,
+    ) {
         console.log("Drive Service inicializado (user-level OAuth)");
     }
 
     /**
      * Cria OAuth2Client configurado com tokens do usuário
      */
-    private createAuthClient(tokens: GoogleTokens): OAuth2Client {
-        const client = new OAuth2Client(
+    private createAuthClient(tokens: GoogleTokens){
+        const client = new google.auth.OAuth2(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
             process.env.GOOGLE_REDIRECT_URI,
@@ -72,23 +92,29 @@ export class driveService{
         }
     }
 
+    //Retornar email do usuário -- Verificar Possíveis Erros
+    async getEmailFromIdToken(access_token: string) {
+        const res = await fetch(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            {
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+            }
+        );
+
+        const data = await res.json() as any;
+        return data?.email;
+    }
+
     //Enviar Documentos. Query: arquivo, tipo_documento, empresa_id
      async sendDocument(
         tokens: GoogleTokens,
         data: SendDriveDTO,
-        mimeT: string
+        mimeT: string,
     ){
         const nome = data.name;
         let id = await this.searchFolder(tokens, nome);
-
-        if(id !== "" && id !== undefined){
-
-        }else{
-            let valor = await this.createFolder(tokens, nome);
-
-            if (valor !== undefined) id = valor ?? "";
-        }
-
         try{
             const drive = this.createDriveClient(tokens);
 
@@ -111,6 +137,29 @@ export class driveService{
                 media: media,
                 fields: "id"
             });
+
+            if(
+                (response.data.id !== "" && response.data.id !== undefined  && response.data.id !== null) &&
+                (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
+                (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
+                ){
+                
+                this.registerFile({
+                    idArquivo: response.data.id,
+                    
+                    nomeArquivo: response.data.name,
+                
+                    nomeEmpresa: data.name,
+                
+                    urlArquivo: response.data.driveId,
+                
+                    emailUsuario: await this.getEmailFromIdToken(tokens.access_token), //Inserir o id do token gerado pelo Oauth
+                
+                    dataEnvio: new Date,
+                })
+                
+            }
+
             return response;
         }catch (err) {
             throw err;
@@ -148,7 +197,7 @@ export class driveService{
     async inviteUsertoFolder(
         tokens: GoogleTokens,
         nomeEmail:string,
-        idPasta: string
+        idPasta: string,
     ){
         const drive = this.createDriveClient(tokens);
         const permissionIds: string[] = [];
@@ -205,16 +254,54 @@ export class driveService{
 
     async createFolder(
         tokens: GoogleTokens,
-        nome: string
+        nome: string,
+        empr: boolean,
+        id: any,
     ){
         const drive = this.createDriveClient(tokens);
 
-        const emailProprietario = "caio.chagas@souunit.com.br";
-        // The metadata for the new folder.
-        const fileMetadata = {
-            name: nome,
-            mimeType: 'application/vnd.google-apps.folder',
-        };
+        const emailProprietario = ""; //Definir um e-mail fixo
+        
+        // Metadados da Pasta
+        let fileMetadata = {}
+
+        //Nome da pastaProposta, se não for definida
+        let nomeProposta = nome;
+        
+        //Criação com, ou sem, Pasta Mãe
+        //Para pastas de propostas e pastas de empresas
+        if((id == undefined && empr!)|| (id == null && empr!)){
+            if(nome == "" || nome == undefined || nome == null){
+                let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
+                .where('u.idEmpresa = :id', { idEmpresa: id })
+                .getCount();
+
+                nomeProposta = "Proposta", (await qntPropostas) + 1
+            }
+            
+            
+            const el = await this.companiesRepo.createQueryBuilder('u')
+            .select(['u.nomeFantasia'])
+            .where('u.idEmpresa = :id', { idEmpresa: id })
+            .getOne();
+            
+            let val;
+
+            if(el !== null){
+                val = await this.searchFolder(tokens, el.nomeFantasia);
+            }
+
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [`${val}`]
+            };
+        }else{
+            fileMetadata = {
+                name: nomeProposta,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
+        }
 
         // Create the new folder.
         const file = await drive.files.create({
@@ -229,19 +316,32 @@ export class driveService{
             this.inviteUsertoFolder(tokens, emailProprietario, file.data.id)
         }
 
-        // NOTA: GmailService também precisa de tokens
-        this.GmailService.sendEmail(
-            tokens,
-            {
-                "toEmailAddress": emailProprietario,
-
-                "messageSubject": "Copiar Planilha",
-
-                "bodyText": "Insira a planilha para a pasta: " + file.data.id
-            }
-        );
+        if(empr!){
+            this.GmailService.sendEmail(
+                tokens,
+                {
+                    "toEmailAddress": emailProprietario,
+                        
+                    "messageSubject": "Copiar Planilha",
+                        
+                    "bodyText": "Insira a planilha para a pasta: " + file.data.id
+                }
+            );
+        }
 
         return file.data.id?.toString();
     }
 
+    async registerFile(dto: CreateFileDto): Promise<File> {
+        const file = this.filesRepo.create({
+              idArquivo: { idArquivo: dto.idArquivo } as any,
+              nomeArquivo: { nomeArquivo: dto.nomeArquivo } as any,
+              nomeEmpresa: { nomeEmpresa: dto.nomeEmpresa } as any,
+              urlArquivo: { urlArquivo: dto.urlArquivo } as any,
+              emailUsuario: { emailUsuario: dto.emailUsuario } as any,
+              dataEnvio: { dataEnvio: dto.dataEnvio } as any,
+            });
+        
+            return this.filesRepo.save(file);
+    }
 }

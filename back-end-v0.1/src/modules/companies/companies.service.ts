@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { UseGuards, Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { Companies } from './entities/companies.entity';
@@ -7,11 +7,20 @@ import { CompleteCompanyDto } from './dtos/complete-company.dto';
 import { isValidCNPJ, formatCNPJ } from '../../utils/cnpj.util';
 import { Contract } from '../contracts/entities/contracts.entity';
 
+import { driveService } from '../drive/drive.service';
+
+import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
+import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
 @Injectable()
+@UseGuards(GoogleOAuthGuard)
 export class CompaniesService {
   constructor(
     @InjectRepository(Companies)
     private readonly repo: Repository<Companies>,
+
+    private DriveService: driveService
   ) {}
 
   // ----------------- CREATE (pré-cadastro mínimo) -----------------
@@ -34,7 +43,10 @@ export class CompaniesService {
 
   // ----------------- CREATE (cadastro completo) -------------------
   // OBS: usa o mesmo DTO de "complete" para criar já completo
-  async createFull(dto: CompleteCompanyDto): Promise<Companies> {
+  async createFull(
+    @GoogleTokensDecorator() tokens: GoogleTokens, 
+    dto: CompleteCompanyDto
+  ): Promise<Companies> {
     // Campos exigidos no completo: razaoSocial, nomeFantasia, cnpj, email
     if (!dto?.razaoSocial || !dto?.nomeFantasia || !dto?.cnpj || !dto?.email) {
       throw new BadRequestException('Razão social, nome fantasia, CNPJ e e-mail são obrigatórios');
@@ -58,11 +70,17 @@ export class CompaniesService {
       email: dto.email,
       representanteLegal: dto.representanteLegal,
     });
+
+    this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "")
     return this.repo.save(entity);
   }
 
   // -------------- COMPLETE (completar/atualizar cadastro) ---------------
-  async complete(id: number, dto: CompleteCompanyDto): Promise<Companies> {
+  async complete(
+    @GoogleTokensDecorator() tokens: GoogleTokens, 
+    id: number, 
+    dto: CompleteCompanyDto
+  ): Promise<Companies> {
     const company = await this.repo.findOne({ where: { idEmpresa: id } });
     if (!company) throw new NotFoundException('Empresa não encontrada');
 
@@ -84,6 +102,9 @@ export class CompaniesService {
     }
 
     const toSave = this.repo.merge(company, dto);
+    if(dto.nomeFantasia !== "" && dto.nomeFantasia !== undefined){
+      this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "")
+    }
     return this.repo.save(toSave);
   }
 

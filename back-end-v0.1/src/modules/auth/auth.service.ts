@@ -270,7 +270,7 @@ export class AuthService {
     return jwt.sign(payload, process.env.JWT_SECRET || "default-secret", {
       algorithm: "HS256",
     });
-    }
+  }
 
   /** Gera Refresh Token (7 dias) */
   private generateRefreshToken(user: UserEntity): string {

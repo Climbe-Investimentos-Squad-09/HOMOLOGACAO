@@ -1,0 +1,20 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173" 
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000
+      - NPM_CONFIG_OPTIONAL=true
+    networks:
+      - app_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host"]
+
+networks:
+  app_network:
+    driver: bridge

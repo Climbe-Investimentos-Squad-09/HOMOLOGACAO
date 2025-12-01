@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Param, Put, Delete, Body, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
 
 import { gmailService } from "./gmail.service";
-import {SendEmailDTO} from "./dtos/gmail.dto";
+import {SendEmailDTO} from "./dtos/sendGmail.dto";
 import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
 import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
 import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';

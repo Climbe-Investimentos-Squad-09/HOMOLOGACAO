@@ -19,8 +19,8 @@ export class calendarService {
   /**
    * Cria OAuth2Client configurado com tokens do usuário
    */
-  private createAuthClient(tokens: GoogleTokens): OAuth2Client {
-    const client = new OAuth2Client(
+  private createAuthClient(tokens: GoogleTokens){
+    const client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI,

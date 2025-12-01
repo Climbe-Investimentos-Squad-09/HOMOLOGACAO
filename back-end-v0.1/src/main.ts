@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { json, urlencoded } from 'express';
-import * as session from 'express-session';
+const session = require("express-session");
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

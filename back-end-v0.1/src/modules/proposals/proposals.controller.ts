@@ -1,5 +1,5 @@
 // src/modules/proposals/proposals.controller.ts
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req } from '@nestjs/common';
+import { UseGuards, Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ProposalsService } from './proposals.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -12,8 +12,14 @@ import { AssignProposalDto } from './dtos/assign-proposals.dto';
 import { UpdateProposalStatusDto } from './dtos/update-proposals-status.dto';
 import { StatusProposta } from './entities/proposals.entity';
 
+import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
+import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
+
 @ApiTags('proposals')
 @ApiBearerAuth()
+@UseGuards(GoogleOAuthGuard)
 @Controller('proposals')
 export class ProposalsController {
   constructor(private readonly proposals: ProposalsService) {}
@@ -58,8 +64,15 @@ export class ProposalsController {
       },
     },
   })
-  create(@Body() dto: CreateProposalsDto, @Req() req: any) {
-    return this.proposals.create(dto);
+  create(
+    @Body() dto: CreateProposalsDto, 
+    @Req() req: any,
+    @GoogleTokensDecorator() tokens: GoogleTokens
+  ) {
+    return this.proposals.create(
+      tokens,
+      dto
+    );
   }
 
   @Permissions('propostas:editar')

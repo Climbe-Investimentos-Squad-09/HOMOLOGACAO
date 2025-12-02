@@ -7,9 +7,10 @@ import { ProposalAssignee } from './entities/proposal-assignee.entity';
 import { User } from '../user/entities/user.entity';
 import { DriveModule } from '../drive/drive.module';
 
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Proposals, ProposalAssignee,User]), DriveModule],
+  imports: [TypeOrmModule.forFeature([Proposals, ProposalAssignee,User]), DriveModule, AuthModule],
   controllers: [ProposalsController],
   providers: [ProposalsService],
 })

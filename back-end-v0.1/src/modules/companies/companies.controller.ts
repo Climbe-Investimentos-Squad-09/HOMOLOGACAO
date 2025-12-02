@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Put, Delete, Body, Param, Query
+  Controller, Get, Post, Patch, Put, Delete, Body, Param, Query,UseGuards
 } from '@nestjs/common';
 import {
   ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody
@@ -13,8 +13,13 @@ import { AuditAction } from '../../audit/entities/audit.entity';
 import { CreateCompanyMinimalDto } from './dtos/create-minimal-company.dto';
 import { CompleteCompanyDto } from './dtos/complete-company.dto';
 
+import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
+import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
 @ApiTags('companies')
 @ApiBearerAuth()
+@UseGuards(GoogleOAuthGuard)
 @Controller('companies')
 export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
@@ -80,8 +85,14 @@ export class CompaniesController {
       },
     },
   })
-  createFull(@Body() dto: CompleteCompanyDto) {
-    return this.companies.createFull(dto);
+  createFull(
+    @Body() dto: CompleteCompanyDto,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.companies.createFull(
+      tokens,
+      dto
+    );
   }
 
   // ---------- COMPLETE (completar/atualizar pré-cadastro) ----------
@@ -105,8 +116,16 @@ export class CompaniesController {
       },
     },
   })
-  complete(@Param('id') id: string, @Body() dto: CompleteCompanyDto) {
-    return this.companies.complete(+id, dto);
+  complete(
+    @Param('id') id: string, 
+    @Body() dto: CompleteCompanyDto,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.companies.complete(
+      tokens,
+      +id, 
+      dto
+    );
   }
 
   // ---------- UPDATE (usa o mesmo DTO de "complete") ----------
@@ -116,8 +135,16 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Atualiza empresa (mesmo DTO de complete)' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: CompleteCompanyDto })
-  update(@Param('id') id: string, @Body() dto: CompleteCompanyDto) {
-    return this.companies.complete(+id, dto);
+  update(
+    @Param('id') id: string, 
+    @Body() dto: CompleteCompanyDto,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.companies.complete(
+      tokens, 
+      +id, 
+      dto
+    );
   }
 
   // ---------- DELETE ----------

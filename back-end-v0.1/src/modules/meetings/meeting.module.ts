@@ -9,8 +9,10 @@ import { ReuniaoAtividade } from './Entities/meeting-activity.entity';
 import { User } from '../user/entities/user.entity';
 import { CalendarModule } from '../calendar/calendar.module';
 
+import { AuthModule } from '../auth/auth.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Reuniao, ReuniaoParticipante, ReuniaoAtividade, User]), CalendarModule],
+  imports: [TypeOrmModule.forFeature([Reuniao, ReuniaoParticipante, ReuniaoAtividade, User]), CalendarModule, AuthModule],
   controllers: [ReunioesController],
   providers: [ReunioesService],
   exports: [ReunioesService],

@@ -1,5 +1,5 @@
 // src/modules/meetings/reunioes.controller.ts
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { UseGuards, Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReunioesService } from './meeting.service';
 import { CreateReuniaoDto } from './dtos/create-meeting.dto';
@@ -11,8 +11,13 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Auditable } from '../../audit/auditable.decorator';
 import { AuditAction } from '../../audit/entities/audit.entity';
 
+import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
+import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
 @ApiTags('reunioes')
 @ApiBearerAuth('bearer')
+@UseGuards(GoogleOAuthGuard)
 @Controller('reunioes')
 export class ReunioesController {
   constructor(private readonly service: ReunioesService) {}
@@ -22,8 +27,12 @@ export class ReunioesController {
   @Post()
   @ApiOperation({ summary: 'Cria reunião' })
   @ApiBody({ type: CreateReuniaoDto })
-  create(@Body() dto: CreateReuniaoDto, @Req() req: any) {
-    return this.service.create(dto, req.user);
+  create(
+    @Body() dto: CreateReuniaoDto, 
+    @Req() req: any,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.service.create(tokens, dto, req.user);
   }
 
   @Permissions('reunioes:visualizar')
@@ -55,15 +64,24 @@ export class ReunioesController {
   @Put(':id')
   @ApiOperation({ summary: 'Atualiza reunião (criador ou superiores)' })
   @ApiBody({ type: UpdateReuniaoDto })
-  update(@Param('id') id: string, @Body() dto: UpdateReuniaoDto, @Req() req: any) {
-    return this.service.update(+id, dto, req.user);
+  update(
+    @Param('id') id: string, 
+    @Body() dto: UpdateReuniaoDto, 
+    @Req() req: any,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.service.update(tokens, +id, dto, req.user);
   }
 
   @Auditable({ entity: 'reunioes', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
   @Delete(':id')
   @ApiOperation({ summary: 'Remove reunião (criador ou superiores)' })
-  remove(@Param('id') id: string, @Req() req: any) {
-    return this.service.remove(+id, req.user);
+  remove(
+    @Param('id') id: string, 
+    @Req() req: any,
+    @GoogleTokensDecorator() tokens: GoogleTokens,
+  ) {
+    return this.service.remove(tokens, +id, req.user);
   }
 
   @Auditable({ entity: 'reunioes', action: AuditAction.ASSIGN, entityIdParam: 'id', loadBefore: true })

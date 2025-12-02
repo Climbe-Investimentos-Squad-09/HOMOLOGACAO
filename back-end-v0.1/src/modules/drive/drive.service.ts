@@ -22,10 +22,10 @@ export class driveService{
         private GmailService: gmailService,
 
         @InjectRepository(Companies)
-            private readonly companiesRepo: Repository<Companies>,
+        private readonly companiesRepo: Repository<Companies>,
 
-            @InjectRepository(Proposals)
-            private readonly proposalsRepo: Repository<Proposals>,
+        @InjectRepository(Proposals)
+        private readonly proposalsRepo: Repository<Proposals>,
 
         @InjectRepository(File)
         private readonly filesRepo: Repository<File>,

@@ -5,9 +5,10 @@ import { CompaniesService } from './companies.service';
 import { Companies } from './entities/companies.entity';
 import { DriveModule } from '../drive/drive.module';
 
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Companies]), DriveModule],
+  imports: [TypeOrmModule.forFeature([Companies]), DriveModule, AuthModule],
   controllers: [CompaniesController],
   providers: [CompaniesService],
 })

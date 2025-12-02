@@ -1,5 +1,5 @@
 // src/modules/proposals/proposals.service.ts
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { UseGuards, Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Proposals, StatusProposta } from './entities/proposals.entity';
@@ -11,7 +11,12 @@ import { User } from '../user/entities/user.entity';
 
 import { driveService } from '../drive/drive.service';
 
+import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
+import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
+import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
 @Injectable()
+@UseGuards(GoogleOAuthGuard)
 export class ProposalsService {
   constructor(
     @InjectRepository(Proposals)
@@ -27,7 +32,10 @@ export class ProposalsService {
   // -------------------------------------------------------------------
   // CREATE
   // -------------------------------------------------------------------
-  async create(dto: CreateProposalsDto): Promise<Proposals> {
+  async create(
+    @GoogleTokensDecorator() tokens: GoogleTokens, 
+    dto: CreateProposalsDto
+  ): Promise<Proposals> {
     if (!dto) throw new BadRequestException('Dados da proposta são obrigatórios');
 
     if (!dto.idEmpresa || dto.idEmpresa <= 0) throw new BadRequestException('ID da empresa é obrigatório');
@@ -49,7 +57,7 @@ export class ProposalsService {
     });
 
 
-    this.DriveService.createFolder("", dto.idEmpresa, false)
+    this.DriveService.createFolder(tokens, "", false, dto.idEmpresa)
     return this.proposalsRepo.save(proposal);
   }
 

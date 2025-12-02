@@ -11,7 +11,8 @@ import {
   Headers,
   Session,
 } from "@nestjs/common";
-import { Session as ExpressSession } from 'express-session';
+const ExpressSession = require("express-session");
+
 import { AuthService } from "./auth.service";
 import {
   ApiOperation,
@@ -224,7 +225,7 @@ export class AuthController {
   })
   async googleCallback(
     @Query("code") code: string,
-    @Session() session: ExpressSession,
+    @Session() session: typeof ExpressSession,
   ) {
     if (!code) {
       throw new HttpException(
@@ -242,7 +243,7 @@ export class AuthController {
 
       // Salvar session explicitamente
       await new Promise<void>((resolve, reject) => {
-        session.save((err) => {
+        session.save((err: any) => {
           if (err) {
             console.error('Erro ao salvar session:', err);
             reject(err);

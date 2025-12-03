@@ -7,7 +7,7 @@
     "start": "ts-node src/main.ts",
     "start:dev": "ts-node-dev --respawn --transpile-only --poll src/main.ts",
     "start:fast": "nest start --watch",
-    "build": "nest build",
+    "build": "tsc -p tsconfig.json",
     "start:prod": "node dist/main.js",
     "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts",
     "update-permissions": "ts-node -r tsconfig-paths/register src/scripts/update-admin-permissions.ts",

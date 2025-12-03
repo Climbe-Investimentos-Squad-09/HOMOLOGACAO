@@ -35,7 +35,6 @@ export class ReunioesController {
     return this.service.create(tokens, dto, req.user);
   }
 
-  @Permissions('reunioes:visualizar')
   @Get()
   @ApiOperation({ summary: 'Lista reuniões por período (se informado)' })
   @ApiQuery({ name: 'from', required: false, description: 'YYYY-MM-DD' })
@@ -44,7 +43,6 @@ export class ReunioesController {
     return this.service.findByPeriod(from, to);
   }
 
-  @Permissions('reunioes:visualizar')
   @Get('user/:userId')
   @ApiOperation({ summary: 'Lista reuniões onde o usuário é criador ou participante' })
   @ApiParam({ name: 'userId', type: Number })

@@ -149,7 +149,7 @@ const loadMeetings = async () => {
   loading.value = true
   try {
     const auth = useAuthStore()
-    const userId = auth.user?.idUsuario
+    const userId = auth.user?.id
     if (!userId) {
       meetings.value = []
     } else {

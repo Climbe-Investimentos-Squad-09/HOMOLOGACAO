@@ -34,7 +34,15 @@
             @click="selectDay(day)"
           >
             <div class="day-number">{{ day.dayNumber }}</div>
-            <div v-if="day.hasEvent" class="event-indicator"></div>
+            <div v-if="day.hasEvent" class="day-meetings">
+              <div 
+                v-for="meeting in getMeetingsForDate(day.date)" 
+                :key="meeting.idReuniao"
+                class="day-meeting-item"
+              >
+                {{ meeting.titulo }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -52,16 +60,22 @@
             :key="meeting.idReuniao"
             class="event-item"
           >
-            <div class="event-date">{{ formatDate(meeting.dataHoraInicio) }}</div>
             <div class="event-card">
-              <div class="event-time">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="#3C6E6C"/>
-                </svg>
-                {{ formatTime(meeting.dataHoraInicio) }}
-              </div>
               <div class="event-title">{{ meeting.titulo }}</div>
-              <div class="event-company">{{ meeting.empresa?.nomeFantasia || 'Empresa' }}</div>
+              <div class="event-info">
+                <div class="event-time-range">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="#3C6E6C"/>
+                  </svg>
+                  <span>{{ formatDateTime(meeting.dataHoraInicio) }} - {{ formatDateTime(meeting.dataHoraFim) }}</span>
+                </div>
+                <div class="event-company">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 7V3H2V21H22V7H12ZM6 19H4V17H6V19ZM6 15H4V13H6V15ZM6 11H4V9H6V11ZM6 7H4V5H6V7ZM10 19H8V17H10V19ZM10 15H8V13H10V15ZM10 11H8V9H10V11ZM10 7H8V5H10V7ZM20 19H12V17H14V15H12V13H14V11H12V9H20V19ZM18 11H16V13H18V11ZM18 15H16V17H18V15Z" fill="#3C6E6C"/>
+                  </svg>
+                  <span>{{ meeting.empresa?.nomeFantasia || 'Sem empresa' }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -103,6 +117,7 @@ const calendarDays = computed(() => {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
   
+  // Primeiro e último dia do mês atual
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
   const daysInMonth = lastDay.getDate()
@@ -113,25 +128,35 @@ const calendarDays = computed(() => {
   today.setHours(0, 0, 0, 0)
   
   // Dias do mês anterior
-  const prevMonth = new Date(year, month - 1, 0)
-  for (let i = startDayOfWeek - 1; i >= 0; i--) {
-    const day = prevMonth.getDate() - i
-    const date = new Date(year, month - 1, day)
-    days.push({
-      date: date.toISOString().split('T')[0],
-      dayNumber: day,
-      isCurrentMonth: false,
-      isToday: false,
-      hasEvent: hasMeetingOnDate(date.toISOString().split('T')[0]),
-      isSelected: false
-    })
+  if (startDayOfWeek > 0) {
+    const prevMonthLastDay = new Date(year, month, 0)
+    const prevMonthDaysCount = prevMonthLastDay.getDate()
+    const prevMonth = prevMonthLastDay.getMonth()
+    const prevYear = prevMonthLastDay.getFullYear()
+    
+    // Adicionar os últimos dias do mês anterior
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const day = prevMonthDaysCount - i
+      const date = new Date(prevYear, prevMonth, day)
+      const dateString = date.toISOString().split('T')[0]
+      days.push({
+        date: dateString,
+        dayNumber: day,
+        isCurrentMonth: false,
+        isToday: false,
+        hasEvent: hasMeetingOnDate(dateString),
+        isSelected: false
+      })
+    }
   }
   
   // Dias do mês atual
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day)
     const dateString = date.toISOString().split('T')[0]
-    const isToday = date.getTime() === today.getTime()
+    const checkDate = new Date(year, month, day)
+    checkDate.setHours(0, 0, 0, 0)
+    const isToday = checkDate.getTime() === today.getTime()
     
     days.push({
       date: dateString,
@@ -143,16 +168,17 @@ const calendarDays = computed(() => {
     })
   }
   
-  // Dias do próximo mês para completar a grade
-  const remainingDays = 42 - days.length // 6 semanas x 7 dias
+  // Dias do próximo mês para completar a grade (sempre 6 semanas = 42 dias)
+  const remainingDays = 42 - days.length
   for (let day = 1; day <= remainingDays; day++) {
     const date = new Date(year, month + 1, day)
+    const dateString = date.toISOString().split('T')[0]
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: dateString,
       dayNumber: day,
       isCurrentMonth: false,
       isToday: false,
-      hasEvent: hasMeetingOnDate(date.toISOString().split('T')[0]),
+      hasEvent: hasMeetingOnDate(dateString),
       isSelected: false
     })
   }
@@ -183,6 +209,13 @@ const hasMeetingOnDate = (date) => {
   })
 }
 
+const getMeetingsForDate = (date) => {
+  return meetings.value.filter(meeting => {
+    const meetingDate = new Date(meeting.dataHoraInicio).toISOString().split('T')[0]
+    return meetingDate === date
+  })
+}
+
 const formatDate = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -191,6 +224,17 @@ const formatDate = (dateString) => {
 const formatTime = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
+const formatDateTime = (dateString) => {
+  const date = new Date(dateString)
+  return date.toLocaleString('pt-BR', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit', 
+    minute: '2-digit' 
+  })
 }
 
 const previousMonth = () => {
@@ -217,8 +261,10 @@ const loadMeetings = async () => {
   loading.value = true
   try {
     const auth = useAuthStore()
-    const userId = auth.user?.idUsuario
+    const userId = auth.user?.id
+    
     if (!userId) {
+      console.warn('Nenhum userId encontrado')
       meetings.value = []
     } else {
       const loadedMeetings = await getUserMeetings(userId)
@@ -321,11 +367,12 @@ onMounted(() => {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   position: relative;
   transition: background-color 0.2s;
   background-color: #FFFFFF;
+  overflow: hidden;
 }
 
 .calendar-day:hover {
@@ -348,22 +395,32 @@ onMounted(() => {
   border-color: #3C6E6C;
 }
 
-.calendar-day.has-event .day-number::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background-color: #3C6E6C;
-  border-radius: 50%;
-}
-
 .day-number {
   font-size: 0.875rem;
   color: inherit;
-  position: relative;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.day-meetings {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  overflow-y: auto;
+  max-height: calc(100% - 1.5rem);
+}
+
+.day-meeting-item {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.25rem;
+  background-color: #3C6E6C;
+  color: white;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .upcoming-events {
@@ -399,44 +456,41 @@ onMounted(() => {
 }
 
 .event-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.event-date {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6C757D;
+  margin-bottom: 0.75rem;
 }
 
 .event-card {
-  background-color: #DFF6F6;
+  background-color: #FFFFFF;
+  border: 1px solid #E9ECEF;
   border-radius: 6px;
   padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.event-time {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #3C6E6C;
 }
 
 .event-title {
   font-size: 0.875rem;
-  font-weight: 500;
   color: #212529;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
+.event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.event-time-range,
 .event-company {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   font-size: 0.75rem;
-  color: #6C757D;
+  color: #495057;
+}
+
+.event-time-range svg,
+.event-company svg {
+  flex-shrink: 0;
 }
 
 .no-events {

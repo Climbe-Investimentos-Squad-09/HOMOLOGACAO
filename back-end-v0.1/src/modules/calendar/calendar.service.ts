@@ -11,9 +11,55 @@ import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 @Injectable()
 export class calendarService {
   private readonly apiBase = 'https://www.googleapis.com/calendar/v3';
+  private centralAccessToken: string | null = null;
+  private centralTokenExpiry: number = 0;
 
   constructor() {
-    console.log("Calendar Service inicializado (user-level OAuth)");
+    console.log("Calendar Service inicializado - usando conta central do .env");
+  }
+
+  /**
+   * Obtém ou renova o access token da conta central
+   */
+  private async getCentralAccessToken(): Promise<string> {
+    const now = Date.now();
+    
+    // Se já temos um token válido, retornar
+    if (this.centralAccessToken && this.centralTokenExpiry > now + 60000) {
+      return this.centralAccessToken;
+    }
+
+    // Renovar token usando refresh token do .env
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    if (!refreshToken) {
+      throw new Error('GOOGLE_REFRESH_TOKEN não configurado no .env');
+    }
+
+    const params = new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    });
+
+    const response = await this.httpRequestToken('POST', 'https://oauth2.googleapis.com/token', params.toString());
+    
+    this.centralAccessToken = response.access_token;
+    this.centralTokenExpiry = now + (response.expires_in * 1000);
+    
+    console.log('Token da conta central renovado com sucesso');
+    return this.centralAccessToken!;
+  }
+
+ 
+  private async getAccessToken(tokens?: GoogleTokens | null): Promise<string> {
+    // Se tokens do usuário foram fornecidos e são válidos, usar eles
+    if (tokens?.access_token) {
+      return tokens.access_token;
+    }
+    
+    // Caso contrário, usar a conta central
+    return this.getCentralAccessToken();
   }
 
   /**
@@ -46,21 +92,21 @@ export class calendarService {
   }
 
 
-  async checkAuth(tokens: GoogleTokens) {
+  async checkAuth(tokens?: GoogleTokens | null) {
     try {
-      const token = tokens.access_token;
+      const token = await this.getAccessToken(tokens);
       const me = await this.httpRequest('GET', '/users/me/calendarList', undefined, token);
       return {
         ok: true,
         hasAccessToken: Boolean(token),
-        hasRefreshToken: Boolean(tokens.refresh_token),
+        hasRefreshToken: Boolean(tokens?.refresh_token),
         calendarCount: Array.isArray(me?.items) ? me.items.length : 0,
       };
     } catch (err: any) {
       const googleError = err?.response?.data?.error;
       return {
         ok: false,
-        hasRefreshToken: Boolean(tokens.refresh_token),
+        hasRefreshToken: Boolean(tokens?.refresh_token),
         status: err?.response?.status,
         error: googleError?.message || err?.message || 'Unknown error',
         googleError,
@@ -69,8 +115,8 @@ export class calendarService {
     }
   }
 
-  async listEvents(tokens: GoogleTokens, calendarId = 'primary') {
-    const token = tokens.access_token;
+  async listEvents(tokens?: GoogleTokens | null, calendarId = 'primary') {
+    const token = await this.getAccessToken(tokens);
     const params = new URLSearchParams({
       maxResults: '10',
       singleEvents: 'true',
@@ -88,13 +134,13 @@ export class calendarService {
     }));
   }
 
-  async eventDetail(tokens: GoogleTokens, id: string) {
-    const token = tokens.access_token;
+  async eventDetail(tokens: GoogleTokens | null, id: string) {
+    const token = await this.getAccessToken(tokens);
     const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined, token);
     return res;
   }
 
-  async createReunion(tokens: GoogleTokens, data: sendCalendarDTO) {
+  async createReunion(tokens: GoogleTokens | null, data: sendCalendarDTO) {
     const startDate = new Date(data.data);
 
     const event = {
@@ -111,30 +157,57 @@ export class calendarService {
       },
       attendees: (data.participantesEmails || []).map(email => ({ email })),
     };
-    const token = tokens.access_token;
+    const token = await this.getAccessToken(tokens);
     const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event, token);
     return { id: created.id, htmlLink: created.htmlLink };
   }
 
-  async removeEvent(tokens: GoogleTokens, id: string) {
-    const token = tokens.access_token;
+  async removeEvent(tokens: GoogleTokens | null, id: string) {
+    const token = await this.getAccessToken(tokens);
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined, token);
   }
 
-  async updateEvent(tokens: GoogleTokens, id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
-    const token = tokens.access_token;
+  async updateEvent(tokens: GoogleTokens | null, id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
+    const token = await this.getAccessToken(tokens);
     const params = new URLSearchParams({ sendUpdates: 'all' });
     const res = await this.httpRequest('PATCH', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, update as any, token);
     return { id: res.id, htmlLink: res.htmlLink };
   }
 
-  async indexAccounts(tokens: GoogleTokens, data: indexAccountDTO) {
-    const token = tokens.access_token;
+  async indexAccounts(tokens: GoogleTokens | null, data: indexAccountDTO) {
+    const token = await this.getAccessToken(tokens);
     const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined, token);
     const attendeesAtualizados = [ ...(current.attendees || []), ...data.novosParticipantes ];
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('PATCH', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}?${params.toString()}`, { attendees: attendeesAtualizados }, token);
+  }
+
+  private httpRequestToken(method: string, url: string, body: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(url);
+      const req = https.request(urlObj, {
+        method,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(body).toString(),
+        }
+      }, res => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            try { resolve(JSON.parse(data)); } catch { resolve({}); }
+          } else {
+            try { reject({ response: { status: res.statusCode, data: JSON.parse(data) } }); }
+            catch { reject(new Error(`HTTP ${res.statusCode}: ${data}`)); }
+          }
+        });
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
   }
 
   private httpRequest(method: 'GET'|'POST'|'PATCH'|'DELETE', path: string, body: any | undefined, accessToken: string): Promise<any> {

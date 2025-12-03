@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bem-vindo à Climbe Investimentos!</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        .header { background-color: #222222; padding: 20px 0; text-align: center; }
+        .content { padding: 30px; line-height: 1.6; color: #333333; }
+        .welcome-banner { 
+            background: linear-gradient(135deg, #48D1CC 0%, #3C6E6C 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin: 0 -30px 20px -30px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #48D1CC;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer { background-color: #f4f4f4; padding: 15px 30px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #dddddd; }
+        h1 { color: #222222; margin: 0; }
+        h2 { color: #48D1CC; font-size: 24px; }
+        .emoji { font-size: 48px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <img src="https://i.imgur.com/InjeONO.png" alt="Climbe Investimentos Independentes" style="max-width: 250px; height: auto;">
+        </div>
+        
+        <div class="content">
+            <div class="welcome-banner">
+                <div class="emoji">🎉</div>
+                <h2>Bem-vindo(a) à Climbe!</h2>
+            </div>
+
+            <h1>Olá, {{nome}}!</h1>
+            
+            <p>É com grande satisfação que damos as boas-vindas à <strong>Climbe Investimentos Independentes</strong>!</p>
+
+            <p>Seu cadastro foi realizado com sucesso e agora está em análise pela nossa equipe. Em breve você receberá um e-mail de confirmação quando sua conta for aprovada.</p>
+
+            <div class="info-box">
+                <strong>📋 Próximos passos:</strong>
+                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                    <li>Aguarde a aprovação do seu cadastro (normalmente leva até 24h)</li>
+                    <li>Você receberá um e-mail de confirmação quando sua conta estiver ativa</li>
+                    <li>Após a aprovação, você poderá acessar todas as funcionalidades da plataforma</li>
+                </ul>
+            </div>
+
+            <p><strong>Seus dados de cadastro:</strong></p>
+            <ul>
+                <li><strong>Nome:</strong> {{nome}}</li>
+                <li><strong>E-mail:</strong> {{email}}</li>
+            </ul>
+
+            <p>Enquanto isso, se tiver qualquer dúvida ou precisar de assistência, nossa equipe de suporte está à disposição.</p>
+
+            <p>Atenciosamente,<br><strong>Equipe Climbe Investimentos</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Este é um e-mail automático. Por favor, não responda a este endereço.</p>
+            <p>Climbe Investimentos | Edifício Neo Office - Av. Dr. José Machado de Souza, 220 - sala 414 - Jardins, Aracaju - SE</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -113,22 +113,38 @@ export default {
       this.warningMessage = ''
       this.successMessage = ''
       
-      if (!this.user || !this.pass) {
+      // Validar campos vazios
+      if (!this.user || !this.user.trim()) {
+        this.warningMessage = 'Por favor, preencha o e-mail'
+        return
+      }
+      
+      if (!this.pass || !this.pass.trim()) {
+        this.warningMessage = 'Por favor, preencha a senha'
         return
       }
 
       this.oi = true
-      this.buttonDisabled = false
+      this.buttonDisabled = true
       
       try {
-        await this.authStore.login(this.user, this.pass)
+        const response = await this.authStore.login(this.user, this.pass)
+        console.log('Login bem-sucedido:', response)
+        
         this.successMessage = 'Login realizado com sucesso!'
-        setTimeout(() => {
-          this.router.push('/dashboard')
-        }, 1000)
+        
+        // Aguardar um pouco para garantir que o estado foi atualizado
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        this.oi = false
+        this.buttonDisabled = false
+        
+        console.log('Redirecionando para dashboard...')
+        await this.router.push('/dashboard')
+        console.log('Redirecionamento concluído')
       } catch (err) {
         this.oi = false
-        this.buttonDisabled = true
+        this.buttonDisabled = false
         
         if (err.response?.status === 403) {
           const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || ''

@@ -16,6 +16,27 @@ export class NotificationsService {
     private readonly companiesRepository: Repository<Companies>,
   ) { }
 
+  /**
+   * Envia email de boas-vindas quando o usuário se cadastra
+   */
+  async enviarEmailBoasVindas(email: string, nome: string) {
+    
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: '🎉 Bem-vindo à Climbe Investimentos!',
+        template: 'welcomeUser',
+        context: {
+          nome,
+          email,
+        },
+      });
+      console.log('✅ Email de boas-vindas enviado com sucesso para:', email);
+    } catch (error) {
+      console.error('❌ Erro ao enviar email de boas-vindas:', error);
+      throw error;
+    }
+  }
 
   async enviarNotificacaoUsuarioAceito(id: number) {
     const user = await this.userRepository.findOneBy({ idUsuario: id });

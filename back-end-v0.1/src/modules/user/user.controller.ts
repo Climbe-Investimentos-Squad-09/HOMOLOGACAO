@@ -47,7 +47,7 @@ export class UserController {
   }
 
   // -------- CREATE (admin/backoffice) ----------
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:criar')
   @Auditable({ entity: 'usuarios', action: AuditAction.CREATE, entityIdFromResult: 'idUsuario' })
   @Post()
   @ApiOperation({ summary: 'Cria usuário (admin/backoffice)' })
@@ -68,7 +68,7 @@ export class UserController {
   }
 
   // -------- ROLE & EXTRA PERMS ----------
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:editar')
   @Auditable({ entity: 'usuarios', action: AuditAction.ASSIGN, entityIdParam: 'id', loadBefore: true })
   @Post(':id/role')
   @ApiOperation({ summary: 'Atribui/atualiza cargo do usuário (opcionalmente define extras)' })
@@ -78,7 +78,7 @@ export class UserController {
     return this.users.updateRole(+id, dto);
   }
 
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:editar')
   @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
   @Post(':id/permissions/add')
   @ApiOperation({ summary: 'Adiciona permissões extras a um usuário' })
@@ -88,7 +88,7 @@ export class UserController {
     return this.users.addPermissions(+id, dto);
   }
 
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:editar')
   @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
   @Post(':id/permissions/remove')
   @ApiOperation({ summary: 'Remove permissões extras de um usuário' })

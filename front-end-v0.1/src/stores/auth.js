@@ -106,21 +106,8 @@ export const useAuthStore = defineStore('auth', () => {
         user.value.permissions = response.user.permissions
       }
       localStorage.setItem('permissions', JSON.stringify(response.user.permissions))
-    } else {
-      await loadUserPermissions()
     }
     
-    if (!user.value?.profile) {
-      try {
-        const userData = await getUserById(user.value.id)
-        if (userData.cargo) {
-          user.value.profile = userData.cargo.idCargo
-          localStorage.setItem('user', JSON.stringify(user.value))
-        }
-      } catch (error) {
-        // Ignorar erro silenciosamente
-      }
-    }
     return response
   }
 
@@ -148,8 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     setTokens,
     setUser,
-    clearAuth,
-    loadUserPermissions
+    loadUserPermissions,
   }
 })
 

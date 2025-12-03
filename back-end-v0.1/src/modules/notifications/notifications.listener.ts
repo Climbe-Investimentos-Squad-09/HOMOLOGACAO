@@ -7,6 +7,23 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsListener {
   constructor(private notificacoesService: NotificationsService) { }
 
+  // ESCUTA O EVENTO 'usuario.cadastrado' - Email de boas-vindas
+  @OnEvent('usuario.cadastrado', { async: true })
+  async handleUsuarioCadastrado(payload: { email: string; nome: string }) {
+    console.log('=== EVENTO RECEBIDO: usuario.cadastrado ===');
+    console.log('Payload:', payload);
+    
+    try {
+      await this.notificacoesService.enviarEmailBoasVindas(
+        payload.email,
+        payload.nome
+      );
+      
+    } catch (error) {
+      
+    }
+  }
+
   // ESCUTA O EVENTO 'usuario.aceito'
   @OnEvent('usuario.aceito', { async: true }) // async: true para não bloquear o UsuarioService
   async handleUsuarioAceito(payload: { idUsuario: number; }) {

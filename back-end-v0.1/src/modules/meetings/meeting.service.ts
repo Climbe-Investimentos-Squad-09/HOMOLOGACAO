@@ -47,11 +47,20 @@ export class ReunioesService {
   }
 
   async create(tokens: GoogleTokens, dto: CreateReuniaoDto, currentUser: any) {
+   
+    
+    if (!currentUser || !currentUser.idUsuario) {
+      throw new BadRequestException('Usuário não autenticado ou inválido');
+    }
+    
+    const userId = currentUser.idUsuario;
+    
     const inicio = new Date(dto.dataHoraInicio);
     const fim = new Date(dto.dataHoraFim);
     this.validateDates(inicio, fim);
     this.validateModalidade(dto);
 
+    
     const entity = this.reuniaoRepo.create({
       titulo: dto.titulo,
       pauta: dto.pauta,
@@ -60,11 +69,14 @@ export class ReunioesService {
       modalidade: dto.modalidade,
       local: dto.local,
       linkRemoto: dto.linkRemoto,
-      criador: { idUsuario: currentUser.id } as User,
+      criador: { idUsuario: userId } as User,
       status: StatusReuniao.AGENDADA,
     });
 
-    // cria evento no Google Calendar na conta central
+    const saved = await this.reuniaoRepo.save(entity);
+
+
+
     const google = await this.calendar.createReunion(tokens, {
       titulo: dto.titulo,
       empresa_id: String(currentUser?.empresa?.idEmpresa || ''),
@@ -76,38 +88,31 @@ export class ReunioesService {
       participantesEmails: dto.participantesEmails || [],
     } as any);
 
-    entity.googleEventId = google?.id;
-    entity.linkRemoto = dto.modalidade === ModalidadeReuniao.REMOTO ? (dto.linkRemoto || google?.htmlLink) : entity.linkRemoto;
-
-    const saved = await this.reuniaoRepo.save(entity);
-
-    // criador como participante ACEITO (evita conflito unique com upsert manual)
-    const existingCreatorPart = await this.partRepo.findOne({
-      where: {
-        reuniao: { idReuniao: saved.idReuniao } as any,
-        usuario: { idUsuario: currentUser.id } as any,
-      },
-      relations: ['reuniao', 'usuario'],
-    });
-    if (existingCreatorPart) {
-      if (existingCreatorPart.statusConvite !== StatusConvite.ACEITO) {
-        existingCreatorPart.statusConvite = StatusConvite.ACEITO;
-        await this.partRepo.save(existingCreatorPart);
-      }
-    } else {
-      const part = this.partRepo.create({
-        reuniao: saved,
-        usuario: { idUsuario: currentUser.id } as User,
-        statusConvite: StatusConvite.ACEITO,
+    if (google?.id) {
+      console.log('4. Atualizando googleEventId e linkRemoto...');
+      await this.reuniaoRepo.update(saved.idReuniao, {
+        googleEventId: google.id,
+        linkRemoto: dto.modalidade === ModalidadeReuniao.REMOTO ? (dto.linkRemoto || google.htmlLink) : saved.linkRemoto,
       });
-      await this.partRepo.save(part);
+      
     }
+
+    const part = this.partRepo.create({
+      reuniao: { idReuniao: saved.idReuniao } as Reuniao,
+      usuario: { idUsuario: userId } as User,
+      statusConvite: StatusConvite.ACEITO,
+    });
+
+    await this.partRepo.save(part);
+    console.log('Participante salvo');
 
     // adiciona participantes enviados no DTO
     if (dto.participantesEmails && dto.participantesEmails.length) {
+      
       for (const email of dto.participantesEmails) {
         const user = await this.userRepo.findOne({ where: { email } as any });
-        if (user) {
+        if (user && user.idUsuario !== userId) {
+          // Verifica se já não existe
           const already = await this.partRepo.findOne({
             where: {
               reuniao: { idReuniao: saved.idReuniao } as any,
@@ -115,7 +120,11 @@ export class ReunioesService {
             },
           });
           if (!already) {
-            const p = this.partRepo.create({ reuniao: saved, usuario: user, statusConvite: StatusConvite.PENDENTE });
+            const p = this.partRepo.create({ 
+              reuniao: { idReuniao: saved.idReuniao } as Reuniao,
+              usuario: { idUsuario: user.idUsuario } as User,
+              statusConvite: StatusConvite.PENDENTE 
+            });
             await this.partRepo.save(p);
           }
         }
@@ -157,15 +166,20 @@ export class ReunioesService {
   }
 
   async findForUser(userId: number) {
+    
     const user = await this.userRepo.findOne({ where: { idUsuario: userId } });
     if (!user) throw new NotFoundException('Usuário não encontrado');
+    
     const qb = this.reuniaoRepo.createQueryBuilder('r')
       .leftJoinAndSelect('r.criador', 'criador')
       .leftJoinAndSelect('r.participantes', 'participantes')
       .leftJoinAndSelect('participantes.usuario', 'pUsuario')
       .where('criador.idUsuario = :userId OR pUsuario.idUsuario = :userId', { userId })
       .orderBy('r.dataHoraInicio', 'ASC');
-    return qb.getMany();
+    
+    const meetings = await qb.getMany();
+    
+    return meetings;
   }
 
   async update(tokens: GoogleTokens, id: number, dto: UpdateReuniaoDto, currentUser: any) {

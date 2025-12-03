@@ -26,12 +26,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('user')
       
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      const isAuthRoute = error.config?.url?.includes('/auth/')
+      
+      
+      if (!isAuthRoute && error.config?.url?.includes('/users/')) {
+        
       }
     }
     return Promise.reject(error)

@@ -121,15 +121,17 @@ export default {
       this.successMessage = ''
       
       if (!this.fullName || !this.email || !this.senha) {
+        this.warningMessage = 'Preencha todos os campos'
         return
       }
 
       if (this.senha.length < 6) {
+        this.warningMessage = 'A senha deve ter pelo menos 6 caracteres'
         return
       }
 
       this.loading = true
-      this.buttonDisabled = false
+      this.buttonDisabled = true
       
       try {
         const response = await register({
@@ -139,7 +141,6 @@ export default {
         })
         
         this.loading = false
-        this.buttonDisabled = true
         
         if (response.accessToken && response.refreshToken) {
           this.successMessage = 'Cadastro realizado!'
@@ -147,14 +148,14 @@ export default {
             this.router.push('/dashboard')
           }, 1500)
         } else {
-          this.warningMessage = 'Sua solicitação foi encaminhada com sucesso'
+          this.successMessage = 'Sua solicitação foi encaminhada com sucesso'
           setTimeout(() => {
             this.router.push('/login?message=pending')
           }, 3000)
         }
       } catch (err) {
         this.loading = false
-        this.buttonDisabled = true
+        this.buttonDisabled = false
         
         const errorStatus = err.response?.status
         const errorMessage = err.response?.data?.message || err.message || ''
@@ -170,9 +171,8 @@ export default {
       this.router.push('/login')
     },
     clearMessages() {
-      if (this.warningMessage || this.successMessage) {
+      if (this.warningMessage) {
         this.warningMessage = ''
-        this.successMessage = ''
         this.buttonDisabled = false
       }
     }

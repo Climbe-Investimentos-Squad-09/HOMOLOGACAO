@@ -19,10 +19,15 @@ export class GoogleOAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const session = request.session;
 
+    
+    if (request.user) {
+      return true;
+    }
+
     // Verifica se há tokens na session
     if (!session?.googleTokens) {
       throw new UnauthorizedException(
-        'Autenticação Google necessária. Faça login com Google primeiro.',
+        'Autenticação necessária. Faça login primeiro.',
       );
     }
 
@@ -46,7 +51,7 @@ export class GoogleOAuthGuard implements CanActivate {
       return true;
     } catch (error) {
       throw new UnauthorizedException(
-        'Tokens OAuth2 inválidos ou expirados. Faça login novamente com Google.',
+        'Tokens OAuth2 inválidos ou expirados. Faça login novamente.',
       );
     }
   }

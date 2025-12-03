@@ -27,7 +27,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { getContracts } from '@/api/contracts'
 import { getProposals } from '@/api/proposals'
-import { getMeetings } from '@/api/meetings'
+//import { getMeetings } from '@/api/meetings'
 
 const props = defineProps({ title: String })
 
@@ -138,13 +138,27 @@ const loadDeadlines = async () => {
         }
       })
     }
-    
+
     // Ordenar por dias restantes (mais urgente primeiro)
     allDeadlines.sort((a, b) => a.daysRemaining - b.daysRemaining)
     
     deadlines.value = allDeadlines.slice(0, 8) // Mostrar até 8 deadlines
   } catch (error) {
-    console.error('Erro ao carregar deadlines:', error)
+    //console.error('Erro ao carregar deadlines:', error)
+
+    if (error.response) {
+      // Resposta recebida do servidor, mas retornou erro (4xx/5xx)
+      console.error("Status:", error.response.status);
+      console.error("StatusText:", error.response.statusText);
+      console.error("Dados do servidor:", error.response.data);
+      console.error("Headers:", error.response.headers);
+    } else if (error.request) {
+      // Nenhuma resposta do servidor
+      console.error("Nenhuma resposta recebida. Request:", error.request);
+    } else {
+      // Erro antes de enviar a requisição
+      console.error("Erro ao configurar a requisição:", error.message);
+    }
   } finally {
     loading.value = false
   }

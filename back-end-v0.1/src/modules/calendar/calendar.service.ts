@@ -4,14 +4,19 @@ import { Injectable, Inject } from '@nestjs/common';
 import * as https from 'https';
 import { URLSearchParams } from 'url';
 
-import { GOOGLE_AUTH } from "../auth/auth.module";
-
 import { sendCalendarDTO } from "./dtos/calendar.dto";
 import { indexAccountDTO } from "./dtos/indexAccounts.dto";
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+
+import { GOOGLE_AUTH } from "../auth/auth.module";
+
+import fs from "fs";
+import path from "path";
+const tokenPath = path.join(__dirname, '../../../token.json');
+const token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
 
 @Injectable()
 export class calendarService {
+    private readonly apiBase = 'https://www.googleapis.com/calendar/v3';
   private Calendar: calendar_v3.Calendar;
 
   constructor(
@@ -49,7 +54,7 @@ export class calendarService {
 
   //
 
-  /*
+  
   async listEvents(calendarId = 'primary') {
     
     const params = new URLSearchParams({
@@ -58,7 +63,7 @@ export class calendarService {
       orderBy: 'startTime',
       timeMin: new Date().toISOString(),
     });
-    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, undefined);
+    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, undefined, token.accessToken);
     const events = res?.items ?? [];
     return events.map((event: any) => ({
       id: event.id,
@@ -71,7 +76,7 @@ export class calendarService {
 
   async eventDetail(id: string) {
     
-    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined);
+    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined, token.accessToken);
     return res;
   }
 
@@ -93,14 +98,14 @@ export class calendarService {
       attendees: (data.participantesEmails || []).map(email => ({ email })),
     };
     
-    const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event);
+    const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event, token.accessToken);
     return { id: created.id, htmlLink: created.htmlLink };
   }
 
   async removeEvent(id: string) {
     
     const params = new URLSearchParams({ sendUpdates: 'all' });
-    await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined);
+    await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined, token.accessToken);
   }
 
   async updateEvent(id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
@@ -112,7 +117,7 @@ export class calendarService {
 
   async indexAccounts(data: indexAccountDTO) {
     
-    const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined);
+    const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined, token.accessToken);
     const attendeesAtualizados = [ ...(current.attendees || []), ...data.novosParticipantes ];
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('PATCH', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}?${params.toString()}`, { attendees: attendeesAtualizados }, token);
@@ -146,5 +151,4 @@ export class calendarService {
       req.end();
     });
   }
-    */
 }

@@ -17,10 +17,9 @@ import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @ApiTags('reunioes')
 @ApiBearerAuth('bearer')
-@UseGuards(GoogleOAuthGuard)
 @Controller('reunioes')
 export class ReunioesController {
-  /*
+  
   constructor(private readonly service: ReunioesService) {}
 
   @Permissions('reunioes:agendar')
@@ -31,9 +30,8 @@ export class ReunioesController {
   create(
     @Body() dto: CreateReuniaoDto, 
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
   ) {
-    return this.service.create(tokens, dto, req.user);
+    return this.service.create(dto, req.user);
   }
 
   @Permissions('reunioes:visualizar')
@@ -69,9 +67,9 @@ export class ReunioesController {
     @Param('id') id: string, 
     @Body() dto: UpdateReuniaoDto, 
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
+    
   ) {
-    return this.service.update(tokens, +id, dto, req.user);
+    return this.service.update(+id, dto, req.user);
   }
 
   @Auditable({ entity: 'reunioes', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
@@ -80,9 +78,9 @@ export class ReunioesController {
   remove(
     @Param('id') id: string, 
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
+    
   ) {
-    return this.service.remove(tokens, +id, req.user);
+    return this.service.remove(+id, req.user);
   }
 
   @Auditable({ entity: 'reunioes', action: AuditAction.ASSIGN, entityIdParam: 'id', loadBefore: true })
@@ -112,5 +110,5 @@ export class ReunioesController {
   addAtividade(@Param('id') id: string, @Body() dto: AddAtividadeDto, @Req() req: any) {
     return this.service.addAtividade(+id, dto, req.user);
   }
-    */
+    
 }

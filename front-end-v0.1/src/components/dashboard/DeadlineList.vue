@@ -27,7 +27,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { getContracts } from '@/api/contracts'
 import { getProposals } from '@/api/proposals'
-//import { getMeetings } from '@/api/meetings'
+import { getMeetings } from '@/api/meetings'
 
 const props = defineProps({ title: String })
 

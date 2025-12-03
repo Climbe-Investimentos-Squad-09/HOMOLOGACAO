@@ -54,8 +54,8 @@ export class CalendarController{
         @Body() body: sendCalendarDTO
     ){
         try{
-           // const created = await this.CalendarService.createReunion(body);
-           //return created;
+            const created = await this.CalendarService.createReunion(body);
+           return created;
         }catch(error: any){
             console.log("Erro ao agendar reunião", error)
             throw error

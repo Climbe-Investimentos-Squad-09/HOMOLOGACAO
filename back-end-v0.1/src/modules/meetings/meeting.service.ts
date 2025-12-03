@@ -13,8 +13,6 @@ import { UpdateParticipanteStatusDto } from './dtos/update-member-status.dto';
 import { AddAtividadeDto } from './dtos/add-activity.dto';
 import { User } from '../user/entities/user.entity';
 
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
-
 @Injectable()
 export class ReunioesService {
   constructor(
@@ -24,8 +22,6 @@ export class ReunioesService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly calendar: calendarService,
   ) {}
-
-  /*
 
   // Hierarquia - Compara/identifica Cargos de alta hierarquia
   private isSuperior(cargoNome?: string | null) {
@@ -283,5 +279,5 @@ export class ReunioesService {
     });
     return this.atividadeRepo.save(atividade);
   }
-    */
+    
 }

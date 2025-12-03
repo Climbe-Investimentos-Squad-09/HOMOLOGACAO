@@ -25,6 +25,8 @@ export class ReunioesService {
     private readonly calendar: calendarService,
   ) {}
 
+  /*
+
   // Hierarquia - Compara/identifica Cargos de alta hierarquia
   private isSuperior(cargoNome?: string | null) {
     return ['SysAdmin', 'Compliance', 'CEO'].includes(cargoNome || '');
@@ -46,7 +48,7 @@ export class ReunioesService {
     // em etapas seguintes do fluxo.
   }
 
-  async create(tokens: GoogleTokens, dto: CreateReuniaoDto, currentUser: any) {
+  async create(dto: CreateReuniaoDto, currentUser: any) {
     const inicio = new Date(dto.dataHoraInicio);
     const fim = new Date(dto.dataHoraFim);
     this.validateDates(inicio, fim);
@@ -65,7 +67,7 @@ export class ReunioesService {
     });
 
     // cria evento no Google Calendar na conta central
-    const google = await this.calendar.createReunion(tokens, {
+    const google = await this.calendar.createReunion({
       titulo: dto.titulo,
       empresa_id: String(currentUser?.empresa?.idEmpresa || ''),
       data: inicio,
@@ -168,7 +170,7 @@ export class ReunioesService {
     return qb.getMany();
   }
 
-  async update(tokens: GoogleTokens, id: number, dto: UpdateReuniaoDto, currentUser: any) {
+  async update(id: number, dto: UpdateReuniaoDto, currentUser: any) {
     const existing = await this.findById(id);
 
     const isOwner = existing.criador?.idUsuario === currentUser.id;
@@ -205,7 +207,7 @@ export class ReunioesService {
       for (const p of parts) {
         if ((p as any).usuario?.email) attendees.push({ email: (p as any).usuario.email });
       }
-      await this.calendar.updateEvent(tokens, existing.googleEventId, {
+      await this.calendar.updateEvent(existing.googleEventId, {
         summary: saved.titulo,
         description: saved.pauta,
         location: saved.local,
@@ -217,7 +219,7 @@ export class ReunioesService {
     return saved;
   }
 
-  async remove(tokens: GoogleTokens, id: number, currentUser: any) {
+  async remove(id: number, currentUser: any) {
     const existing = await this.findById(id);
     const isOwner = existing.criador?.idUsuario === currentUser.id;
     const isSup = this.isSuperior(currentUser?.cargo?.nome);
@@ -226,7 +228,7 @@ export class ReunioesService {
     }
     await this.reuniaoRepo.remove(existing);
     if (existing.googleEventId) {
-      await this.calendar.removeEvent(tokens, existing.googleEventId);
+      await this.calendar.removeEvent(existing.googleEventId);
     }
     return { message: 'Reunião removida' };
   }
@@ -281,4 +283,5 @@ export class ReunioesService {
     });
     return this.atividadeRepo.save(atividade);
   }
+    */
 }

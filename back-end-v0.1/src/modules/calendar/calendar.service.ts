@@ -1,8 +1,10 @@
 import { google, calendar_v3 } from "googleapis";
 import { OAuth2Client } from 'google-auth-library';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import * as https from 'https';
 import { URLSearchParams } from 'url';
+
+import { GOOGLE_AUTH } from "../auth/auth.module";
 
 import { sendCalendarDTO } from "./dtos/calendar.dto";
 import { indexAccountDTO } from "./dtos/indexAccounts.dto";
@@ -10,45 +12,19 @@ import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @Injectable()
 export class calendarService {
-  private readonly apiBase = 'https://www.googleapis.com/calendar/v3';
+  private Calendar: calendar_v3.Calendar;
 
-  constructor() {
+  constructor(
+      @Inject(GOOGLE_AUTH) private readonly googleAuth: any,
+  ) {
+    this.Calendar = google.calendar({ version: 'v3', auth: this.googleAuth });
     console.log("Calendar Service inicializado (user-level OAuth)");
   }
 
-  /**
-   * Cria OAuth2Client configurado com tokens do usuário
-   */
-  private createAuthClient(tokens: GoogleTokens){
-    const client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI,
-    );
-
-    client.setCredentials({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      scope: tokens.scope,
-      token_type: tokens.token_type,
-      expiry_date: tokens.expiry_date,
-    });
-
-    return client;
-  }
-
-  /**
-   * Cria instância do Calendar API com autenticação do usuário
-   */
-  private createCalendarClient(tokens: GoogleTokens): calendar_v3.Calendar {
-    const authClient = this.createAuthClient(tokens);
-    return google.calendar({ version: 'v3', auth: authClient });
-  }
-
-
-  async checkAuth(tokens: GoogleTokens) {
+  /*
+  async checkAuth() {
     try {
-      const token = tokens.access_token;
+      
       const me = await this.httpRequest('GET', '/users/me/calendarList', undefined, token);
       return {
         ok: true,
@@ -68,16 +44,21 @@ export class calendarService {
       };
     }
   }
+  */
 
-  async listEvents(tokens: GoogleTokens, calendarId = 'primary') {
-    const token = tokens.access_token;
+
+  //
+
+  /*
+  async listEvents(calendarId = 'primary') {
+    
     const params = new URLSearchParams({
       maxResults: '10',
       singleEvents: 'true',
       orderBy: 'startTime',
       timeMin: new Date().toISOString(),
     });
-    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, undefined, token);
+    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, undefined);
     const events = res?.items ?? [];
     return events.map((event: any) => ({
       id: event.id,
@@ -88,13 +69,13 @@ export class calendarService {
     }));
   }
 
-  async eventDetail(tokens: GoogleTokens, id: string) {
-    const token = tokens.access_token;
-    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined, token);
+  async eventDetail(id: string) {
+    
+    const res = await this.httpRequest('GET', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}`, undefined);
     return res;
   }
 
-  async createReunion(tokens: GoogleTokens, data: sendCalendarDTO) {
+  async createReunion(data: sendCalendarDTO) {
     const startDate = new Date(data.data);
 
     const event = {
@@ -111,27 +92,27 @@ export class calendarService {
       },
       attendees: (data.participantesEmails || []).map(email => ({ email })),
     };
-    const token = tokens.access_token;
-    const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event, token);
+    
+    const created = await this.httpRequest('POST', `/calendars/${encodeURIComponent('primary')}/events`, event);
     return { id: created.id, htmlLink: created.htmlLink };
   }
 
-  async removeEvent(tokens: GoogleTokens, id: string) {
-    const token = tokens.access_token;
+  async removeEvent(id: string) {
+    
     const params = new URLSearchParams({ sendUpdates: 'all' });
-    await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined, token);
+    await this.httpRequest('DELETE', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, undefined);
   }
 
-  async updateEvent(tokens: GoogleTokens, id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
-    const token = tokens.access_token;
+  async updateEvent(id: string, update: Partial<{ summary: string; description: string; location: string; start: { dateTime: string; timeZone: string }; end: { dateTime: string; timeZone: string }; attendees: { email: string }[] }>) {
+    
     const params = new URLSearchParams({ sendUpdates: 'all' });
     const res = await this.httpRequest('PATCH', `/calendars/${encodeURIComponent('primary')}/events/${encodeURIComponent(id)}?${params.toString()}`, update as any, token);
     return { id: res.id, htmlLink: res.htmlLink };
   }
 
-  async indexAccounts(tokens: GoogleTokens, data: indexAccountDTO) {
-    const token = tokens.access_token;
-    const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined, token);
+  async indexAccounts(data: indexAccountDTO) {
+    
+    const current = await this.httpRequest('GET', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}`, undefined);
     const attendeesAtualizados = [ ...(current.attendees || []), ...data.novosParticipantes ];
     const params = new URLSearchParams({ sendUpdates: 'all' });
     await this.httpRequest('PATCH', `/calendars/${encodeURIComponent(data.calendarId)}/events/${encodeURIComponent(data.eventId)}?${params.toString()}`, { attendees: attendeesAtualizados }, token);
@@ -165,4 +146,5 @@ export class calendarService {
       req.end();
     });
   }
+    */
 }

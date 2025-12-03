@@ -13,13 +13,11 @@ import { AuditAction } from '../../audit/entities/audit.entity';
 import { CreateCompanyMinimalDto } from './dtos/create-minimal-company.dto';
 import { CompleteCompanyDto } from './dtos/complete-company.dto';
 
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
 import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
 import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @ApiTags('companies')
 @ApiBearerAuth()
-@UseGuards(GoogleOAuthGuard)
 @Controller('companies')
 export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
@@ -86,11 +84,9 @@ export class CompaniesController {
     },
   })
   createFull(
-    @Body() dto: CompleteCompanyDto,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
+    @Body() dto: CompleteCompanyDto
   ) {
     return this.companies.createFull(
-      tokens,
       dto
     );
   }
@@ -119,10 +115,8 @@ export class CompaniesController {
   complete(
     @Param('id') id: string, 
     @Body() dto: CompleteCompanyDto,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
   ) {
     return this.companies.complete(
-      tokens,
       +id, 
       dto
     );
@@ -138,10 +132,8 @@ export class CompaniesController {
   update(
     @Param('id') id: string, 
     @Body() dto: CompleteCompanyDto,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
   ) {
     return this.companies.complete(
-      tokens, 
       +id, 
       dto
     );

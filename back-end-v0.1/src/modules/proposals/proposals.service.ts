@@ -11,12 +11,7 @@ import { User } from '../user/entities/user.entity';
 
 import { driveService } from '../drive/drive.service';
 
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
-import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
-
 @Injectable()
-@UseGuards(GoogleOAuthGuard)
 export class ProposalsService {
   constructor(
     @InjectRepository(Proposals)
@@ -33,7 +28,6 @@ export class ProposalsService {
   // CREATE
   // -------------------------------------------------------------------
   async create(
-    @GoogleTokensDecorator() tokens: GoogleTokens, 
     dto: CreateProposalsDto
   ): Promise<Proposals> {
     if (!dto) throw new BadRequestException('Dados da proposta são obrigatórios');
@@ -57,7 +51,7 @@ export class ProposalsService {
     });
 
 
-    this.DriveService.createFolder(tokens, "", false, dto.idEmpresa)
+    this.DriveService.createFolder("", false, dto.idEmpresa)
     return this.proposalsRepo.save(proposal);
   }
 

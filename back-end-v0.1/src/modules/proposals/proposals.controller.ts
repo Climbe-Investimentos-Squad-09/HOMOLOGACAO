@@ -19,7 +19,6 @@ import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @ApiTags('proposals')
 @ApiBearerAuth()
-@UseGuards(GoogleOAuthGuard)
 @Controller('proposals')
 export class ProposalsController {
   constructor(private readonly proposals: ProposalsService) {}
@@ -67,10 +66,8 @@ export class ProposalsController {
   create(
     @Body() dto: CreateProposalsDto, 
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens
   ) {
     return this.proposals.create(
-      tokens,
       dto
     );
   }

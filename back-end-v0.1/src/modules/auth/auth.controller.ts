@@ -13,6 +13,17 @@ import {
 } from "@nestjs/common";
 import { Session as ExpressSession } from 'express-session';
 
+//Credenciais globais do token oauth
+const credentials = require('../../../credentials.json');
+const { client_secret, client_id, redirect_uris } = credentials.web;
+const { google } = require('googleapis');
+const fs = require('fs');
+const oAuth2Client = new google.auth.OAuth2(
+  client_id,
+  client_secret,
+  redirect_uris[0] // http://localhost:3000/oauth2callback
+);
+
 import { AuthService } from "./auth.service";
 import {
   ApiOperation,
@@ -225,8 +236,9 @@ export class AuthController {
   })
   async googleCallback(
     @Query("code") code: string,
-    @Session() session: ExpressSession,
+    //@Session() session: ExpressSession,
   ) {
+    
     if (!code) {
       throw new HttpException(
         "Código de autorização não fornecido",
@@ -234,6 +246,7 @@ export class AuthController {
       );
     }
 
+    /*
     try {
       const result = await this.authService.authenticateWithGoogle(code);
 
@@ -266,6 +279,15 @@ export class AuthController {
         error.message || "Erro ao processar autenticação",
         error.status || HttpStatus.INTERNAL_SERVER_ERROR
       );
+    }
+    */
+    try {
+      const { tokens } = await oAuth2Client.getToken(String(code));
+      oAuth2Client.setCredentials(tokens);
+
+      fs.writeFileSync('../../../token.json', JSON.stringify(tokens));
+    } catch (err) {
+      console.error('Erro ao obter o token:', err);
     }
   }
 
@@ -319,5 +341,26 @@ export class AuthController {
         HttpStatus.UNAUTHORIZED
       );
     }
+  }
+
+  @Get("generalAcess")
+  @ApiResponse({
+    status: 200,
+    description: "Token inválido ou expirado",
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Não foi possível obter o token",
+  })
+  async enviarToken(){
+    try {
+      // Lê o token salvo pelo auth
+      const token = JSON.parse(fs.readFileSync('token.json', 'utf-8'));
+
+      // Atualiza as credenciais do OAuth2Client
+      oAuth2Client.setCredentials(token);
+    } catch (error) {
+      console.error("[/generalAcess] Erro ao ler token.json:", error);
+   }
   }
 }

@@ -8,7 +8,6 @@ import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google
 import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @Controller('meetings')
-@UseGuards(GoogleOAuthGuard)
 export class CalendarController{
     constructor(
             private readonly CalendarService: calendarService,
@@ -16,9 +15,9 @@ export class CalendarController{
 
   //Get - Listar todas as reuniões - lista no terminal da ide
   @Get('')
-    async getall(@GoogleTokensDecorator() tokens: GoogleTokens){
+    async getall(){
         try{
-            return this.CalendarService.listEvents(tokens);
+           // return this.CalendarService.listEvents();
         }catch(error: any){
             console.log("Erro ao listar eventos")
         }
@@ -26,22 +25,21 @@ export class CalendarController{
 
     // GET - Auth check to diagnose Google OAuth configuration
     @Get('auth-check')
-    async authCheck(@GoogleTokensDecorator() tokens: GoogleTokens){
-        return this.CalendarService.checkAuth(tokens);
+    async authCheck(){
+        //return this.CalendarService.checkAuth();
     }
 
     //Get - Listar detalhes da reunião
     @Get(':id')
     async getonly(
-        @Param('id') id: string,
-        @GoogleTokensDecorator() tokens: GoogleTokens,
+        @Param('id') id: string
     ){
         try{
             if(!id){
                 console.log("Campos obrigatórios faltando")
 
             }else{
-                this.CalendarService.eventDetail(tokens, id);
+                //this.CalendarService.eventDetail(id);
             }
         }catch(error: any){
             console.log("Erro ao listar detalhes do evento: " + error)
@@ -53,12 +51,11 @@ export class CalendarController{
     //Query: titulo, empresa_id, data, hora, presencial, local, pauta
     @Post('')
     async postMeeting(
-        @Body() body: sendCalendarDTO,
-        @GoogleTokensDecorator() tokens: GoogleTokens,
+        @Body() body: sendCalendarDTO
     ){
         try{
-            const created = await this.CalendarService.createReunion(tokens, body);
-            return created;
+           // const created = await this.CalendarService.createReunion(body);
+           //return created;
         }catch(error: any){
             console.log("Erro ao agendar reunião", error)
             throw error
@@ -69,12 +66,11 @@ export class CalendarController{
     //Query: id_usuario - verificar envio individual ou conjunto de ids
     @Put('')
     async postParticipants(
-        @Body() body: indexAccountDTO,
-        @GoogleTokensDecorator() tokens: GoogleTokens,
+        @Body() body: indexAccountDTO
     ){
 
         try{
-            this.CalendarService.indexAccounts(tokens, body);
+            //this.CalendarService.indexAccounts(body);
         }catch(error: any){
             console.log("Erro ao apagar evento")
         }
@@ -83,11 +79,10 @@ export class CalendarController{
     //Delete - Remover Reunião
     @Delete(':id')
     async daleteonly(
-        @Param('id') id: string,
-        @GoogleTokensDecorator() tokens: GoogleTokens,
+        @Param('id') id: string
     ){
         try{
-            this.CalendarService.removeEvent(tokens, id);
+           // this.CalendarService.removeEvent( id);
 
         }catch(error: any){
             console.log("Erro ao apagar evento")

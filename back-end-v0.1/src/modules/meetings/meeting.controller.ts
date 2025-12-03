@@ -20,6 +20,7 @@ import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 @UseGuards(GoogleOAuthGuard)
 @Controller('reunioes')
 export class ReunioesController {
+  /*
   constructor(private readonly service: ReunioesService) {}
 
   @Permissions('reunioes:agendar')
@@ -111,4 +112,5 @@ export class ReunioesController {
   addAtividade(@Param('id') id: string, @Body() dto: AddAtividadeDto, @Req() req: any) {
     return this.service.addAtividade(+id, dto, req.user);
   }
+    */
 }

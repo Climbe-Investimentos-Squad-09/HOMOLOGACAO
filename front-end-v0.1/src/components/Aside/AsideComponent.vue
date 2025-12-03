@@ -124,9 +124,7 @@ const hasRole = computed(() => userHasRole())
 const permissions = computed(() => authStore.permissions || [])
 
 watch(() => route.path, async () => {
-  if (authStore.isAuthenticated) {
-    await authStore.loadUserPermissions()
-  }
+  
 })
 
 const canViewCalendar = computed(() => {
@@ -171,19 +169,7 @@ const loadRoleName = async () => {
 onMounted(async () => {
   loadRoleName()
   checkAuditAccess()
-  if (authStore.isAuthenticated) {
-    await authStore.loadUserPermissions()
-  }
-
-  const intervalId = setInterval(async () => {
-    if (authStore.isAuthenticated) {
-      await authStore.loadUserPermissions()
-    }
-  }, 120000)
-
-  onUnmounted(() => {
-    clearInterval(intervalId)
-  })
+  
 })
 
 const handleLogout = () => {

@@ -269,6 +269,61 @@ export class AuthController {
     }
   }
 
+  @Get("validate")
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Validar token JWT do header",
+    description: "Valida se o token JWT no header Authorization é válido",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Token válido",
+    schema: {
+      type: "object",
+      properties: {
+        valid: { type: "boolean" },
+        user: {
+          type: "object",
+          properties: {
+            id: { type: "number" },
+            email: { type: "string" },
+            name: { type: "string" },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Token inválido ou expirado",
+  })
+  async validateTokenFromHeader(@Headers('authorization') auth: string) {
+    try {
+      const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+      if (!token) {
+        throw new HttpException("Token não fornecido", HttpStatus.UNAUTHORIZED);
+      }
+      
+      const payload = await this.authService.validateJWT(token);
+      return {
+        valid: true,
+        user: {
+          id: payload.id,
+          email: payload.email,
+          name: payload.name,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        "Token inválido ou expirado",
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+  }
+
   @Post("validate")
   @ApiBearerAuth()
   @ApiOperation({

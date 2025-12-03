@@ -3,6 +3,7 @@ import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
 import { OAuth2Client } from "google-auth-library";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import * as crypto from "crypto";
 import * as jwt from "jsonwebtoken";
 import { User as UserEntity } from "../user/entities/user.entity";
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.oAuth2Client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -64,6 +66,18 @@ export class AuthService {
       let savedUser;
       try {
         savedUser = await this.userRepository.save(newUser);
+        
+        console.log('=== USUÁRIO SALVO - EMITINDO EVENTO ===');
+        console.log('Email:', savedUser.email);
+        console.log('Nome:', savedUser.nomeCompleto);
+        
+        // Emitir evento de cadastro para enviar email de boas-vindas
+        this.eventEmitter.emit('usuario.cadastrado', {
+          email: savedUser.email,
+          nome: savedUser.nomeCompleto
+        });
+        
+        console.log('Evento usuario.cadastrado emitido');
       } catch (saveError: any) {
         if (saveError.code === '23505' || saveError.constraint?.includes('UQ_') || saveError.detail?.includes('already exists')) {
           throw new HttpException("Usuário já existe com este email", HttpStatus.CONFLICT);

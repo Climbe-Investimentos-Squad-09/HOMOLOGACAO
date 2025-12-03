@@ -99,7 +99,7 @@ export class UserController {
   }
 
   // -------- STATUS ----------
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:editar')
   @Auditable({ entity: 'usuarios', action: AuditAction.UPDATE, entityIdParam: 'id', loadBefore: true })
   @Patch(':id/status')
   @ApiOperation({ summary: 'Atualiza situação do usuário (ATIVO/BLOQUEADO/PENDENTE)' })
@@ -110,7 +110,7 @@ export class UserController {
   }
 
   // -------- DELETE ----------
-  @Roles('Compliance', 'SysAdmin', 'CEO')
+  @Permissions('usuarios:deletar')
   @Auditable({ entity: 'usuarios', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
   @Delete(':id')
   @ApiOperation({ summary: 'Remove usuário' })

@@ -16,19 +16,30 @@ export class AuthzMiddleware implements NestMiddleware {
     try {
       const auth = req.headers['authorization'] || '';
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-      if (!token) return next();
+      
+      
+      if (!token) {
+        return next();
+      }
 
-      const payload = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any;
-      const userId = payload.id;
+      // Tenta verificar o token
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET || 'default-secret') as any;
+        const userId = payload.id;
 
-      const user = await this.userRepo.findOne({
-        where: { idUsuario: userId },
-        relations: ['cargo', 'cargo.permissoes', 'permissoesExtras'],
-      });
+        const user = await this.userRepo.findOne({
+          where: { idUsuario: userId },
+          relations: ['cargo', 'cargo.permissoes', 'permissoesExtras'],
+        });
 
-      if (!user) throw new UnauthorizedException('Usuário não encontrado');
-
-      req.user = user;
+        // Se encontrou o usuário, anexa ao request
+        if (user) {
+          req.user = user;
+        }
+      } catch (e) {
+        // Token inválido ou expirado
+      }
+      
       next();
     } catch (e) {
       next();

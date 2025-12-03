@@ -2,6 +2,7 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, In } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from './entities/user.entity';
 import { Role } from '../roles/entities/role.entity';
 import { Permission } from '../permissions/entities/permission.entity';
@@ -19,6 +20,7 @@ export class UserService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Role) private readonly roles: Repository<Role>,
     @InjectRepository(Permission) private readonly perms: Repository<Permission>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private hashPassword(password: string) {
@@ -155,6 +157,7 @@ export class UserService {
   // ----------------- STATUS (bloquear/desbloquear) -----------------
   async updateStatus(id: number, dto: UpdateUserStatusDto) {
     const user = await this.findById(id);
+    const wasRejected = user.situacao === SituacaoUsuario.PENDENTE;
 
     // Quando aprovar (Ativo), garantir que não tenha cargo (sem cargo por padrão)
     if (dto.situacao === SituacaoUsuario.Ativo && user.situacao === SituacaoUsuario.PENDENTE) {
@@ -163,7 +166,16 @@ export class UserService {
     }
 
     user.situacao = dto.situacao as any;
-    return this.users.save(user);
+    const savedUser = await this.users.save(user);
+
+    // Emitir evento quando usuário for aprovado
+    if (dto.situacao === SituacaoUsuario.Ativo) {
+      this.eventEmitter.emit('usuario.aceito', {
+        idUsuario: savedUser.idUsuario
+      });
+    }
+
+    return savedUser;
   }
 
   // ----------------- DELETE -----------------

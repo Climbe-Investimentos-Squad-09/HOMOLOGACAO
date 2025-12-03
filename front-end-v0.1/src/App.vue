@@ -50,8 +50,8 @@ const confirmModal = useConfirmModal()
 const alertModal = useAlertModal()
 
 const showLayout = computed(() => {
-  const publicRoutes = ['login']
-  return authStore.isAuthenticated && !publicRoutes.includes(route.name)
+  const publicRoutes = ['login', 'google-signup']
+  return authStore.isAuthenticated && authStore.user && !publicRoutes.includes(route.name)
 })
 </script>
 

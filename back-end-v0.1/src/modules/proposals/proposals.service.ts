@@ -56,8 +56,14 @@ export class ProposalsService {
       statusProposta: dto.statusProposta ?? StatusProposta.EM_ANALISE,
     });
 
-
-    this.DriveService.createFolder(tokens, "", false, dto.idEmpresa)
+    if (tokens?.access_token) {
+      try {
+        await this.DriveService.createFolder(tokens, "", false, dto.idEmpresa);
+      } catch (error) {
+        console.warn('Falha ao criar pasta no Drive para proposta:', error.message);
+      }
+    }
+    
     return this.proposalsRepo.save(proposal);
   }
 

@@ -71,7 +71,15 @@ export class CompaniesService {
       representanteLegal: dto.representanteLegal,
     });
 
-    this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "")
+    // Criar pasta no Drive apenas se tokens estiverem disponíveis
+    if (tokens?.access_token) {
+      try {
+        await this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "");
+      } catch (error) {
+        console.warn('Erro ao criar pasta no Drive (continuando):', error.message);
+      }
+    }
+
     return this.repo.save(entity);
   }
 
@@ -103,7 +111,13 @@ export class CompaniesService {
 
     const toSave = this.repo.merge(company, dto);
     if(dto.nomeFantasia !== "" && dto.nomeFantasia !== undefined){
-      this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "")
+      if (tokens?.access_token) {
+        try {
+          await this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "");
+        } catch (error) {
+          console.warn('Falha ao criar pasta no Drive durante atualização:', error.message);
+        }
+      }
     }
     return this.repo.save(toSave);
   }

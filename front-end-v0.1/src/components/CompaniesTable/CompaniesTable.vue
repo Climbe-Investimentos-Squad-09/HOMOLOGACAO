@@ -229,7 +229,17 @@ export default {
 
     async handleSaveCompany(editedCompany) {
       try {
-        await updateCompany(editedCompany.idEmpresa, editedCompany)
+        // Filtra apenas os campos permitidos no DTO
+        const dto = {
+          razaoSocial: editedCompany.razaoSocial,
+          nomeFantasia: editedCompany.nomeFantasia,
+          cnpj: editedCompany.cnpj,
+          endereco: editedCompany.endereco,
+          telefone: editedCompany.telefone,
+          email: editedCompany.email,
+          representanteLegal: editedCompany.representanteLegal
+        }
+        await updateCompany(editedCompany.idEmpresa, dto)
         await this.fetchCompanies()
         this.closeModal()
         success('Empresa atualizada com sucesso!')

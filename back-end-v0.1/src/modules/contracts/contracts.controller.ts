@@ -1,10 +1,11 @@
 // src/modules/contracts/contracts.controller.ts
 import {
   Controller, Get, Post, Put, Delete, Patch,
-  Body, Param, Query
+  Body, Param, Query, UseInterceptors, UploadedFile, Req
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody
+  ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiConsumes
 } from '@nestjs/swagger';
 
 import { ContractsService } from './contracts.service';
@@ -18,12 +19,16 @@ import { UpdateContractDto } from './dtos/update-contract.dto';
 import { UpdateContractStatusDto } from './dtos/update-contract-status.dto';
 import { AssignContractDto, AssignManyContractDto } from './dtos/assign-contract.dto';
 import { StatusContrato } from './entities/contracts.entity';
+import { driveService } from '../drive/drive.service';
 
 @ApiTags('contracts')
 @ApiBearerAuth()
 @Controller('contracts')
 export class ContractsController {
-  constructor(private readonly contracts: ContractsService) {}
+  constructor(
+    private readonly contracts: ContractsService,
+    private readonly driveService: driveService
+  ) {}
 
   // -------- LISTAGEM / DETALHE ------------------------------------------------
 
@@ -52,22 +57,63 @@ export class ContractsController {
   @Permissions('contratos:criar')
   @Auditable({ entity: 'contracts', action: AuditAction.CREATE, entityIdFromResult: 'idContrato' })
   @Post()
-  @ApiOperation({ summary: 'Cria contrato a partir de uma proposta' })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Cria contrato a partir de uma proposta com arquivo obrigatório' })
   @ApiBody({
-    type: CreateContractDto,
-    examples: {
-      padrao: {
-        summary: 'Exemplo padrão',
-        value: {
-          idProposta: 10,
-          idCompliance: 2,
-          statusContrato: StatusContrato.Ativo
+    schema: {
+      type: 'object',
+      properties: {
+        idProposta: { type: 'number' },
+        idCompliance: { type: 'number' },
+        statusContrato: { type: 'string', enum: Object.values(StatusContrato) },
+        dataInicio: { type: 'string' },
+        dataFim: { type: 'string' },
+        dataEncerramento: { type: 'string' },
+        file: {
+          type: 'string',
+          format: 'binary',
         },
       },
+      required: ['file'],
     },
   })
-  create(@Body() dto: CreateContractDto) {
-    return this.contracts.create(dto);
+  async create(
+    @Body() dto: CreateContractDto,
+    @UploadedFile() file: any
+  ) {
+    if (!file || file.mimetype !== 'application/pdf') {
+      throw new Error('Arquivo PDF é obrigatório');
+    }
+
+    let contract;
+    let uploadResult;
+    
+    try {
+      contract = await this.contracts.create(dto);
+      
+      const fileName = `Contrato_${contract.idContrato}_${file.originalname}`;
+      uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      
+      if (!uploadResult.webViewLink) {
+        await this.contracts.delete(contract.idContrato);
+        throw new Error('Falha ao obter link do arquivo após upload');
+      }
+      
+      await this.contracts.updateDriveLink(contract.idContrato, uploadResult.webViewLink);
+      contract.driveLink = uploadResult.webViewLink;
+      
+      return contract;
+    } catch (error) {
+      if (contract && contract.idContrato) {
+        try {
+          await this.contracts.delete(contract.idContrato);
+        } catch (deleteError) {
+          console.error('Erro ao deletar contrato após falha no upload:', deleteError);
+        }
+      }
+      throw error;
+    }
   }
 
   // -------- UPDATE GERAL (não status) ----------------------------------------

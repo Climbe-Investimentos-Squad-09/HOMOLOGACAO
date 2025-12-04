@@ -54,6 +54,9 @@ contrapropostaDe?: Proposals; // encadeamento de contrapropostas
   @CreateDateColumn()
   dataCriacao!: Date;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  driveLink?: string;
+
   @OneToOne(() => Contract, (contract) => contract.proposta)
   contrato?: Contract;
 }

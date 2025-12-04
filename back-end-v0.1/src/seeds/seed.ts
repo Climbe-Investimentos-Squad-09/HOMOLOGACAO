@@ -103,6 +103,20 @@ async function main() {
   const csoEmail = process.env.SEED_CSO_EMAIL || 'cso@climbe.local';
   const cmoEmail = process.env.SEED_CMO_EMAIL || 'cmo@climbe.local';
   const anaEmail = process.env.SEED_ANALISTA_EMAIL || 'analista@climbe.local';
+  const testEmail = process.env.SEED_TEST_EMAIL || 'caiohchagas92@gmail.com';
+
+  const test = await upsertUnique(
+    userRepo,
+    { email: testEmail } as any,
+    {
+      nomeCompleto: 'UserEndpoint',
+      senha: sha256(process.env.SEED_TEST_PASSWORD ||'senha123'),
+      situacao: SituacaoUsuario.Ativo,
+      cargo: sysAdminRole,
+      dataCriacao: new Date(),
+      ultimoAcesso: new Date(),
+    },
+  );
 
   const admin = await upsertUnique(
     userRepo,
@@ -256,6 +270,7 @@ async function main() {
     { role: 'CSO', email: csoEmail },
     { role: 'CMO', email: cmoEmail },
     { role: 'Analista', email: anaEmail },
+    { role: 'SysAdmin', email: testEmail },
   ]);
 
   await AppDataSource.destroy();

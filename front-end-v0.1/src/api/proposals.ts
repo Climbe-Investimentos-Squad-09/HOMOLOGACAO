@@ -14,6 +14,7 @@ export interface Proposal {
   prazoValidade: string
   statusProposta: StatusProposta
   dataCriacao: string
+  driveLink?: string
   atribuicoes?: Array<{
     id: number
     usuario: {
@@ -66,8 +67,24 @@ export async function getProposalById(id: number): Promise<Proposal> {
   return data
 }
 
-export async function createProposal(dto: CreateProposalDto): Promise<Proposal> {
-  const { data } = await api.post('/proposals', dto)
+export async function createProposal(dto: CreateProposalDto, file?: File): Promise<Proposal> {
+  const formData = new FormData()
+  
+  Object.keys(dto).forEach(key => {
+    if (dto[key] !== undefined && dto[key] !== null) {
+      formData.append(key, String(dto[key]))
+    }
+  })
+  
+  if (file) {
+    formData.append('file', file)
+  }
+  
+  const { data } = await api.post('/proposals', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return data
 }
 

@@ -44,7 +44,6 @@ export class CompaniesService {
   // ----------------- CREATE (cadastro completo) -------------------
   // OBS: usa o mesmo DTO de "complete" para criar já completo
   async createFull(
-    @GoogleTokensDecorator() tokens: GoogleTokens, 
     dto: CompleteCompanyDto
   ): Promise<Companies> {
     // Campos exigidos no completo: razaoSocial, nomeFantasia, cnpj, email
@@ -71,21 +70,11 @@ export class CompaniesService {
       representanteLegal: dto.representanteLegal,
     });
 
-    // Criar pasta no Drive apenas se tokens estiverem disponíveis
-    if (tokens?.access_token) {
-      try {
-        await this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "");
-      } catch (error) {
-        console.warn('Erro ao criar pasta no Drive (continuando):', error.message);
-      }
-    }
-
     return this.repo.save(entity);
   }
 
   // -------------- COMPLETE (completar/atualizar cadastro) ---------------
   async complete(
-    @GoogleTokensDecorator() tokens: GoogleTokens, 
     id: number, 
     dto: CompleteCompanyDto
   ): Promise<Companies> {
@@ -110,15 +99,6 @@ export class CompaniesService {
     }
 
     const toSave = this.repo.merge(company, dto);
-    if(dto.nomeFantasia !== "" && dto.nomeFantasia !== undefined){
-      if (tokens?.access_token) {
-        try {
-          await this.DriveService.createFolder(tokens, dto.nomeFantasia, true, "");
-        } catch (error) {
-          console.warn('Falha ao criar pasta no Drive durante atualização:', error.message);
-        }
-      }
-    }
     return this.repo.save(toSave);
   }
 

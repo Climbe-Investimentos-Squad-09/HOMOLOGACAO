@@ -158,6 +158,22 @@
               />
             </div>
           </div>
+
+          <!-- Representante Legal -->
+          <div class="form-section">
+            <h3 class="section-title">Representante Legal</h3>
+            
+            <div class="form-group">
+              <label for="representanteLegal" class="form-label">Nome do Representante Legal:</label>
+              <input
+                type="text"
+                id="representanteLegal"
+                v-model="formData.representanteLegal"
+                placeholder="Insira o nome do representante legal"
+                class="form-input"
+              />
+            </div>
+          </div>
         </form>
       </div>
 
@@ -198,7 +214,8 @@ export default {
         neighborhood: '',
         city: '',
         email: '',
-        phone: ''
+        phone: '',
+        representanteLegal: ''
       }
     }
   },
@@ -232,7 +249,7 @@ export default {
           email: this.formData.email,
           telefone: this.formData.phone || undefined,
           endereco: endereco || undefined,
-          representanteLegal: undefined
+          representanteLegal: this.formData.representanteLegal || undefined
         }
 
         await createCompanyFull(companyData)
@@ -264,7 +281,8 @@ export default {
         neighborhood: '',
         city: '',
         email: '',
-        phone: ''
+        phone: '',
+        representanteLegal: ''
       }
     },
     

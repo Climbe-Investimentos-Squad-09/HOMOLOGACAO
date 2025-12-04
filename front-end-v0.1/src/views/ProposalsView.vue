@@ -1,8 +1,14 @@
 <template>
   <div class="proposals-view">
     <ProposalsHeader @open-create-modal="isCreateModalOpen = true" @filters-changed="handleFiltersChange" />
-    <ProposalsTable :proposals="filteredProposals" :loading="loading" @refresh="loadProposals" />
+    <ProposalsTable :proposals="filteredProposals" :loading="loading" @refresh="loadProposals" @view="viewProposal" />
     <ProposalsCreateModal v-if="isCreateModalOpen" @close="isCreateModalOpen = false" @created="loadProposals" />
+    <ProposalDetailsModal 
+      v-if="showDetailsModal" 
+      :is-open="showDetailsModal" 
+      :proposal="selectedProposal" 
+      @close="closeDetailsModal" 
+    />
   </div>
 </template>
 
@@ -11,13 +17,16 @@ import { ref, computed, onMounted } from 'vue';
 import ProposalsHeader from '../components/proposals/ProposalsHeader.vue';
 import ProposalsTable from '../components/proposals/ProposalsTable.vue';
 import ProposalsCreateModal from '../components/proposals/ProposalsCreateModal.vue';
-import { getProposals } from '@/api/proposals';
+import ProposalDetailsModal from '../components/proposals/ProposalDetailsModal.vue';
+import { getProposals, getProposalById } from '@/api/proposals';
 import { StatusProposta } from '@/api/types';
 
 const isCreateModalOpen = ref(false);
 const selectedFilters = ref([]);
 const allProposals = ref([]);
 const loading = ref(false);
+const showDetailsModal = ref(false);
+const selectedProposal = ref(null);
 
 const statusMap = {
   'Aprovada': 'Aceito',
@@ -62,7 +71,8 @@ const loadProposals = async () => {
         validUntil: new Date(proposal.prazoValidade).toLocaleDateString('pt-BR'),
         responsible: responsible,
         creator: creator,
-        originalStatus: proposal.statusProposta
+        originalStatus: proposal.statusProposta,
+        rawProposal: proposal
       };
     });
   } catch (error) {
@@ -85,6 +95,24 @@ const filteredProposals = computed(() => {
     );
   }
 });
+
+const viewProposal = async (proposal) => {
+  try {
+    loading.value = true;
+    const fullProposal = await getProposalById(proposal.id);
+    selectedProposal.value = fullProposal;
+    showDetailsModal.value = true;
+  } catch (error) {
+    console.error('Erro ao carregar detalhes da proposta:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false;
+  selectedProposal.value = null;
+};
 
 onMounted(() => {
   loadProposals();

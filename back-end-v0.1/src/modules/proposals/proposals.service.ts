@@ -11,12 +11,7 @@ import { User } from '../user/entities/user.entity';
 
 import { driveService } from '../drive/drive.service';
 
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
-import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
-
 @Injectable()
-@UseGuards(GoogleOAuthGuard)
 export class ProposalsService {
   constructor(
     @InjectRepository(Proposals)
@@ -33,7 +28,6 @@ export class ProposalsService {
   // CREATE
   // -------------------------------------------------------------------
   async create(
-    @GoogleTokensDecorator() tokens: GoogleTokens, 
     dto: CreateProposalsDto
   ): Promise<Proposals> {
     if (!dto) throw new BadRequestException('Dados da proposta são obrigatórios');
@@ -56,14 +50,7 @@ export class ProposalsService {
       statusProposta: dto.statusProposta ?? StatusProposta.EM_ANALISE,
     });
 
-    if (tokens?.access_token) {
-      try {
-        await this.DriveService.createFolder(tokens, "", false, dto.idEmpresa);
-      } catch (error) {
-        console.warn('Falha ao criar pasta no Drive para proposta:', error.message);
-      }
-    }
-    
+    this.DriveService.createFolder("", false, dto.idEmpresa)
     return this.proposalsRepo.save(proposal);
   }
 
@@ -138,17 +125,22 @@ export class ProposalsService {
       throw new BadRequestException('ID da empresa inválido');
     }
 
-    // statusProposta não é atualizado aqui; há endpoint próprio
     const toSave: Partial<Proposals> = {
       ...proposal,
       ...(dto.idEmpresa !== undefined ? { idEmpresa: dto.idEmpresa } : {}),
       ...(dto.valorProposta !== undefined ? { valorProposta: dto.valorProposta } : {}),
       ...(dto.prazoValidade !== undefined ? { prazoValidade: dto.prazoValidade } : {}),
-      // dataCriacao em geral não deve ser mexida; se quiser suportar, descomente:
-      // ...(dto.dataCriacao ? { dataCriacao: new Date(dto.dataCriacao) } : {}),
     };
 
     return this.proposalsRepo.save(toSave);
+  }
+
+  async updateDriveLink(id: number, driveLink: string): Promise<Proposals> {
+    const proposal = await this.proposalsRepo.findOne({ where: { idProposta: id } });
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+
+    proposal.driveLink = driveLink;
+    return this.proposalsRepo.save(proposal);
   }
 
   // -------------------------------------------------------------------

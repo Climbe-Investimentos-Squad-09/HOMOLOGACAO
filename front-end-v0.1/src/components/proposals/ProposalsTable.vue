@@ -63,7 +63,7 @@
             </span>
           </td>
           <td class="actions-cell">
-            <button class="action-icon-button" title="Visualizar">
+            <button class="action-icon-button" title="Visualizar" @click="$emit('view', proposal)">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none"
                 xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="white" />
@@ -76,17 +76,8 @@
                   stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button class="action-icon-button" :title="proposal.status === 'Rascunho' ? 'Enviar' : 'Download'">
-              <svg v-if="proposal.status === 'Rascunho'" width="32" height="32" viewBox="0 0 32 32" fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="white" />
-                <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#DFDFDF" />
-                <path fill-rule="evenodd" clip-rule="evenodd"
-                  d="M21.9909 10.01L9.39895 14.563L13.5939 16.991L17.2929 13.291C17.4806 13.1035 17.735 12.9982 18.0003 12.9983C18.2656 12.9984 18.5199 13.1039 18.7074 13.2915C18.895 13.4791 19.0002 13.7336 19.0001 13.9989C19.0001 14.2641 18.8946 14.5185 18.7069 14.706L15.0069 18.406L17.4369 22.6L21.9909 10.01ZM22.3139 7.766C23.5089 7.333 24.6669 8.491 24.2339 9.686L18.9519 24.291C18.5179 25.489 16.8819 25.635 16.2429 24.532L13.0259 18.974L7.46794 15.757C6.36494 15.118 6.51095 13.482 7.70895 13.048L22.3139 7.766Z"
-                  fill="black" />
-              </svg>
-
-              <svg v-else width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <button class="action-icon-button" title="Download" @click="handleDownload(proposal)">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="white" />
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#DFDFDF" />
                 <path
@@ -118,8 +109,30 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['refresh'])
+const emit = defineEmits(['refresh', 'view'])
 const { success, error } = useToast()
+
+const handleDownload = (proposal) => {
+  if (!proposal.rawProposal?.driveLink) {
+    error('Nenhum documento disponível para download')
+    return
+  }
+  
+  let downloadUrl = proposal.rawProposal.driveLink
+  
+  if (downloadUrl.includes('/view')) {
+    downloadUrl = downloadUrl.replace('/view', '/view?usp=sharing')
+  }
+  
+  if (downloadUrl.includes('/file/d/')) {
+    const match = downloadUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`
+    }
+  }
+  
+  window.open(downloadUrl, '_blank')
+}
 const canChangeStatus = ref(false)
 
 const statusMap = {

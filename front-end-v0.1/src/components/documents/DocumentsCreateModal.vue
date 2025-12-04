@@ -52,6 +52,7 @@
                 </div>
 
                 <div class="form-group file-upload">
+                    <label style="text-align: left; margin-bottom: 8px; display: block;">Arquivo PDF (obrigatório):</label>
                     <div class="upload-icon"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
                             <path
@@ -64,7 +65,7 @@
                         <p>{{ selectedFile.name }}</p>
                         <button @click="removeSelectedFile" class="remove-file-button">Remover</button>
                     </div>
-                    <p class="hint">[Citar formatos aceitos]</p>
+                    <p class="hint">Formatos aceitos: PDF</p>
                     <input type="file" ref="fileInput" style="display: none;" @change="handleFileChange"
                         accept=".pdf" />
                     <button class="add-file-button" @click="triggerFileInput">Adicione arquivo</button>
@@ -112,7 +113,8 @@ const isFormValid = computed(() => {
     return formData.value.name && 
            formData.value.tipo_documento && 
            formData.value.idEmpresa && 
-           formData.value.idResponsavel;
+           formData.value.idResponsavel &&
+           selectedFile.value !== null;
 });
 
 onMounted(async () => {
@@ -179,6 +181,17 @@ const handleCreate = async () => {
         return;
     }
 
+    if (!selectedFile.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Arquivo obrigatório',
+                message: 'Por favor, selecione um arquivo PDF.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
     loading.value = true;
     try {
         const documentData = {
@@ -189,7 +202,7 @@ const handleCreate = async () => {
             idResponsavel: formData.value.idResponsavel
         };
 
-        await createDocument(documentData);
+        await createDocument(documentData, selectedFile.value);
         
         toast.showToast('Documento adicionado com sucesso!', 'success');
         emit('created');

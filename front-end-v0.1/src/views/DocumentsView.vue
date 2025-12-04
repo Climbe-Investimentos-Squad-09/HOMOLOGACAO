@@ -6,7 +6,13 @@
       @open-create-modal="openCreateModal"
     />
     <DocumentsCreateModal v-if="showCreateModal" @close="closeCreateModal" @created="loadDocuments" />
-    <DocumentsTable :documents="filteredDocuments" :loading="loading" @refresh="loadDocuments" />
+    <DocumentsTable :documents="filteredDocuments" :loading="loading" @refresh="loadDocuments" @view="viewDocument" />
+    <DocumentDetailsModal 
+      v-if="showDetailsModal" 
+      :is-open="showDetailsModal" 
+      :document="selectedDocument" 
+      @close="closeDetailsModal" 
+    />
   </div>
 </template>
 
@@ -15,6 +21,7 @@ import { ref, computed, onMounted } from 'vue';
 import DocumentsHeader from '../components/documents/DocumentsHeader.vue';
 import DocumentsTable from '../components/documents/DocumentsTable.vue';
 import DocumentsCreateModal from '../components/documents/DocumentsCreateModal.vue';
+import DocumentDetailsModal from '../components/documents/DocumentDetailsModal.vue';
 import { getDocuments } from '@/api/documents';
 
 const showCreateModal = ref(false);
@@ -22,6 +29,8 @@ const searchQuery = ref('');
 const selectedFilters = ref([]);
 const allDocuments = ref([]);
 const loading = ref(false);
+const showDetailsModal = ref(false);
+const selectedDocument = ref(null);
 
 const openCreateModal = () => {
   showCreateModal.value = true;
@@ -82,6 +91,16 @@ const filteredDocuments = computed(() => {
 
   return filtered;
 });
+
+const viewDocument = (document) => {
+  selectedDocument.value = document.rawDocument;
+  showDetailsModal.value = true;
+};
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false;
+  selectedDocument.value = null;
+};
 
 onMounted(() => {
   loadDocuments();

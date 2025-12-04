@@ -1,6 +1,7 @@
 // src/modules/proposals/proposals.controller.ts
-import { UseGuards, Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { UseGuards, Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { ProposalsService } from './proposals.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -11,18 +12,17 @@ import { UpdateProposalsDto } from './dtos/update-proposals.dto';
 import { AssignProposalDto } from './dtos/assign-proposals.dto';
 import { UpdateProposalStatusDto } from './dtos/update-proposals-status.dto';
 import { StatusProposta } from './entities/proposals.entity';
-
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
-import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+import { driveService } from '../drive/drive.service';
 
 
 @ApiTags('proposals')
 @ApiBearerAuth()
-@UseGuards(GoogleOAuthGuard)
 @Controller('proposals')
 export class ProposalsController {
-  constructor(private readonly proposals: ProposalsService) {}
+  constructor(
+    private readonly proposals: ProposalsService,
+    private readonly driveService: driveService
+  ) {}
 
   @Permissions('propostas:visualizar')
   @Get()
@@ -47,32 +47,63 @@ export class ProposalsController {
   @Permissions('propostas:criar')
   @Auditable({ entity: 'proposals', action: AuditAction.CREATE, entityIdFromResult: 'idProposta' })
   @Post()
-  @ApiOperation({ summary: 'Cria proposta' })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Cria proposta com arquivo obrigatório' })
   @ApiBody({
-    type: CreateProposalsDto,
-    examples: {
-      padrao: {
-        summary: 'Exemplo padrão',
-        value: {
-          idEmpresa: 1,
-          idEmissor: 2,
-          valorProposta: 100000.0,
-          prazoValidade: '2025-12-31',
-          statusProposta: StatusProposta.EM_ANALISE,
-          dataCriacao: '2025-10-22',
+    schema: {
+      type: 'object',
+      properties: {
+        idEmpresa: { type: 'number' },
+        idEmissor: { type: 'number' },
+        valorProposta: { type: 'number' },
+        prazoValidade: { type: 'string' },
+        statusProposta: { type: 'string', enum: Object.values(StatusProposta) },
+        file: {
+          type: 'string',
+          format: 'binary',
         },
       },
+      required: ['file'],
     },
   })
-  create(
+  async create(
     @Body() dto: CreateProposalsDto, 
+    @UploadedFile() file: any,
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens
   ) {
-    return this.proposals.create(
-      tokens,
-      dto
-    );
+    if (!file || file.mimetype !== 'application/pdf') {
+      throw new Error('Arquivo PDF é obrigatório');
+    }
+
+    let proposal;
+    let uploadResult;
+    
+    try {
+      proposal = await this.proposals.create(dto);
+      
+      const fileName = `Proposta_${proposal.idProposta}_${file.originalname}`;
+      uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      
+      if (!uploadResult.webViewLink) {
+        await this.proposals.delete(proposal.idProposta);
+        throw new Error('Falha ao obter link do arquivo após upload');
+      }
+      
+      await this.proposals.updateDriveLink(proposal.idProposta, uploadResult.webViewLink);
+      proposal.driveLink = uploadResult.webViewLink;
+      
+      return proposal;
+    } catch (error) {
+      if (proposal && proposal.idProposta) {
+        try {
+          await this.proposals.delete(proposal.idProposta);
+        } catch (deleteError) {
+          console.error('Erro ao deletar proposta após falha no upload:', deleteError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Permissions('propostas:editar')

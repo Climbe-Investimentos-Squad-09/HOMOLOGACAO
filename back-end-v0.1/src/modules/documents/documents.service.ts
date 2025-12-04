@@ -103,6 +103,17 @@ export class DocumentsService {
     await this.documentsRepo.remove(document);
   }
 
+  async update(id: number, dto: Partial<{ driveLink: string }>): Promise<Document> {
+    const document = await this.documentsRepo.findOne({ where: { idDocumento: id } });
+    if (!document) throw new NotFoundException('Documento não encontrado');
+
+    if (dto.driveLink) {
+      document.driveLink = dto.driveLink;
+    }
+
+    return this.documentsRepo.save(document);
+  }
+
   async updateStatus(id: number, dto: { status: StatusDocumento }, user?: any): Promise<Document> {
     if (!id) throw new BadRequestException('ID do documento inválido');
     if (!dto?.status) throw new BadRequestException('status é obrigatório');

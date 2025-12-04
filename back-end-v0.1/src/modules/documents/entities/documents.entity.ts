@@ -52,6 +52,9 @@ export class Document {
   @Column({ type: 'enum', enum: StatusDocumento, default: StatusDocumento.REVISAO })
   status!: StatusDocumento;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  driveLink?: string;
+
   @CreateDateColumn()
   dataCriacao!: Date;
 }

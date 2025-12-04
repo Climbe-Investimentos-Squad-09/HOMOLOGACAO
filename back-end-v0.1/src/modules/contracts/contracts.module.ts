@@ -8,9 +8,10 @@ import { Companies } from '../companies/entities/companies.entity';
 import ContractAssignee from './entities/contract-assignee.entity';
 import { User } from '../user/entities/user.entity';
 import { DriveModule } from '../drive/drive.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Contract,Proposals,Companies,ContractAssignee,User]), DriveModule],
+  imports: [TypeOrmModule.forFeature([Contract,Proposals,Companies,ContractAssignee,User]), DriveModule, AuthModule],
   controllers: [ContractsController],
   providers: [ContractsService],
   exports: [ContractsService],

@@ -341,7 +341,7 @@ export default {
 }
 .login-form input {
   padding: 12px 16px;
-  background: rgba(136, 136, 136, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(57, 198, 187, 0.3);
   border-radius: 10px;
   color: #000000;
@@ -351,11 +351,11 @@ export default {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 .login-form input::placeholder {
-  color: #000000;
+  color: rgba(0, 0, 0, 0.5);
   font-weight: 400;
 }
 .login-form input:focus {
-  background: rgb(85, 85, 85);
+  background: rgba(255, 255, 255, 1);
   border-color: var(--theme-color);
   box-shadow: 0 0 0 3px rgba(57, 198, 187, 0.1), 0 8px 25px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);

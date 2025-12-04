@@ -177,12 +177,25 @@ const viewReport = (report) => {
 }
 
 const downloadReport = (report) => {
-  if (report.driveLink) {
-    const downloadUrl = report.driveLink.replace('/view?usp=sharing', '')
-    window.open(downloadUrl, '_blank')
-  } else {
-    toast.showToast('Relatório não possui arquivo anexado', 'warning')
+  if (!report.driveLink) {
+    toast.warning('Relatório não possui arquivo anexado')
+    return
   }
+
+  let downloadUrl = report.driveLink
+
+  if (downloadUrl.includes('/view')) {
+    downloadUrl = downloadUrl.replace('/view', '/view?usp=sharing')
+  }
+
+  if (downloadUrl.includes('/file/d/')) {
+    const match = downloadUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`
+    }
+  }
+
+  window.open(downloadUrl, '_blank')
 }
 
 const closeDetailsModal = () => {

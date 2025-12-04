@@ -25,11 +25,22 @@ export function canDeleteUser(currentUserRole, targetUserRole) {
 export async function checkCanDeleteUser(targetUser) {
   const { useAuthStore } = await import('@/stores/auth')
   const { getRoleById } = await import('@/api/roles')
+  const { hasRoleName } = await import('@/utils/permissions')
   
   const authStore = useAuthStore()
   const currentUserId = authStore.user?.idUsuario || authStore.user?.id
   
-  if (!currentUserId || !targetUser?.cargo?.idCargo) {
+  if (!currentUserId) {
+    return { canDelete: false, reason: 'Usuário não autenticado' }
+  }
+  
+  const isAdmin = await hasRoleName(['SysAdmin'])
+  
+  if (isAdmin) {
+    return { canDelete: true }
+  }
+  
+  if (!targetUser?.cargo?.idCargo) {
     return { canDelete: false, reason: 'Usuário sem cargo não pode ser deletado por hierarquia' }
   }
   

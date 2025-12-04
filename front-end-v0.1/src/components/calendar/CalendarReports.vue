@@ -45,33 +45,33 @@
       <div 
         v-else
         v-for="report in filteredReports" 
-        :key="report.id"
+        :key="report.idRelatorio"
         class="report-card"
       >
         <div class="report-content">
-          <h3 class="report-title">{{ report.titulo || 'Nome do relatório' }}</h3>
+          <h3 class="report-title">{{ report.titulo }}</h3>
           <div class="report-meta">
             <div class="meta-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 4H5C3.89 4 3 4.9 3 6V20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="#6C757D"/>
               </svg>
-              <span>{{ formatDate(report.data) }}</span>
+              <span>{{ formatDate(report.dataCriacao) }}</span>
             </div>
             <div class="meta-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 7V3H2V21H22V7H12ZM6 19H4V17H6V19ZM6 15H4V13H6V15ZM6 11H4V9H6V11ZM6 7H4V5H6V7ZM10 19H8V17H10V19ZM10 15H8V13H10V15ZM10 11H8V9H10V11ZM10 7H8V5H10V7ZM20 19H12V17H14V15H12V13H14V11H12V9H20V19ZM18 11H16V13H18V11ZM18 15H16V17H18V15Z" fill="#6C757D"/>
+                <path d="M19 4H5C3.89 4 3 4.9 3 6V20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="#6C757D"/>
               </svg>
-              <span>{{ report.empresa || 'TechCorp' }}</span>
+              <span>{{ report.empresa?.nomeFantasia || '—' }}</span>
             </div>
-            <div class="meta-item">
+            <div class="meta-item" v-if="report.responsavel">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7ZM12 13C15.3137 13 18 14.6863 18 18V19H6V18C6 14.6863 8.68629 13 12 13Z" fill="#6C757D"/>
               </svg>
-              <span>{{ report.responsavel || 'João Silva' }}</span>
+              <span>{{ report.responsavel?.nomeCompleto || '—' }}</span>
             </div>
           </div>
-          <p class="report-description">
-            {{ report.descricao || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam rutrum dui et urna dictum tincidunt. Sed tristique commodo purus, vitae porta sem finibus ut. Nam tristique nec elit et ultrices. Proin venenatis risus et dui efficitur fringilla.' }}
+          <p class="report-description" v-if="report.descricao">
+            {{ report.descricao }}
           </p>
         </div>
         <div class="report-actions">
@@ -88,12 +88,20 @@
         </div>
       </div>
     </div>
+
+    <ReportDetailsModal 
+      :isOpen="showDetailsModal"
+      :report="selectedReport"
+      @close="closeDetailsModal"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { getReports } from '@/api/reports'
+import ReportDetailsModal from './ReportDetailsModal.vue'
 
 const props = defineProps({
   refreshTrigger: {
@@ -108,9 +116,10 @@ const loading = ref(false)
 const searchQuery = ref('')
 const selectedFilters = ref([])
 const reports = ref([])
+const showDetailsModal = ref(false)
+const selectedReport = ref(null)
 
-// Por enquanto usando dados mock, será substituído por API real
-const filterOptions = ['Urgente', 'Normal', 'Concluído']
+const filterOptions = []
 
 const filteredReports = computed(() => {
   let filtered = reports.value
@@ -120,7 +129,7 @@ const filteredReports = computed(() => {
     filtered = filtered.filter(report =>
       report.titulo?.toLowerCase().includes(query) ||
       report.descricao?.toLowerCase().includes(query) ||
-      report.empresa?.toLowerCase().includes(query)
+      report.empresa?.nomeFantasia?.toLowerCase().includes(query)
     )
   }
 
@@ -131,10 +140,27 @@ const filteredReports = computed(() => {
   return filtered
 })
 
+const loadReports = async () => {
+  loading.value = true
+  try {
+    reports.value = await getReports()
+  } catch (error) {
+    console.error('Erro ao carregar relatórios:', error)
+    toast.showToast('Erro ao carregar relatórios', 'error')
+    reports.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 const formatDate = (dateString) => {
-  if (!dateString) return new Date().toLocaleDateString('pt-BR')
-  const date = new Date(dateString)
-  return date.toLocaleDateString('pt-BR')
+  if (!dateString) return '—'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('pt-BR')
+  } catch {
+    return '—'
+  }
 }
 
 const handleSearch = () => {
@@ -146,42 +172,44 @@ const handleFiltersChange = () => {
 }
 
 const viewReport = (report) => {
-  // TODO: Implementar visualização de relatório
-  toast.showToast('Funcionalidade em desenvolvimento', 'info')
+  selectedReport.value = report
+  showDetailsModal.value = true
 }
 
 const downloadReport = (report) => {
-  // TODO: Implementar download de relatório
-  toast.showToast('Funcionalidade em desenvolvimento', 'info')
+  if (!report.driveLink) {
+    toast.warning('Relatório não possui arquivo anexado')
+    return
+  }
+
+  let downloadUrl = report.driveLink
+
+  if (downloadUrl.includes('/view')) {
+    downloadUrl = downloadUrl.replace('/view', '/view?usp=sharing')
+  }
+
+  if (downloadUrl.includes('/file/d/')) {
+    const match = downloadUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`
+    }
+  }
+
+  window.open(downloadUrl, '_blank')
 }
 
-// Por enquanto, usar dados mock
-reports.value = [
-  {
-    id: 1,
-    titulo: 'Nome do relatório',
-    descricao: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam rutrum dui et urna dictum tincidunt. Sed tristique commodo purus, vitae porta sem finibus ut. Nam tristique nec elit et ultrices. Proin venenatis risus et dui efficitur fringilla.',
-    data: new Date().toISOString(),
-    empresa: 'TechCorp',
-    responsavel: 'João Silva'
-  },
-  {
-    id: 2,
-    titulo: 'Nome do relatório',
-    descricao: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam rutrum dui et urna dictum tincidunt. Sed tristique commodo purus, vitae porta sem finibus ut. Nam tristique nec elit et ultrices. Proin venenatis risus et dui efficitur fringilla.',
-    data: new Date().toISOString(),
-    empresa: 'TechCorp',
-    responsavel: 'João Silva'
-  },
-  {
-    id: 3,
-    titulo: 'Nome do relatório',
-    descricao: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam rutrum dui et urna dictum tincidunt. Sed tristique commodo purus, vitae porta sem finibus ut. Nam tristique nec elit et ultrices. Proin venenatis risus et dui efficitur fringilla.',
-    data: new Date().toISOString(),
-    empresa: 'TechCorp',
-    responsavel: 'João Silva'
-  }
-]
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedReport.value = null
+}
+
+onMounted(() => {
+  loadReports()
+})
+
+watch(() => props.refreshTrigger, () => {
+  loadReports()
+})
 </script>
 
 <style scoped>

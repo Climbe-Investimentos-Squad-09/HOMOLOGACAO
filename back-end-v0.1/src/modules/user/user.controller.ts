@@ -110,7 +110,7 @@ export class UserController {
   }
 
   // -------- DELETE ----------
-  @Permissions('usuarios:deletar')
+  @Permissions('usuarios:excluir')
   @Auditable({ entity: 'usuarios', action: AuditAction.DELETE, entityIdParam: 'id', loadBefore: true })
   @Delete(':id')
   @ApiOperation({ summary: 'Remove usuário' })

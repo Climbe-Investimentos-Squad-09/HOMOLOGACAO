@@ -12,14 +12,9 @@ import { AssignProposalDto } from './dtos/assign-proposals.dto';
 import { UpdateProposalStatusDto } from './dtos/update-proposals-status.dto';
 import { StatusProposta } from './entities/proposals.entity';
 
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
-import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
-
 
 @ApiTags('proposals')
 @ApiBearerAuth()
-@UseGuards(GoogleOAuthGuard)
 @Controller('proposals')
 export class ProposalsController {
   constructor(private readonly proposals: ProposalsService) {}
@@ -67,10 +62,8 @@ export class ProposalsController {
   create(
     @Body() dto: CreateProposalsDto, 
     @Req() req: any,
-    @GoogleTokensDecorator() tokens: GoogleTokens
   ) {
     return this.proposals.create(
-      tokens,
       dto
     );
   }

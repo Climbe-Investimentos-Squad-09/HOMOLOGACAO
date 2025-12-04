@@ -1,51 +1,20 @@
 import {SendEmailDTO} from "./dtos/sendGmail.dto";
-import { GmailMessage } from "./dtos/interfaceGmail";
 
 import { google, gmail_v1 } from "googleapis";
 import { Base64 } from "js-base64";
-import { OAuth2Client } from 'google-auth-library';
-import { Injectable } from '@nestjs/common';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
+import { Inject } from '@nestjs/common';
+import { GOOGLE_AUTH } from "../auth/auth.module";
 
-@Injectable()
 export class gmailService{
-  constructor() {
-    console.log("Gmail Service inicializado (user-level OAuth)");
+  private gmail: gmail_v1.Gmail;
+
+  constructor(@Inject(GOOGLE_AUTH) private readonly googleAuth: any){
+    this.gmail = google.gmail({ version: "v1", auth: this.googleAuth });
+    console.log("Cliente Gmail criado")
   }
 
-  /**
-   * Cria OAuth2Client configurado com tokens do usuário
-   */
-  private createAuthClient(tokens: GoogleTokens) {
-    const client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI,
-    );
-
-    client.setCredentials({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      scope: tokens.scope,
-      token_type: tokens.token_type,
-      expiry_date: tokens.expiry_date,
-    });
-
-    return client;
-  }
-
-  /**
-   * Cria instância do Gmail API com autenticação do usuário
-   */
-  private createGmailClient(tokens: GoogleTokens): gmail_v1.Gmail {
-    const authClient = this.createAuthClient(tokens);
-    return google.gmail({ version: 'v1', auth: authClient });
-  }
-
-  async sendEmail(tokens: GoogleTokens, data: SendEmailDTO) {
+  async sendEmail(data: SendEmailDTO) {
     try {
-      const gmail = this.createGmailClient(tokens);
-
       // Monta a mensagem em formato RFC 2822
       const rawMessage = [
         `From: me`,
@@ -67,7 +36,7 @@ export class gmailService{
       console.log("Email codificado");
 
       // Envia a mensagem
-      const res = await gmail.users.messages.send({
+      const res = await this.gmail.users.messages.send({
         userId: "me",
         requestBody: {
           raw: encodedMessage,

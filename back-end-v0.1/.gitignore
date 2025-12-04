@@ -1,6 +1,9 @@
 # dependências
 node_modules/
 
+#credenciais
+credentials.json
+
 # build de produção
 dist/
 build/

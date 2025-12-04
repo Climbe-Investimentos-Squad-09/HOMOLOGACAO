@@ -1,7 +1,8 @@
 import fs = require('fs');
 import { google, drive_v3 } from "googleapis";
 import { OAuth2Client } from 'google-auth-library';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { GOOGLE_AUTH } from '../auth/auth.module';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,8 +17,14 @@ import { CreateFileDto } from './dtos/create-file.dto';
 import { Companies } from '../companies/entities/companies.entity';
 import { Proposals } from '../proposals/entities/proposals.entity';
 
+import path from "path";
+const tokenPath = path.join(__dirname, '../../../token.json');
+const token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+
 @Injectable()
 export class driveService{
+    private Drive: drive_v3.Drive;
+
     constructor(
         private GmailService: gmailService,
 
@@ -29,45 +36,18 @@ export class driveService{
 
         @InjectRepository(File)
         private readonly filesRepo: Repository<File>,
+
+        @Inject(GOOGLE_AUTH) private readonly googleAuth: any,
     ) {
+        this.Drive = google.drive({ version: "v3", auth: this.googleAuth });
         console.log("Drive Service inicializado (user-level OAuth)");
     }
 
-    /**
-     * Cria OAuth2Client configurado com tokens do usuário
-     */
-    private createAuthClient(tokens: GoogleTokens){
-        const client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI,
-        );
-
-        client.setCredentials({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            scope: tokens.scope,
-            token_type: tokens.token_type,
-            expiry_date: tokens.expiry_date,
-        });
-
-        return client;
-    }
-
-    /**
-     * Cria instância do Drive API com autenticação do usuário
-     */
-    private createDriveClient(tokens: GoogleTokens): drive_v3.Drive {
-        const authClient = this.createAuthClient(tokens);
-        return google.drive({ version: 'v3', auth: authClient });
-    }
 
     //Listar Documentos
-    async listDocuments(tokens: GoogleTokens){
+    async listDocuments(){
         try{
-            const drive = this.createDriveClient(tokens);
-
-            const res = await drive.files.list({
+            const res = await this.Drive.files.list({
                 q: "mimeType!='application/vnd.google-apps.folder'",
                 pageSize: 10,
                 fields: 'nextPageToken, files(id, name)',
@@ -109,15 +89,12 @@ export class driveService{
 
     //Enviar Documentos. Query: arquivo, tipo_documento, empresa_id
      async sendDocument(
-        tokens: GoogleTokens,
         data: SendDriveDTO,
         mimeT: string,
     ){
         const nome = data.name;
-        let id = await this.searchFolder(tokens, nome);
+        let id = await this.searchFolder(nome);
         try{
-            const drive = this.createDriveClient(tokens);
-
             //Metadados
             const fileMetadata = {
                 name: data.name,
@@ -132,7 +109,7 @@ export class driveService{
             };
 
             //Lançar para o drive
-            const response = await drive.files.create({
+            const response = await this.Drive.files.create({
                 requestBody: fileMetadata,
                 media: media,
                 fields: "id"
@@ -144,6 +121,7 @@ export class driveService{
                 (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
                 ){
                 
+                    
                 this.registerFile({
                     idArquivo: response.data.id,
                     
@@ -153,7 +131,7 @@ export class driveService{
                 
                     urlArquivo: response.data.driveId,
                 
-                    emailUsuario: await this.getEmailFromIdToken(tokens.access_token), //Inserir o id do token gerado pelo Oauth
+                    emailUsuario: await this.getEmailFromIdToken(token.access_token), //Inserir o id do token gerado pelo Oauth
                 
                     dataEnvio: new Date,
                 })
@@ -168,11 +146,9 @@ export class driveService{
 
     //Validar Documento
     async validateDocument(
-        tokens: GoogleTokens,
         id: string
     ){
-        const drive = this.createDriveClient(tokens);
-        const response = await drive.files.update({
+        const response = await this.Drive.files.update({
             fileId: id
         });
         return response;
@@ -180,11 +156,9 @@ export class driveService{
 
     //Remover Documento
     async removeDocuments(
-        tokens: GoogleTokens,
         id: string
     ){
-        const drive = this.createDriveClient(tokens);
-        const response = await drive.files.delete({
+        const response = await this.Drive.files.delete({
             fileId: id
         });
 
@@ -195,11 +169,9 @@ export class driveService{
     // Funções Complementares
     // ---------------------------------------------
     async inviteUsertoFolder(
-        tokens: GoogleTokens,
         nomeEmail:string,
         idPasta: string,
     ){
-        const drive = this.createDriveClient(tokens);
         const permissionIds: string[] = [];
 
         //Permissões para convidar
@@ -211,7 +183,7 @@ export class driveService{
             };
 
         // Iterate through the permissions and create them one by one.
-            const result = await drive.permissions.create({
+            const result = await this.Drive.permissions.create({
                 requestBody: permission,
                 fileId: idPasta,
                 fields: 'id',
@@ -228,13 +200,10 @@ export class driveService{
     }
 
     async searchFolder(
-        tokens: GoogleTokens,
         nome: string
     ){
-        const drive = this.createDriveClient(tokens);
-
         // Search for files with the specified query.
-        const result = await drive.files.list({
+        const result = await this.Drive.files.list({
             q: `mimeType='application/vnd.google-apps.folder' and name='${nome}' and trashed = false`,
             fields: 'nextPageToken, files(id, name)',
             spaces: 'drive',
@@ -253,15 +222,10 @@ export class driveService{
     }
 
     async createFolder(
-        tokens: GoogleTokens,
         nome: string,
         empr: boolean,
         id: any,
-    ){
-        const drive = this.createDriveClient(tokens);
-
-        const emailProprietario = ""; //Definir um e-mail fixo
-        
+    ){  
         // Metadados da Pasta
         let fileMetadata = {}
 
@@ -270,7 +234,7 @@ export class driveService{
         
         //Criação com, ou sem, Pasta Mãe
         //Para pastas de propostas e pastas de empresas
-        if((id == undefined && empr!)|| (id == null && empr!)){
+        if((id != undefined && empr!)|| (id != null && empr!)){
             if(nome == "" || nome == undefined || nome == null){
                 let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
                 .where('u.idEmpresa = :id', { idEmpresa: id })
@@ -288,7 +252,7 @@ export class driveService{
             let val;
 
             if(el !== null){
-                val = await this.searchFolder(tokens, el.nomeFantasia);
+                val = await this.searchFolder(el.nomeFantasia);
             }
 
             fileMetadata = {
@@ -304,31 +268,23 @@ export class driveService{
         }
 
         // Create the new folder.
-        const file = await drive.files.create({
+        const file = await this.Drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
         });
 
+        if(empr!){
+            const res = await this.Drive.files.copy({
+                fileId: '10Y_k-2rSLpOEnk7srhy0QNV8DUWKzMjl',
+                requestBody: {
+                name: 'relatorio_financeiro.xlsx',
+                parents: [`${file.data.id}`]
+                }
+            });
+        }
+
         // Print the ID of the new folder.
         console.log('\nFolder Id:', file.data.id);
-
-        if(file.data.id){
-            this.inviteUsertoFolder(tokens, emailProprietario, file.data.id)
-        }
-
-        if(empr!){
-            this.GmailService.sendEmail(
-                tokens,
-                {
-                    "toEmailAddress": emailProprietario,
-                        
-                    "messageSubject": "Copiar Planilha",
-                        
-                    "bodyText": "Insira a planilha para a pasta: " + file.data.id
-                }
-            );
-        }
-
         return file.data.id?.toString();
     }
 

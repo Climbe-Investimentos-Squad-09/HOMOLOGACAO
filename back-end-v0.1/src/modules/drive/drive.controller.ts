@@ -4,12 +4,8 @@ import FileType from 'file-type';
 
 import { driveService } from "./drive.service";
 import {SendDriveDTO} from "./dtos/drive.dto";
-import { GoogleOAuthGuard } from '../auth/guards/google-oauth.guard';
-import { GoogleTokens as GoogleTokensDecorator } from '../auth/decorators/google-tokens.decorator';
-import { GoogleTokens } from '../auth/interfaces/google-tokens.interface';
 
 @Controller('drive')
-@UseGuards(GoogleOAuthGuard)
 export class DriveController{
   constructor(
       private readonly DriveService: driveService,
@@ -17,9 +13,9 @@ export class DriveController{
 
   //Get - Listar todos os Documentos - lista no terminal da ide
   @Get('')
-    async getall(@GoogleTokensDecorator() tokens: GoogleTokens){
+    async getall(){
         try{
-            return this.DriveService.listDocuments(tokens);
+            return this.DriveService.listDocuments();
         }catch(error: any){
             console.log("Erro ao listar documentos: " + error)
             throw error;
@@ -29,8 +25,7 @@ export class DriveController{
   //Post - Enviar Documentos.  Query: arquivo, tipo_documento, empresa_id
   @Post('')
   async postonly(
-    @Body() body: SendDriveDTO,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
+    @Body() body: SendDriveDTO
   ){
       const allowedTypes = ['application/pdf'];
       const buffer = await fs.readFile(body.arquivo); // lê o arquivo completo ou parcialmente
@@ -38,7 +33,7 @@ export class DriveController{
 
       if(type?.mime.toString() !== undefined && allowedTypes.includes(type?.mime.toString())){
         try {
-            const result = await this.DriveService.sendDocument(tokens, body, type.mime);
+            const result = await this.DriveService.sendDocument(body, type.mime);
             return result;
           } catch (error: any) {
             console.error("Erro ao enviar Documento:", error);
@@ -56,11 +51,10 @@ export class DriveController{
   //Delete - Remover Documento
   @Delete(':id')
   async deleteonly(
-    @Param('id') id: string,
-    @GoogleTokensDecorator() tokens: GoogleTokens,
+    @Param('id') id: string
   ){
         try {
-          const result = await this.DriveService.removeDocuments(tokens, id);
+          const result = await this.DriveService.removeDocuments(id);
           return result;
         } catch (error: any) {
             console.error("Erro ao deletar Arquivo:", error);

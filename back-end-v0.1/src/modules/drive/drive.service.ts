@@ -29,7 +29,7 @@ interface MulterFile {
 import path from "path";
 
 // Carrega token (de variável de ambiente ou arquivo)
-let token;
+let token: any;
 if (process.env.TOKEN_JSON) {
   token = JSON.parse(process.env.TOKEN_JSON);
 } else {

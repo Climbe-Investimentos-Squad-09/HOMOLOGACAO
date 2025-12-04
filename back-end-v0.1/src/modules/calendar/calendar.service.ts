@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 
 // Carrega token (de variável de ambiente ou arquivo)
-let token;
+let token: any;
 if (process.env.TOKEN_JSON) {
   token = JSON.parse(process.env.TOKEN_JSON);
 } else {
@@ -21,7 +21,7 @@ if (process.env.TOKEN_JSON) {
   token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
 }
 
-@Injectable()
+@Injectable()@Injectable()
 export class calendarService {
   private readonly apiBase = 'https://www.googleapis.com/calendar/v3';
   private Calendar: calendar_v3.Calendar;

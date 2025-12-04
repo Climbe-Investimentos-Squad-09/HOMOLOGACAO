@@ -13,11 +13,20 @@ import {
 } from "@nestjs/common";
 import { Session as ExpressSession } from 'express-session';
 
-//Credenciais globais do token oauth
-const credentials = require('../../../credentials.json');
-const { client_secret, client_id, redirect_uris } = credentials.web;
 const { google } = require('googleapis');
 const fs = require('fs');
+const path = require('path');
+
+// Carrega credenciais (de variável de ambiente ou arquivo)
+let credentials;
+if (process.env.CREDENTIALS_JSON) {
+  credentials = JSON.parse(process.env.CREDENTIALS_JSON);
+} else {
+  const credsPath = path.join(__dirname, '../../../credentials.json');
+  credentials = JSON.parse(fs.readFileSync(credsPath, 'utf-8'));
+}
+
+const { client_secret, client_id, redirect_uris } = credentials.web;
 const oAuth2Client = new google.auth.OAuth2(
   client_id,
   client_secret,

@@ -9,11 +9,20 @@ import { GoogleOAuthService } from '../services/google-oauth.service';
 import { AuthService } from '../auth.service';
 
 const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const { google } = require('googleapis');
 const open = require('open'); // abre URL no navegador automaticamente
 
-const credentials = require('../../../../credentials.json');
+// Carrega credenciais (de variável de ambiente ou arquivo)
+let credentials;
+if (process.env.CREDENTIALS_JSON) {
+  credentials = JSON.parse(process.env.CREDENTIALS_JSON);
+} else {
+  const credsPath = path.join(__dirname, '../../../../credentials.json');
+  credentials = JSON.parse(fs.readFileSync(credsPath, 'utf-8'));
+}
+
 const { client_secret, client_id, redirect_uris } = credentials.web;
 const oAuth2Client = new google.auth.OAuth2(
   client_id,

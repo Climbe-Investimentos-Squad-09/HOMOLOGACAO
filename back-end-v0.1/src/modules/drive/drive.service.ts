@@ -27,8 +27,15 @@ interface MulterFile {
 }
 
 import path from "path";
-const tokenPath = path.join(__dirname, '../../../token.json');
-const token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+
+// Carrega token (de variável de ambiente ou arquivo)
+let token;
+if (process.env.TOKEN_JSON) {
+  token = JSON.parse(process.env.TOKEN_JSON);
+} else {
+  const tokenPath = path.join(__dirname, '../../../token.json');
+  token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+}
 
 @Injectable()
 export class driveService{

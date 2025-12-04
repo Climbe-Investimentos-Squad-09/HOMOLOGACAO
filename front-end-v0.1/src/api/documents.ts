@@ -49,16 +49,28 @@ export async function getDocuments(filters?: any): Promise<Document[]> {
   }
 }
 
-export async function createDocument(dto: CreateDocumentDto): Promise<Document> {
-  const payload = {
-    name: dto.name,
-    tipo_documento: dto.tipo_documento,
-    idEmpresa: dto.idEmpresa,
-    idContrato: dto.idContrato || undefined,
-    idResponsavel: dto.idResponsavel || undefined
-  };
+export async function createDocument(dto: CreateDocumentDto, file: File): Promise<Document> {
+  const formData = new FormData()
   
-  const { data } = await api.post('/documents', payload)
+  formData.append('name', dto.name)
+  formData.append('tipo_documento', dto.tipo_documento)
+  formData.append('idEmpresa', String(dto.idEmpresa))
+  
+  if (dto.idContrato) {
+    formData.append('idContrato', String(dto.idContrato))
+  }
+  
+  if (dto.idResponsavel) {
+    formData.append('idResponsavel', String(dto.idResponsavel))
+  }
+  
+  formData.append('file', file)
+  
+  const { data } = await api.post('/documents', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return data
 }
 

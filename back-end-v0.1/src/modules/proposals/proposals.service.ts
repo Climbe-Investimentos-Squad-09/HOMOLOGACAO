@@ -125,17 +125,22 @@ export class ProposalsService {
       throw new BadRequestException('ID da empresa inválido');
     }
 
-    // statusProposta não é atualizado aqui; há endpoint próprio
     const toSave: Partial<Proposals> = {
       ...proposal,
       ...(dto.idEmpresa !== undefined ? { idEmpresa: dto.idEmpresa } : {}),
       ...(dto.valorProposta !== undefined ? { valorProposta: dto.valorProposta } : {}),
       ...(dto.prazoValidade !== undefined ? { prazoValidade: dto.prazoValidade } : {}),
-      // dataCriacao em geral não deve ser mexida; se quiser suportar, descomente:
-      // ...(dto.dataCriacao ? { dataCriacao: new Date(dto.dataCriacao) } : {}),
     };
 
     return this.proposalsRepo.save(toSave);
+  }
+
+  async updateDriveLink(id: number, driveLink: string): Promise<Proposals> {
+    const proposal = await this.proposalsRepo.findOne({ where: { idProposta: id } });
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+
+    proposal.driveLink = driveLink;
+    return this.proposalsRepo.save(proposal);
   }
 
   // -------------------------------------------------------------------

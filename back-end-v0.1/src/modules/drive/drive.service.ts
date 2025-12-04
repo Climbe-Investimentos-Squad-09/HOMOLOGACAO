@@ -17,6 +17,15 @@ import { CreateFileDto } from './dtos/create-file.dto';
 import { Companies } from '../companies/entities/companies.entity';
 import { Proposals } from '../proposals/entities/proposals.entity';
 
+interface MulterFile {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    size: number;
+    buffer: Buffer;
+}
+
 import path from "path";
 const tokenPath = path.join(__dirname, '../../../token.json');
 const token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
@@ -87,28 +96,24 @@ export class driveService{
         return data?.email;
     }
 
-    //Enviar Documentos. Query: arquivo, tipo_documento, empresa_id
-     async sendDocument(
+    async sendDocument(
         data: SendDriveDTO,
         mimeT: string,
     ){
         const nome = data.name;
         let id = await this.searchFolder(nome);
         try{
-            //Metadados
             const fileMetadata = {
                 name: data.name,
                 mimeType: mimeT,
                 parents: [`${id}`]
             };
 
-            //Conteúdo
             const media = {
                 mimeType: mimeT,
                 body: fs.createReadStream(data.arquivo)
             };
 
-            //Lançar para o drive
             const response = await this.Drive.files.create({
                 requestBody: fileMetadata,
                 media: media,
@@ -120,26 +125,88 @@ export class driveService{
                 (response.data.driveId !== "" && response.data.driveId !== undefined  && response.data.driveId !== null)&&
                 (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
                 ){
-                
-                    
                 this.registerFile({
                     idArquivo: response.data.id,
-                    
                     nomeArquivo: response.data.name,
-                
                     nomeEmpresa: data.name,
-                
                     urlArquivo: response.data.driveId,
-                
-                    emailUsuario: await this.getEmailFromIdToken(token.access_token), //Inserir o id do token gerado pelo Oauth
-                
+                    emailUsuario: await this.getEmailFromIdToken(token.access_token),
                     dataEnvio: new Date,
                 })
-                
             }
 
             return response;
         }catch (err) {
+            throw err;
+        }
+    }
+
+    async uploadFile(
+        file: MulterFile,
+        folderName: string,
+        fileName?: string
+    ): Promise<{ id: string; name: string; webViewLink?: string }> {
+        try {
+            let folderId = await this.searchFolder(folderName);
+            if (!folderId) {
+                await this.createFolder(folderName, false, null);
+                folderId = await this.searchFolder(folderName);
+            }
+
+            const fileMetadata = {
+                name: fileName || file.originalname,
+                mimeType: file.mimetype,
+                parents: [folderId]
+            };
+
+            const { Readable } = require('stream');
+            const media = {
+                mimeType: file.mimetype,
+                body: Readable.from(file.buffer)
+            };
+
+            const response = await this.Drive.files.create({
+                requestBody: fileMetadata,
+                media: media,
+                fields: "id, name, webViewLink"
+            });
+
+            if (!response.data.webViewLink && response.data.id) {
+                const fileInfo = await this.Drive.files.get({
+                    fileId: response.data.id,
+                    fields: "webViewLink"
+                });
+                if (fileInfo.data.webViewLink) {
+                    response.data.webViewLink = fileInfo.data.webViewLink;
+                }
+            }
+
+            if (response.data.id) {
+                try {
+                    const tokenResult = await this.googleAuth.getAccessToken();
+                    const accessToken = typeof tokenResult === 'string' ? tokenResult : (tokenResult as any)?.token || '';
+                    if (accessToken) {
+                        const email = await this.getEmailFromIdToken(accessToken);
+                        await this.registerFile({
+                            idArquivo: response.data.id,
+                            nomeArquivo: response.data.name || file.originalname,
+                            nomeEmpresa: folderName,
+                            urlArquivo: response.data.webViewLink || '',
+                            emailUsuario: email || 'unknown@example.com',
+                            dataEnvio: new Date(),
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao registrar arquivo:', error);
+                }
+            }
+
+            return {
+                id: response.data.id || '',
+                name: response.data.name || file.originalname,
+                webViewLink: response.data.webViewLink || undefined
+            };
+        } catch (err) {
             throw err;
         }
     }
@@ -226,27 +293,25 @@ export class driveService{
         empr: boolean,
         id: any,
     ){  
-        // Metadados da Pasta
         let fileMetadata = {}
 
-        //Nome da pastaProposta, se não for definida
         let nomeProposta = nome;
         
-        //Criação com, ou sem, Pasta Mãe
-        //Para pastas de propostas e pastas de empresas
-        if((id != undefined && empr!)|| (id != null && empr!)){
+        const idNum = id && id !== "" ? Number(id) : null;
+        const hasValidId = idNum !== null && !isNaN(idNum) && idNum > 0;
+        
+        if(hasValidId && empr){
             if(nome == "" || nome == undefined || nome == null){
                 let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
-                .where('u.idEmpresa = :id', { idEmpresa: id })
+                .where('u.idEmpresa = :id', { id: idNum })
                 .getCount();
 
-                nomeProposta = "Proposta", (await qntPropostas) + 1
+                nomeProposta = "Proposta" + ((await qntPropostas) + 1)
             }
-            
             
             const el = await this.companiesRepo.createQueryBuilder('u')
             .select(['u.nomeFantasia'])
-            .where('u.idEmpresa = :id', { idEmpresa: id })
+            .where('u.idEmpresa = :id', { id: idNum })
             .getOne();
             
             let val;
@@ -258,7 +323,7 @@ export class driveService{
             fileMetadata = {
                 name: nomeProposta,
                 mimeType: 'application/vnd.google-apps.folder',
-                parents: [`${val}`]
+                parents: val ? [`${val}`] : undefined
             };
         }else{
             fileMetadata = {

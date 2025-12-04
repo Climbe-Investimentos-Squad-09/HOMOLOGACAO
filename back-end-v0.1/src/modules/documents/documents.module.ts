@@ -6,10 +6,14 @@ import { Document } from './entities/documents.entity';
 import { Companies } from '../companies/entities/companies.entity';
 import { Contract } from '../contracts/entities/contracts.entity';
 import { User } from '../user/entities/user.entity';
+import { DriveModule } from '../drive/drive.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Document, Companies, Contract, User]),
+    DriveModule,
+    AuthModule
   ],
   controllers: [DocumentsController],
   providers: [DocumentsService],

@@ -1,6 +1,7 @@
 // src/modules/proposals/proposals.controller.ts
-import { UseGuards, Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { UseGuards, Controller, Get, Post, Put, Delete, Body, Param, Query, Patch, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBody, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { ProposalsService } from './proposals.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -11,13 +12,17 @@ import { UpdateProposalsDto } from './dtos/update-proposals.dto';
 import { AssignProposalDto } from './dtos/assign-proposals.dto';
 import { UpdateProposalStatusDto } from './dtos/update-proposals-status.dto';
 import { StatusProposta } from './entities/proposals.entity';
+import { driveService } from '../drive/drive.service';
 
 
 @ApiTags('proposals')
 @ApiBearerAuth()
 @Controller('proposals')
 export class ProposalsController {
-  constructor(private readonly proposals: ProposalsService) {}
+  constructor(
+    private readonly proposals: ProposalsService,
+    private readonly driveService: driveService
+  ) {}
 
   @Permissions('propostas:visualizar')
   @Get()
@@ -42,30 +47,47 @@ export class ProposalsController {
   @Permissions('propostas:criar')
   @Auditable({ entity: 'proposals', action: AuditAction.CREATE, entityIdFromResult: 'idProposta' })
   @Post()
-  @ApiOperation({ summary: 'Cria proposta' })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Cria proposta com arquivo opcional' })
   @ApiBody({
-    type: CreateProposalsDto,
-    examples: {
-      padrao: {
-        summary: 'Exemplo padrão',
-        value: {
-          idEmpresa: 1,
-          idEmissor: 2,
-          valorProposta: 100000.0,
-          prazoValidade: '2025-12-31',
-          statusProposta: StatusProposta.EM_ANALISE,
-          dataCriacao: '2025-10-22',
+    schema: {
+      type: 'object',
+      properties: {
+        idEmpresa: { type: 'number' },
+        idEmissor: { type: 'number' },
+        valorProposta: { type: 'number' },
+        prazoValidade: { type: 'string' },
+        statusProposta: { type: 'string', enum: Object.values(StatusProposta) },
+        file: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
   })
-  create(
+  async create(
     @Body() dto: CreateProposalsDto, 
+    @UploadedFile() file: any,
     @Req() req: any,
   ) {
-    return this.proposals.create(
-      dto
-    );
+    const proposal = await this.proposals.create(dto);
+    
+    if (file && file.mimetype === 'application/pdf') {
+      try {
+        const fileName = `Proposta_${proposal.idProposta}_${file.originalname}`;
+        const uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+        
+        if (uploadResult.webViewLink) {
+          await this.proposals.updateDriveLink(proposal.idProposta, uploadResult.webViewLink);
+          proposal.driveLink = uploadResult.webViewLink;
+        }
+      } catch (error) {
+        console.error('Erro ao fazer upload do arquivo:', error);
+      }
+    }
+    
+    return proposal;
   }
 
   @Permissions('propostas:editar')

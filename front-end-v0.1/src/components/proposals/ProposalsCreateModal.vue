@@ -169,7 +169,7 @@ const handleCreate = async () => {
             statusProposta: StatusProposta.EM_ANALISE
         };
 
-        await createProposal(proposalData);
+        await createProposal(proposalData, selectedFile.value || undefined);
         
         toast.showToast('Proposta criada com sucesso!', 'success');
         emit('created');

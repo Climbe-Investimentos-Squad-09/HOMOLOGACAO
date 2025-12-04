@@ -179,7 +179,7 @@ const handleCreate = async () => {
             dataFim: formData.value.dataFim || undefined
         };
 
-        await createContract(contractData);
+        await createContract(contractData, selectedFile.value || undefined);
         
         toast.showToast('Contrato criado com sucesso!', 'success');
         emit('created');

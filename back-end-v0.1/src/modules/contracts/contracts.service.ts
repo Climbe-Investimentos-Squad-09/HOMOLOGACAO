@@ -205,11 +205,18 @@ export class ContractsService {
       (contract as any).compliance = { idUsuario: dto.idCompliance } as any;
     }
 
-    // dataEncerramento só deve existir se status não for Ativo (regra suave aqui)
     if (dto.dataEncerramento) {
       contract.dataEncerramento = new Date(dto.dataEncerramento);
     }
 
+    return this.contractsRepo.save(contract);
+  }
+
+  async updateDriveLink(id: number, driveLink: string): Promise<Contract> {
+    const contract = await this.contractsRepo.findOne({ where: { idContrato: id as any } as any });
+    if (!contract) throw new NotFoundException('Contrato não encontrado');
+
+    contract.driveLink = driveLink;
     return this.contractsRepo.save(contract);
   }
 

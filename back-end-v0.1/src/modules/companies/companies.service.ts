@@ -70,7 +70,6 @@ export class CompaniesService {
       representanteLegal: dto.representanteLegal,
     });
 
-    this.DriveService.createFolder(dto.nomeFantasia, true, "")
     return this.repo.save(entity);
   }
 
@@ -100,9 +99,6 @@ export class CompaniesService {
     }
 
     const toSave = this.repo.merge(company, dto);
-    if(dto.nomeFantasia !== "" && dto.nomeFantasia !== undefined){
-      this.DriveService.createFolder(dto.nomeFantasia, true, "")
-    }
     return this.repo.save(toSave);
   }
 

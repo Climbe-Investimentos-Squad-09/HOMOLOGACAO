@@ -54,4 +54,7 @@ export class Contract {
   @OneToMany(() => ContractAssignee, (a: ContractAssignee) => a.contrato, { cascade: true })
 atribuicoes!: ContractAssignee[];
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  driveLink?: string;
+
 }

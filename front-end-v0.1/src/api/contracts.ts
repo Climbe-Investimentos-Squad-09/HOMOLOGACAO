@@ -58,8 +58,24 @@ export interface CreateContractDto {
   dataFim?: string
 }
 
-export async function createContract(dto: CreateContractDto): Promise<Contract> {
-  const { data } = await api.post('/contracts', dto)
+export async function createContract(dto: CreateContractDto, file?: File): Promise<Contract> {
+  const formData = new FormData()
+  
+  Object.keys(dto).forEach(key => {
+    if (dto[key] !== undefined && dto[key] !== null) {
+      formData.append(key, String(dto[key]))
+    }
+  })
+  
+  if (file) {
+    formData.append('file', file)
+  }
+  
+  const { data } = await api.post('/contracts', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return data
 }
 

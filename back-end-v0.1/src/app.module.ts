@@ -20,6 +20,7 @@ import { AuthzMiddleware } from './modules/auth/middlewares/authz.middleware';
 import { AuditModule } from './audit/audit.module';
 import { ReunioesModule } from './modules/meetings/meeting.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports:
@@ -47,6 +48,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
       AuditModule,
       ReunioesModule,
       DocumentsModule,
+      ReportsModule,
     ],
 
     providers: [{ provide: APP_GUARD, useClass: RolesGuard },

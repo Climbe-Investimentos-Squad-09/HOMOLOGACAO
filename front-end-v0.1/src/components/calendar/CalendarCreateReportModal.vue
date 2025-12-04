@@ -90,7 +90,7 @@
                 fill="#858585" />
             </svg>
           </div>
-          <p v-if="!selectedFile">Adicione arquivo com a proposta ou arraste-o aqui</p>
+          <p v-if="!selectedFile">Adicione arquivo com o relatório ou arraste-o aqui (obrigatório)</p>
           <div v-else class="selected-file-info fade-in">
             <p>{{ selectedFile.name }}</p>
             <button @click="removeSelectedFile" class="remove-file-button">Remover</button>
@@ -128,6 +128,7 @@ import { ref, inject, onMounted, computed } from 'vue'
 import { getCompanies } from '@/api/companies'
 import { getContracts } from '@/api/contracts'
 import { getUsers } from '@/api/users'
+import { createReport } from '@/api/reports'
 import { useToast } from '@/composables/useToast'
 
 const emit = defineEmits(['close', 'created'])
@@ -157,7 +158,8 @@ const activeContracts = computed(() => {
 
 const isFormValid = computed(() => {
   return formData.value.titulo.trim() !== '' && 
-         formData.value.idEmpresa !== null
+         formData.value.idEmpresa !== null &&
+         selectedFile.value !== null
 })
 
 onMounted(async () => {
@@ -217,7 +219,18 @@ const handleCreate = async () => {
     if (alertModal) {
       alertModal.openAlert({
         title: 'Campos obrigatórios',
-        message: 'Por favor, preencha todos os campos obrigatórios.',
+        message: 'Por favor, preencha todos os campos obrigatórios e adicione um arquivo.',
+        type: 'warning'
+      })
+    }
+    return
+  }
+
+  if (!selectedFile.value) {
+    if (alertModal) {
+      alertModal.openAlert({
+        title: 'Arquivo obrigatório',
+        message: 'Por favor, adicione um arquivo PDF.',
         type: 'warning'
       })
     }
@@ -226,8 +239,7 @@ const handleCreate = async () => {
 
   loading.value = true
   try {
-    // TODO: Implementar API de relatórios quando disponível
-    // Por enquanto, apenas simular criação
+    await createReport(formData.value, selectedFile.value)
     toast.showToast('Relatório criado com sucesso!', 'success')
     emit('created')
     emit('close')

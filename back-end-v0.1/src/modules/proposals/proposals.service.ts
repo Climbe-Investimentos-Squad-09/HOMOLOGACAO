@@ -50,7 +50,6 @@ export class ProposalsService {
       statusProposta: dto.statusProposta ?? StatusProposta.EM_ANALISE,
     });
 
-    this.DriveService.createFolder("", false, dto.idEmpresa)
     return this.proposalsRepo.save(proposal);
   }
 

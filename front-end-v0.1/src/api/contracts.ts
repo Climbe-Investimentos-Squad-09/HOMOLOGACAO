@@ -20,6 +20,7 @@ export interface Contract {
   dataEncerramento?: string
   dataInicio?: string
   dataFim?: string
+  driveLink?: string
 }
 
 export interface ContractFilters {

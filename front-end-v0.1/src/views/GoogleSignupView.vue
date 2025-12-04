@@ -307,14 +307,18 @@ export default {
 }
 
 .signup-form .input-component {
-  background: rgba(128,128,128,0.3) !important;
-  border: 1px solid rgba(255,255,255,0.6) !important;
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid rgba(57, 198, 187, 0.3) !important;
   color: #000000 !important;
   width: 100%;
 }
 
 .signup-form .input-component::placeholder {
-  color: rgba(128,128,128,0.3) !important;
+  color: rgba(0,0,0,0.5) !important;
+}
+
+.signup-form .input-component:focus {
+  background: rgba(255,255,255,1) !important;
 }
 
 .signup-form .button-component {

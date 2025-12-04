@@ -49,7 +49,7 @@ export class ProposalsController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Cria proposta com arquivo opcional' })
+  @ApiOperation({ summary: 'Cria proposta com arquivo obrigatório' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -64,6 +64,7 @@ export class ProposalsController {
           format: 'binary',
         },
       },
+      required: ['file'],
     },
   })
   async create(
@@ -71,23 +72,38 @@ export class ProposalsController {
     @UploadedFile() file: any,
     @Req() req: any,
   ) {
-    const proposal = await this.proposals.create(dto);
-    
-    if (file && file.mimetype === 'application/pdf') {
-      try {
-        const fileName = `Proposta_${proposal.idProposta}_${file.originalname}`;
-        const uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
-        
-        if (uploadResult.webViewLink) {
-          await this.proposals.updateDriveLink(proposal.idProposta, uploadResult.webViewLink);
-          proposal.driveLink = uploadResult.webViewLink;
-        }
-      } catch (error) {
-        console.error('Erro ao fazer upload do arquivo:', error);
-      }
+    if (!file || file.mimetype !== 'application/pdf') {
+      throw new Error('Arquivo PDF é obrigatório');
     }
+
+    let proposal;
+    let uploadResult;
     
-    return proposal;
+    try {
+      proposal = await this.proposals.create(dto);
+      
+      const fileName = `Proposta_${proposal.idProposta}_${file.originalname}`;
+      uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      
+      if (!uploadResult.webViewLink) {
+        await this.proposals.delete(proposal.idProposta);
+        throw new Error('Falha ao obter link do arquivo após upload');
+      }
+      
+      await this.proposals.updateDriveLink(proposal.idProposta, uploadResult.webViewLink);
+      proposal.driveLink = uploadResult.webViewLink;
+      
+      return proposal;
+    } catch (error) {
+      if (proposal && proposal.idProposta) {
+        try {
+          await this.proposals.delete(proposal.idProposta);
+        } catch (deleteError) {
+          console.error('Erro ao deletar proposta após falha no upload:', deleteError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Permissions('propostas:editar')

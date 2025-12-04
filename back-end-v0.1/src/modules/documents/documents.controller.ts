@@ -41,7 +41,7 @@ export class DocumentsController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Cria documento com arquivo' })
+  @ApiOperation({ summary: 'Cria documento com arquivo obrigatório' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -56,6 +56,7 @@ export class DocumentsController {
           format: 'binary',
         },
       },
+      required: ['file'],
     },
   })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -67,21 +68,34 @@ export class DocumentsController {
       throw new Error('Arquivo PDF é obrigatório');
     }
 
-    const document = await this.documentsService.create(dto);
+    let document;
+    let uploadResult;
     
     try {
-      const fileName = document.name || `Documento_${document.idDocumento}_${file.originalname}`;
-      const uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      document = await this.documentsService.create(dto);
       
-      if (uploadResult.webViewLink) {
-        await this.documentsService.update(document.idDocumento, { driveLink: uploadResult.webViewLink });
-        document.driveLink = uploadResult.webViewLink;
+      const fileName = document.name || `Documento_${document.idDocumento}_${file.originalname}`;
+      uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      
+      if (!uploadResult.webViewLink) {
+        await this.documentsService.delete(document.idDocumento);
+        throw new Error('Falha ao obter link do arquivo após upload');
       }
+      
+      await this.documentsService.update(document.idDocumento, { driveLink: uploadResult.webViewLink });
+      document.driveLink = uploadResult.webViewLink;
+      
+      return document;
     } catch (error) {
-      console.error('Erro ao fazer upload do arquivo:', error);
+      if (document && document.idDocumento) {
+        try {
+          await this.documentsService.delete(document.idDocumento);
+        } catch (deleteError) {
+          console.error('Erro ao deletar documento após falha no upload:', deleteError);
+        }
+      }
+      throw error;
     }
-    
-    return document;
   }
 
   @Permissions('documentos_juridicos:excluir')

@@ -20,6 +20,7 @@ export interface Document {
   }
   status?: string
   dataCriacao?: string
+  driveLink?: string
 }
 
 export interface CreateDocumentDto {

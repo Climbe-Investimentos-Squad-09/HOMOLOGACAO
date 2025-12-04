@@ -63,7 +63,7 @@ export default {
   padding: 0.75rem 1rem;
   border: 1px solid rgba(57, 198, 187, 0.3);
   border-radius: 10px;
-  background: rgba(136, 136, 136, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   color: #000000;
   font-size: 1rem;
   outline: none;
@@ -78,12 +78,12 @@ export default {
 }
 
 .input-component::placeholder {
-  color: #000000;
+  color: rgba(0, 0, 0, 0.5);
   opacity: 0.7;
 }
 
 .input-component:focus {
-  background: rgb(85, 85, 85);
+  background: rgba(255, 255, 255, 1);
   border-color: #39C6BB;
   box-shadow: 0 0 0 3px rgba(57, 198, 187, 0.1), 0 8px 25px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);

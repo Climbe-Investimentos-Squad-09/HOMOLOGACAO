@@ -37,6 +37,7 @@
                 </div>
 
                 <div class="form-group file-upload">
+                    <label style="text-align: left; margin-bottom: 8px; display: block;">Arquivo PDF (obrigatório):</label>
                     <div class="upload-icon"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
                             <path
@@ -94,7 +95,8 @@ const isFormValid = computed(() => {
     return formData.value.idEmpresa && 
            formData.value.idEmissor && 
            formData.value.valorProposta > 0 && 
-           formData.value.prazoValidade;
+           formData.value.prazoValidade &&
+           selectedFile.value !== null;
 });
 
 onMounted(async () => {
@@ -152,7 +154,18 @@ const handleCreate = async () => {
         if (alertModal) {
             alertModal.openAlert({
                 title: 'Campos obrigatórios',
-                message: 'Por favor, preencha todos os campos obrigatórios.',
+                message: 'Por favor, preencha todos os campos obrigatórios e adicione um arquivo PDF.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
+    if (!selectedFile.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Arquivo obrigatório',
+                message: 'Por favor, selecione um arquivo PDF.',
                 type: 'warning'
             });
         }
@@ -169,7 +182,7 @@ const handleCreate = async () => {
             statusProposta: StatusProposta.EM_ANALISE
         };
 
-        await createProposal(proposalData, selectedFile.value || undefined);
+        await createProposal(proposalData, selectedFile.value);
         
         toast.showToast('Proposta criada com sucesso!', 'success');
         emit('created');

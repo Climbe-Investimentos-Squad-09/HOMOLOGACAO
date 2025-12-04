@@ -14,6 +14,7 @@ export interface Proposal {
   prazoValidade: string
   statusProposta: StatusProposta
   dataCriacao: string
+  driveLink?: string
   atribuicoes?: Array<{
     id: number
     usuario: {

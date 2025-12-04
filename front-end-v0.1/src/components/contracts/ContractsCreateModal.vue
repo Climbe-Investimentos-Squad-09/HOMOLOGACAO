@@ -46,7 +46,18 @@
                     />
                 </div>
 
+                <div class="form-group">
+                    <label for="data-encerramento">Data de Encerramento:</label>
+                    <input 
+                        type="date" 
+                        id="data-encerramento" 
+                        v-model="formData.dataEncerramento"
+                        :disabled="loading"
+                    />
+                </div>
+
                 <div class="form-group file-upload">
+                    <label style="text-align: left; margin-bottom: 8px; display: block;">Arquivo PDF (obrigatório):</label>
                     <div class="upload-icon"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
                             <path
@@ -97,11 +108,12 @@ const formData = ref({
     idProposta: null,
     idCompliance: null,
     dataInicio: '',
-    dataFim: ''
+    dataFim: '',
+    dataEncerramento: ''
 });
 
 const isFormValid = computed(() => {
-    return formData.value.idProposta !== null;
+    return formData.value.idProposta !== null && selectedFile.value !== null;
 });
 
 const formatCurrency = (value) => {
@@ -163,7 +175,18 @@ const handleCreate = async () => {
         if (alertModal) {
             alertModal.openAlert({
                 title: 'Campos obrigatórios',
-                message: 'Por favor, selecione uma proposta.',
+                message: 'Por favor, selecione uma proposta e adicione um arquivo PDF.',
+                type: 'warning'
+            });
+        }
+        return;
+    }
+
+    if (!selectedFile.value) {
+        if (alertModal) {
+            alertModal.openAlert({
+                title: 'Arquivo obrigatório',
+                message: 'Por favor, selecione um arquivo PDF.',
                 type: 'warning'
             });
         }
@@ -176,10 +199,11 @@ const handleCreate = async () => {
             idProposta: formData.value.idProposta,
             idCompliance: formData.value.idCompliance || undefined,
             dataInicio: formData.value.dataInicio || undefined,
-            dataFim: formData.value.dataFim || undefined
+            dataFim: formData.value.dataFim || undefined,
+            dataEncerramento: formData.value.dataEncerramento || undefined
         };
 
-        await createContract(contractData, selectedFile.value || undefined);
+        await createContract(contractData, selectedFile.value);
         
         toast.showToast('Contrato criado com sucesso!', 'success');
         emit('created');

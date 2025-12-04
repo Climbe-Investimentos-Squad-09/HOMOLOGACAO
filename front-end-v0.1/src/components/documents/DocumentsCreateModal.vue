@@ -52,6 +52,7 @@
                 </div>
 
                 <div class="form-group file-upload">
+                    <label style="text-align: left; margin-bottom: 8px; display: block;">Arquivo PDF (obrigatório):</label>
                     <div class="upload-icon"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
                             <path
@@ -112,7 +113,8 @@ const isFormValid = computed(() => {
     return formData.value.name && 
            formData.value.tipo_documento && 
            formData.value.idEmpresa && 
-           formData.value.idResponsavel;
+           formData.value.idResponsavel &&
+           selectedFile.value !== null;
 });
 
 onMounted(async () => {

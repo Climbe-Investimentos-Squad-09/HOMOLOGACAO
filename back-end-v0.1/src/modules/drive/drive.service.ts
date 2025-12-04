@@ -171,6 +171,23 @@ export class driveService{
                 fields: "id, name, webViewLink"
             });
 
+            if (!response.data.id) {
+                throw new Error('Falha ao criar arquivo no Google Drive');
+            }
+
+            try {
+                await this.Drive.permissions.create({
+                    fileId: response.data.id,
+                    requestBody: {
+                        role: 'reader',
+                        type: 'anyone'
+                    }
+                });
+            } catch (permError) {
+                console.error('Erro ao tornar arquivo público:', permError);
+                throw new Error('Falha ao tornar arquivo público no Google Drive');
+            }
+
             if (!response.data.webViewLink && response.data.id) {
                 const fileInfo = await this.Drive.files.get({
                     fileId: response.data.id,
@@ -199,6 +216,10 @@ export class driveService{
                 } catch (error) {
                     console.error('Erro ao registrar arquivo:', error);
                 }
+            }
+
+            if (!response.data.webViewLink) {
+                throw new Error('Não foi possível obter o link de visualização do arquivo');
             }
 
             return {

@@ -59,7 +59,7 @@ export class ContractsController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Cria contrato a partir de uma proposta com arquivo opcional' })
+  @ApiOperation({ summary: 'Cria contrato a partir de uma proposta com arquivo obrigatório' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -69,34 +69,51 @@ export class ContractsController {
         statusContrato: { type: 'string', enum: Object.values(StatusContrato) },
         dataInicio: { type: 'string' },
         dataFim: { type: 'string' },
+        dataEncerramento: { type: 'string' },
         file: {
           type: 'string',
           format: 'binary',
         },
       },
+      required: ['file'],
     },
   })
   async create(
     @Body() dto: CreateContractDto,
     @UploadedFile() file: any
   ) {
-    const contract = await this.contracts.create(dto);
-    
-    if (file && file.mimetype === 'application/pdf') {
-      try {
-        const fileName = `Contrato_${contract.idContrato}_${file.originalname}`;
-        const uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
-        
-        if (uploadResult.webViewLink) {
-          await this.contracts.updateDriveLink(contract.idContrato, uploadResult.webViewLink);
-          contract.driveLink = uploadResult.webViewLink;
-        }
-      } catch (error) {
-        console.error('Erro ao fazer upload do arquivo:', error);
-      }
+    if (!file || file.mimetype !== 'application/pdf') {
+      throw new Error('Arquivo PDF é obrigatório');
     }
+
+    let contract;
+    let uploadResult;
     
-    return contract;
+    try {
+      contract = await this.contracts.create(dto);
+      
+      const fileName = `Contrato_${contract.idContrato}_${file.originalname}`;
+      uploadResult = await this.driveService.uploadFile(file, 'Empresa', fileName);
+      
+      if (!uploadResult.webViewLink) {
+        await this.contracts.delete(contract.idContrato);
+        throw new Error('Falha ao obter link do arquivo após upload');
+      }
+      
+      await this.contracts.updateDriveLink(contract.idContrato, uploadResult.webViewLink);
+      contract.driveLink = uploadResult.webViewLink;
+      
+      return contract;
+    } catch (error) {
+      if (contract && contract.idContrato) {
+        try {
+          await this.contracts.delete(contract.idContrato);
+        } catch (deleteError) {
+          console.error('Erro ao deletar contrato após falha no upload:', deleteError);
+        }
+      }
+      throw error;
+    }
   }
 
   // -------- UPDATE GERAL (não status) ----------------------------------------

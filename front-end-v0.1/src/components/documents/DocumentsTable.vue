@@ -70,7 +70,7 @@
             </span>
           </td>
           <td class="actions-cell">
-            <button class="action-icon-button" title="Visualizar">
+            <button class="action-icon-button" title="Visualizar" @click="$emit('view', document)">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="white" />
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#DFDFDF" />
@@ -82,7 +82,7 @@
                   stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button class="action-icon-button" title="Download">
+            <button class="action-icon-button" title="Download" @click="handleDownload(document)">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="white" />
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#DFDFDF" />
@@ -115,8 +115,30 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['refresh'])
+const emit = defineEmits(['refresh', 'view'])
 const { success, error } = useToast()
+
+const handleDownload = (document) => {
+  if (!document.rawDocument?.driveLink) {
+    error('Nenhum documento disponível para download')
+    return
+  }
+  
+  let downloadUrl = document.rawDocument.driveLink
+  
+  if (downloadUrl.includes('/view')) {
+    downloadUrl = downloadUrl.replace('/view', '/view?usp=sharing')
+  }
+  
+  if (downloadUrl.includes('/file/d/')) {
+    const match = downloadUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`
+    }
+  }
+  
+  window.open(downloadUrl, '_blank')
+}
 const canChangeStatus = ref(false)
 
 const checkPermission = async () => {

@@ -17,6 +17,10 @@ import { CreateFileDto } from './dtos/create-file.dto';
 import { Companies } from '../companies/entities/companies.entity';
 import { Proposals } from '../proposals/entities/proposals.entity';
 
+import path from "path";
+const tokenPath = path.join(__dirname, '../../../token.json');
+const token = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+
 @Injectable()
 export class driveService{
     private Drive: drive_v3.Drive;
@@ -117,7 +121,7 @@ export class driveService{
                 (response.data.name !== "" && response.data.name !== undefined  && response.data.name !== null)
                 ){
                 
-                    /*
+                    
                 this.registerFile({
                     idArquivo: response.data.id,
                     
@@ -127,11 +131,11 @@ export class driveService{
                 
                     urlArquivo: response.data.driveId,
                 
-                    emailUsuario: await this.getEmailFromIdToken(tokens.access_token), //Inserir o id do token gerado pelo Oauth
+                    emailUsuario: await this.getEmailFromIdToken(token.access_token), //Inserir o id do token gerado pelo Oauth
                 
                     dataEnvio: new Date,
                 })
-                */
+                
             }
 
             return response;
@@ -221,10 +225,7 @@ export class driveService{
         nome: string,
         empr: boolean,
         id: any,
-    ){
-
-        const emailProprietario = ""; //Definir um e-mail fixo
-        
+    ){  
         // Metadados da Pasta
         let fileMetadata = {}
 
@@ -233,7 +234,7 @@ export class driveService{
         
         //Criação com, ou sem, Pasta Mãe
         //Para pastas de propostas e pastas de empresas
-        if((id == undefined && empr!)|| (id == null && empr!)){
+        if((id != undefined && empr!)|| (id != null && empr!)){
             if(nome == "" || nome == undefined || nome == null){
                 let qntPropostas = await this.proposalsRepo.createQueryBuilder('u')
                 .where('u.idEmpresa = :id', { idEmpresa: id })
@@ -272,25 +273,18 @@ export class driveService{
             fields: 'id',
         });
 
+        if(empr!){
+            const res = await this.Drive.files.copy({
+                fileId: '10Y_k-2rSLpOEnk7srhy0QNV8DUWKzMjl',
+                requestBody: {
+                name: 'relatorio_financeiro.xlsx',
+                parents: [`${file.data.id}`]
+                }
+            });
+        }
+
         // Print the ID of the new folder.
         console.log('\nFolder Id:', file.data.id);
-
-        if(file.data.id){
-            this.inviteUsertoFolder(emailProprietario, file.data.id)
-        }
-
-        if(empr!){
-            this.GmailService.sendEmail(
-                {
-                    "toEmailAddress": emailProprietario,
-                        
-                    "messageSubject": "Copiar Planilha",
-                        
-                    "bodyText": "Insira a planilha para a pasta: " + file.data.id
-                }
-            );
-        }
-
         return file.data.id?.toString();
     }
 

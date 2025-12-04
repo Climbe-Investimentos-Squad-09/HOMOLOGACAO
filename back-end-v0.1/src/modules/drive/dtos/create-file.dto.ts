@@ -22,3 +22,4 @@ export class CreateFileDto {
     @IsISO8601()
     dataEnvio!: Date; //Adicionar Escopo de email no projeto cloud (Requisitar email do usuário) ou usar o nome do usuário
 }
+
